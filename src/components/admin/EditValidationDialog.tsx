@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,56 +44,53 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     setOpen(false);
   };
 
-  const getTechnicalDescription = (type?: string, severity?: string, failAction?: string, validationId?: string) => {
-    const details = [];
+  const getTechnicalDescription = (validationId: string) => {
+    const descriptions: Record<string, string[]> = {
+      'row-length-consistency': [
+        "Purpose: Verifies data structure integrity by comparing row lengths",
+        "Implementation: Counts columns in each row and compares to header length",
+        "Common Issues:",
+        "- Missing delimiters causing merged columns",
+        "- Extra delimiters creating empty columns",
+        "- Line breaks within fields causing row splits",
+        "Resolution Steps:",
+        "1. Export data with proper delimiters",
+        "2. Remove any line breaks within fields",
+        "3. Ensure all rows have consistent delimiters"
+      ],
+      'required-columns': [
+        "Purpose: Ensures all mandatory fields are present in the import file",
+        "Implementation: Compares header names against required field list",
+        "Common Issues:",
+        "- Missing required column headers",
+        "- Misspelled column names",
+        "- Case sensitivity mismatches",
+        "Resolution Steps:",
+        "1. Compare headers against template",
+        "2. Add missing columns with valid data",
+        "3. Correct any misspelled headers"
+      ],
+      'header-uniqueness': [
+        "Purpose: Prevents ambiguous column mapping",
+        "Implementation: Checks for duplicate column names",
+        "Common Issues:",
+        "- Multiple columns with same name",
+        "- Hidden whitespace in headers",
+        "Resolution Steps:",
+        "1. Rename duplicate columns uniquely",
+        "2. Remove any trailing/leading spaces"
+      ]
+      // ... Add more validation descriptions as needed
+    };
 
-    if (validationId === 'row-length-consistency') {
-      details.push("Ensures every data row has the same number of columns as the header");
-      details.push("Prevents partial or incomplete data imports");
-      details.push("Verifies consistent data structure across all rows");
-      details.push("Helps catch file corruption or manual editing errors");
-    }
-
-    if (type === 'format') {
-      details.push("Input format validation");
-    } else if (type === 'structure') {
-      details.push("Structural data validation");
-    } else if (type === 'content') {
-      details.push("Content-based validation");
-    } else if (type === 'duplicate') {
-      details.push("Duplication detection logic");
-    } else if (type === 'mapping') {
-      details.push("Field mapping validation");
-    } else if (type === 'system') {
-      details.push("System-level validation");
-    } else if (type === 'review') {
-      details.push("Review process validation");
-    }
-
-    if (severity === 'critical') {
-      details.push("Blocks import process on failure");
-    } else if (severity === 'high') {
-      details.push("Requires immediate attention");
-    } else if (severity === 'medium') {
-      details.push("Warning with manual review option");
-    } else if (severity === 'low') {
-      details.push("Advisory notification only");
-    }
-
-    if (failAction === 'reject') {
-      details.push("Action: Reject import");
-    } else if (failAction === 'warn') {
-      details.push("Action: Display warning");
-    } else if (failAction === 'auto-fix') {
-      details.push("Action: Attempt automatic correction");
-    } else if (failAction === 'merge') {
-      details.push("Action: Auto-merge records");
-    } else if (failAction === 'flag') {
-      details.push("Action: Flag for review");
-    }
-
-    return details;
+    return descriptions[validationId] || [
+      "Type: " + (validation.type || 'Not specified'),
+      "Implementation details not yet documented.",
+      "Please refer to validation documentation for more information."
+    ];
   };
+
+  const isCriticalSeverity = validation.severity === 'critical';
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -101,7 +99,7 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Validation: {validation.name}</DialogTitle>
         </DialogHeader>
@@ -126,10 +124,18 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           </div>
           
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Validation Details</h3>
+            <h3 className="text-sm font-medium">Validation Configuration</h3>
             <div className="rounded-md bg-muted p-3 text-sm space-y-2">
               <p><strong>Type:</strong> {validation.type || 'Not specified'}</p>
-              <p><strong>Severity:</strong> {validation.severity || 'Not specified'}</p>
+              <p>
+                <strong>Severity:</strong> 
+                <span className={validation.severity === 'critical' ? 'text-red-600' : 'text-yellow-600'}>
+                  {' '}{validation.severity || 'Not specified'}
+                </span>
+                {!isCriticalSeverity && (
+                  <span className="ml-2 text-xs text-gray-500">(Can be overridden)</span>
+                )}
+              </p>
               {validation.failAction && (
                 <p><strong>Fail Action:</strong> {validation.failAction}</p>
               )}
@@ -139,13 +145,10 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Technical Implementation</h3>
             <div className="rounded-md bg-slate-100 p-3 text-sm space-y-1">
-              {getTechnicalDescription(
-                validation.type, 
-                validation.severity, 
-                validation.failAction, 
-                validation.id
-              ).map((detail, index) => (
-                <p key={index} className="text-slate-700">• {detail}</p>
+              {getTechnicalDescription(validation.id).map((detail, index) => (
+                <p key={index} className="text-slate-700">
+                  {detail.startsWith('-') || detail.match(/^\d+\./) ? detail : `• ${detail}`}
+                </p>
               ))}
             </div>
           </div>
