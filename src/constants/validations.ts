@@ -61,6 +61,26 @@ export const validations: Validation[] = [
     failAction: "reject"
   },
   
+  // Additional FILE_UPLOAD validations
+  {
+    id: "header-presence",
+    name: "Header Presence Check",
+    description: "Verifies that headers exist before proceeding with the import.",
+    category: ValidationCategory.FILE_UPLOAD,
+    severity: "critical",
+    type: "format",
+    failAction: "reject"
+  },
+  {
+    id: "max-row-count",
+    name: "Maximum Row Count Check",
+    description: "Verifies the file doesn't exceed the maximum allowed rows (100,000).",
+    category: ValidationCategory.FILE_UPLOAD,
+    severity: "critical",
+    type: "format",
+    failAction: "reject"
+  },
+
   // VERIFY_FILE (Preflight) validations
   {
     id: "required-columns",
@@ -153,6 +173,26 @@ export const validations: Validation[] = [
     failAction: "reject"
   },
 
+  // Additional VERIFY_FILE validations
+  {
+    id: "line-ending-consistency",
+    name: "Line Ending Consistency",
+    description: "Checks for mixed line endings that could cause parsing issues.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "high",
+    type: "structure",
+    failAction: "warn"
+  },
+  {
+    id: "bom-detection",
+    name: "BOM Detection",
+    description: "Checks for invisible Unicode BOM characters that can cause parsing issues.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "high",
+    type: "structure",
+    failAction: "warn"
+  },
+
   // COLUMN MAPPING validations
   {
     id: "auto-mapping-accuracy",
@@ -191,6 +231,35 @@ export const validations: Validation[] = [
     failAction: "reject"
   },
   
+  // Additional COLUMN_MAPPING validations
+  {
+    id: "data-preview-validation",
+    name: "Data Preview Validation",
+    description: "Verifies if mapped columns contain expected data patterns.",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "medium",
+    type: "mapping",
+    failAction: "warn"
+  },
+  {
+    id: "format-compatibility",
+    name: "Format Compatibility",
+    description: "Ensures column formats are compatible with target fields.",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "high",
+    type: "mapping",
+    failAction: "reject"
+  },
+  {
+    id: "optional-fields-warning",
+    name: "Optional Fields Warning",
+    description: "Alerts user about unmapped optional fields.",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "low",
+    type: "mapping",
+    failAction: "warn"
+  },
+
   // DATA QUALITY validations
   {
     id: "required-fields",
@@ -301,6 +370,26 @@ export const validations: Validation[] = [
     failAction: "warn"
   },
   
+  // Additional DATA_QUALITY validations
+  {
+    id: "character-limit",
+    name: "Character Limit Check",
+    description: "Validates fields don't exceed database column length limits.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "high",
+    type: "content",
+    failAction: "reject"
+  },
+  {
+    id: "enum-validation",
+    name: "Enum Value Validation",
+    description: "Checks if values match predefined options for enum fields.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "high",
+    type: "content",
+    failAction: "reject"
+  },
+
   // DATA NORMALIZATION validations
   {
     id: "trim-whitespace",
@@ -363,6 +452,35 @@ export const validations: Validation[] = [
     category: ValidationCategory.DATA_NORMALIZATION,
     type: "auto-fix",
     severity: "low",
+    failAction: "auto-fix"
+  },
+
+  // Additional DATA_NORMALIZATION validations
+  {
+    id: "currency-standardization",
+    name: "Currency Format Standardization",
+    description: "Normalizes different currency formats to a standard format.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "conversion",
+    severity: "medium",
+    failAction: "auto-fix"
+  },
+  {
+    id: "unit-conversion",
+    name: "Unit Measurement Conversion",
+    description: "Converts between different measurement units.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "conversion",
+    severity: "medium",
+    failAction: "auto-fix"
+  },
+  {
+    id: "address-verification",
+    name: "Address Standardization",
+    description: "Standardizes and verifies physical addresses.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "conversion",
+    severity: "medium",
     failAction: "auto-fix"
   },
 
@@ -473,7 +591,36 @@ export const validations: Validation[] = [
     type: "action",
     failAction: "flag"
   },
-  
+
+  // Additional DEDUPLICATION validations
+  {
+    id: "time-window-dedup",
+    name: "Time-Window Deduplication",
+    description: "Flags records entered within a specific timeframe.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate",
+    failAction: "warn"
+  },
+  {
+    id: "similarity-threshold",
+    name: "Similarity Score Configuration",
+    description: "Customizable thresholds for match similarity scores.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "configuration",
+    failAction: "warn"
+  },
+  {
+    id: "merge-rules",
+    name: "Merge Preference Rules",
+    description: "Configures which field values take precedence during merging.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "high",
+    type: "configuration",
+    failAction: "warn"
+  },
+
   // FINAL_REVIEW validations
   {
     id: "validation-summary",
@@ -533,6 +680,32 @@ export const validations: Validation[] = [
     failAction: "block"
   },
 
+  // Additional FINAL_REVIEW validations
+  {
+    id: "impact-analysis",
+    name: "Impact Analysis",
+    description: "Shows how import will affect existing data.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "high"
+  },
+  {
+    id: "rollback-plan",
+    name: "Rollback Verification",
+    description: "Ensures ability to undo the import if needed.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "critical"
+  },
+  {
+    id: "compliance-check",
+    name: "Compliance Verification",
+    description: "Verifies the import meets regulatory requirements.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "critical"
+  },
+
   // IMPORT_PUSH validations
   {
     id: "schema-compatibility",
@@ -569,5 +742,34 @@ export const validations: Validation[] = [
     severity: "critical",
     type: "system",
     failAction: "reject"
+  },
+
+  // Additional IMPORT_PUSH validations
+  {
+    id: "system-readiness",
+    name: "System Readiness Check",
+    description: "Verifies target system is available and ready.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "critical",
+    type: "system",
+    failAction: "reject"
+  },
+  {
+    id: "rate-limit",
+    name: "Rate Limit Awareness",
+    description: "Manages API rate limits for external systems.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "high",
+    type: "system",
+    failAction: "warn"
+  },
+  {
+    id: "notification-config",
+    name: "Notification Configuration",
+    description: "Sets up success/failure notifications for the import process.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "medium",
+    type: "system",
+    failAction: "warn"
   }
 ];
