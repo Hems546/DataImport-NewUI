@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Check, X, Loader, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, X, Loader, ChevronDown, Table } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -8,6 +7,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Table as UITable,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 export interface ValidationResult {
   id: string;
@@ -23,6 +31,8 @@ interface ValidationStatusProps {
 }
 
 const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
+  const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
+
   const getStatusIcon = (status: ValidationResult['status']) => {
     switch (status) {
       case 'pass':
@@ -90,6 +100,56 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
     ];
   };
 
+  const renderHeaderUniquenessExample = () => {
+    const headers = ['Customer ID', 'Name', 'Email', 'Email', 'Phone', 'Address'];
+    const sampleData = [
+      ['001', 'John Doe', 'john@example.com', 'john.doe@example.com', '123-456-7890', '123 Main St'],
+      ['002', 'Jane Smith', 'jane@example.com', 'jane.smith@example.com', '098-765-4321', '456 Oak Ave'],
+    ];
+
+    return (
+      <div className="mt-4 border rounded-lg overflow-hidden">
+        <UITable>
+          <TableHeader>
+            <TableRow>
+              {headers.map((header, index) => (
+                <TableHead
+                  key={`${header}-${index}`}
+                  className={cn(
+                    header === 'Email' && 'bg-red-50 text-red-800',
+                    'text-center'
+                  )}
+                >
+                  {header}
+                  {header === 'Email' && (
+                    <div className="text-xs text-red-600">Duplicate header</div>
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sampleData.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <TableCell
+                    key={`${cell}-${cellIndex}`}
+                    className={cn(
+                      cellIndex === 2 || cellIndex === 3 ? 'bg-red-50' : '',
+                      'text-center'
+                    )}
+                  >
+                    {cell}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </UITable>
+      </div>
+    );
+  };
+
   const failedChecks = results.filter(result => result.status === 'fail');
   const hasCriticalFailures = failedChecks.some(check => check.severity === 'critical');
 
@@ -141,6 +201,22 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
                         {detail}
                       </p>
                     ))}
+                    
+                    {result.id === 'header-uniqueness' && (
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDuplicateHeaders(!showDuplicateHeaders)}
+                          className="flex items-center gap-2"
+                        >
+                          <Table className="h-4 w-4" />
+                          {showDuplicateHeaders ? 'Hide Issue' : 'View Issue'}
+                        </Button>
+                        
+                        {showDuplicateHeaders && renderHeaderUniquenessExample()}
+                      </div>
+                    )}
                   </div>
                 </AccordionContent>
               )}
