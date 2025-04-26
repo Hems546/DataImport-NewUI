@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
+import { X, ChevronLeft } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 interface TemplateField {
   name: string;
@@ -28,6 +28,8 @@ interface EditTemplateDialogProps {
 }
 
 export function EditTemplateDialog({ open, onOpenChange, template, onSave }: EditTemplateDialogProps) {
+  const navigate = useNavigate();
+  
   const form = useForm({
     defaultValues: {
       title: template.title,
@@ -39,6 +41,10 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
   const onSubmit = (data: any) => {
     onSave(data);
     onOpenChange(false);
+  };
+
+  const handleBack = () => {
+    navigate('/admin');
   };
 
   const addField = () => {
@@ -59,7 +65,6 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl">
-        {/* The DialogClose is already included in the DialogContent component from Shadcn UI */}
         <DialogHeader>
           <DialogTitle>Edit Template</DialogTitle>
         </DialogHeader>
@@ -179,11 +184,21 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
               </Table>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+            <DialogFooter className="flex justify-between items-center">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleBack}
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <div className="flex space-x-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
