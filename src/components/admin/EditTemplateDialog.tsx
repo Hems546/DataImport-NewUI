@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { useForm } from "react-hook-form";
-import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
 interface TemplateField {
@@ -58,7 +58,7 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Edit Template</DialogTitle>
         </DialogHeader>
@@ -92,44 +92,40 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
             />
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <h4 className="text-sm font-medium">Fields</h4>
                 <Button type="button" variant="outline" size="sm" onClick={addField}>
                   Add Field
                 </Button>
               </div>
 
-              {form.watch('fields').map((field: TemplateField, index: number) => (
-                <div key={index} className="p-4 border rounded-lg space-y-4 relative">
-                  <button
-                    type="button"
-                    className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
-                    onClick={() => removeField(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-
-                  <FormField
-                    control={form.control}
-                    name={`fields.${index}.name`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Field Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name={`fields.${index}.type`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Type</FormLabel>
-                          <FormControl>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Field Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Required</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {form.watch('fields').map((field: TemplateField, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`fields.${index}.name`}
+                          render={({ field }) => (
+                            <Input {...field} className="w-full" />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`fields.${index}.type`}
+                          render={({ field }) => (
                             <select
                               className="w-full h-10 px-3 border rounded-md"
                               {...field}
@@ -141,44 +137,45 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
                               <option value="phone">Phone</option>
                               <option value="boolean">Boolean</option>
                             </select>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`fields.${index}.required`}
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2 pt-8">
-                          <FormControl>
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`fields.${index}.required`}
+                          render={({ field }) => (
                             <input
                               type="checkbox"
                               checked={field.value}
                               onChange={field.onChange}
                               className="h-4 w-4"
                             />
-                          </FormControl>
-                          <FormLabel>Required</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name={`fields.${index}.description`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              ))}
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`fields.${index}.description`}
+                          render={({ field }) => (
+                            <Input {...field} className="w-full" />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="text-gray-500 hover:text-gray-700"
+                          onClick={() => removeField(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
 
             <DialogFooter>
