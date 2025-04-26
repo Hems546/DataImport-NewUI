@@ -23,8 +23,9 @@ export async function validateFile(file: File): Promise<FileValidationResult[]> 
               session_id: crypto.randomUUID(),
               row_count: results.data.length,
               column_count: results.data[0] ? (results.data[0] as any[]).length : 0,
+              // Cast source_columns to a JSON compatible format
               source_columns: results.data[0] || []
-            })
+            } as any)
             .select()
             .single();
 
