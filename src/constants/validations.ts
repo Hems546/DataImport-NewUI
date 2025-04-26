@@ -82,20 +82,40 @@ export const validations: Validation[] = [
   
   // COLUMN MAPPING validations
   {
-    id: "required-columns",
-    name: "Required Columns",
-    description: "Verifies that all required columns can be mapped to the source data.",
-    category: ValidationCategory.COLUMN_MAPPING,
-    severity: "high",
-    type: "mapping"
-  },
-  {
-    id: "column-format",
-    name: "Column Format",
-    description: "Checks that mapped columns match expected data formats.",
+    id: "auto-mapping-accuracy",
+    name: "Auto-Mapping Accuracy",
+    description: "System attempts to intelligently map columns based on name similarity using fuzzy matching algorithms.",
     category: ValidationCategory.COLUMN_MAPPING,
     severity: "medium",
-    type: "format"
+    type: "mapping",
+    failAction: "warn"
+  },
+  {
+    id: "required-columns",
+    name: "Required Fields Mapping",
+    description: "Verifies that all required target fields have been mapped to source columns.",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "critical",
+    type: "mapping",
+    failAction: "reject"
+  },
+  {
+    id: "duplicate-mapping",
+    name: "Duplicate Mapping Prevention",
+    description: "Prevents mapping multiple source columns to the same target field unless explicitly allowed.",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "high",
+    type: "mapping",
+    failAction: "reject"
+  },
+  {
+    id: "field-type-compatibility",
+    name: "Field Type Compatibility",
+    description: "Ensures mapped columns match their target fields' expected data types (e.g., dates to date fields, numbers to numeric fields).",
+    category: ValidationCategory.COLUMN_MAPPING,
+    severity: "critical",
+    type: "format",
+    failAction: "reject"
   },
   
   // DATA QUALITY validations
