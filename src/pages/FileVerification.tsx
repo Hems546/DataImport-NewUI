@@ -133,6 +133,15 @@ export default function FileVerification() {
     navigate('/import-wizard/column-mapping');
   };
 
+  const handleOverride = () => {
+    toast({
+      title: "Validation overridden",
+      description: "Proceeding to column mapping despite validation errors",
+      variant: "destructive"
+    });
+    navigate('/import-wizard/column-mapping');
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="bg-brand-purple">
@@ -254,14 +263,24 @@ export default function FileVerification() {
                 </Button>
               </Link>
             </div>
-            <Button 
-              className="bg-brand-purple hover:bg-brand-purple/90"
-              onClick={handleContinue}
-              disabled={isVerifying || verificationResults.some(v => v.status === 'fail')}
-            >
-              Continue to Column Mapping
-              <ArrowRight className="ml-2" />
-            </Button>
+            <div className="flex gap-4">
+              {verificationResults.some(v => v.status === 'fail') && (
+                <Button 
+                  variant="destructive"
+                  onClick={handleOverride}
+                >
+                  Override Errors
+                </Button>
+              )}
+              <Button 
+                className="bg-brand-purple hover:bg-brand-purple/90"
+                onClick={handleContinue}
+                disabled={isVerifying || verificationResults.some(v => v.status === 'fail')}
+              >
+                Continue to Column Mapping
+                <ArrowRight className="ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
