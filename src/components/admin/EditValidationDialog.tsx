@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ValidationCategory } from "@/constants/validations";
 import { Edit } from "lucide-react";
+import { useState } from "react";
 
 interface EditValidationDialogProps {
   validation: {
@@ -31,15 +33,19 @@ interface EditValidationDialogProps {
 }
 
 export function EditValidationDialog({ validation, onSave }: EditValidationDialogProps) {
-  const handleSaveChanges = (category: ValidationCategory) => {
+  const [open, setOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ValidationCategory>(validation.category);
+
+  const handleSaveChanges = () => {
     onSave({
       ...validation,
-      category,
+      category: selectedCategory,
     });
+    setOpen(false);
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="ml-2">
           <Edit className="h-4 w-4" />
@@ -54,7 +60,8 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
             <label className="text-sm font-medium">Validation Stage</label>
             <Select
               defaultValue={validation.category}
-              onValueChange={(value) => handleSaveChanges(value as ValidationCategory)}
+              value={selectedCategory}
+              onValueChange={(value) => setSelectedCategory(value as ValidationCategory)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -80,6 +87,10 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
             </div>
           </div>
         </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveChanges}>Save Changes</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
