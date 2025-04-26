@@ -148,7 +148,9 @@ export function ValidationManager() {
                 )}
                 {tab.id === "deduplication" && (
                   <p className="text-sm text-gray-600 mt-2">
-                    Identifies and manages duplicate records based on configurable matching rules.
+                    Identifies and manages duplicate records using configurable matching rules. 
+                    Can check against both the current upload and existing database records. 
+                    Supports manual review or automatic handling based on defined rules.
                   </p>
                 )}
               </div>

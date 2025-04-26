@@ -388,41 +388,61 @@ export const validations: Validation[] = [
     type: "data"
   },
   
+  // DATA_NORMALIZATION validations with updated category
+  {
+    id: "data-normalization",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    name: "Data Normalization",
+    description: "Standardizes data formats and values to ensure consistency"
+  },
+  
   // DEDUPLICATION validations
   {
     id: "exact-duplicates",
     category: ValidationCategory.DEDUPLICATION,
     name: "Exact Duplicate Detection",
-    description: "Identifies rows that are completely identical"
+    description: "Identifies rows that are completely identical",
+    severity: "high",
+    type: "data"
   },
   {
     id: "fuzzy-duplicates",
     category: ValidationCategory.DEDUPLICATION,
     name: "Fuzzy Duplicate Detection",
-    description: "Finds likely duplicates with minor differences (spelling, capitalization, etc.)"
+    description: "Finds likely duplicates with minor differences (spelling, capitalization, etc.)",
+    severity: "medium",
+    type: "data"
   },
   {
     id: "key-field-duplicates",
     category: ValidationCategory.DEDUPLICATION,
     name: "Key Field Duplicate Check",
-    description: "Detects duplicates based on specific key fields (e.g., email, ID)"
+    description: "Detects duplicates based on specific key fields (e.g., email, ID)",
+    severity: "high",
+    type: "data"
   },
   {
     id: "cross-file-duplicates",
     category: ValidationCategory.DEDUPLICATION,
     name: "Cross-file Duplicate Check",
-    description: "Identifies duplicates between the imported file and existing data"
+    description: "Identifies duplicates between the imported file and existing data",
+    severity: "high",
+    type: "data"
   },
   {
     id: "partial-duplicates", 
     category: ValidationCategory.DEDUPLICATION,
     name: "Partial Duplicate Detection",
-    description: "Finds records that may be partial duplicates (same person, different addresses)"
+    description: "Finds records that may be partial duplicates (same person, different addresses)",
+    severity: "medium",
+    type: "data"
   },
   {
     id: "time-based-duplicates",
     category: ValidationCategory.DEDUPLICATION,
     name: "Time-based Duplicate Analysis",
-    description: "Identifies potential duplicates with date/time differences"
+    description: "Identifies potential duplicates with date/time differences",
+    severity: "medium",
+    type: "data"
   }
 ];
