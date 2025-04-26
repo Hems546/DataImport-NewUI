@@ -15,7 +15,7 @@ export enum ValidationCategory {
   FILE_PREFLIGHT = "File Preflight",
   COLUMN_MAPPING = "Column Mapping",
   DATA_QUALITY = "Data Quality",
-  DATA_CORRECTIONS = "Data Corrections",
+  DATA_NORMALIZATION = "Data Normalization",
   DEDUPLICATION = "Deduplication"
 }
 

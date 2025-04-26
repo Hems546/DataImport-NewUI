@@ -1,4 +1,3 @@
-
 import { FileBox, FileCheck, Database, Rows, Waypoints, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -13,6 +12,7 @@ export function ValidationManager() {
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-corrections", label: "Data Corrections", icon: Waypoints },
+    { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
     { id: "deduplication", label: "Deduping", icon: FileBox }
   ];
 
@@ -139,6 +139,13 @@ export function ValidationManager() {
                     These changes help ensure data consistency before import.
                   </p>
                 )}
+                {tab.id === "data-normalization" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Automated cleanups and data standardization tasks. Includes trimming whitespace, 
+                    converting dates to standard formats, and normalizing common variations 
+                    (e.g., "USA" vs "U.S." vs "United States") to ensure data consistency.
+                  </p>
+                )}
                 {tab.id === "deduplication" && (
                   <p className="text-sm text-gray-600 mt-2">
                     Identifies and manages duplicate records based on configurable matching rules.
@@ -165,6 +172,8 @@ export function ValidationManager() {
                     case 'data-quality':
                       return validation.category === ValidationCategory.DATA_QUALITY;
                     case 'data-corrections':
+                      return validation.category === ValidationCategory.DATA_CORRECTIONS;
+                    case 'data-normalization':
                       return validation.category === ValidationCategory.DATA_CORRECTIONS;
                     case 'deduplication':
                       return validation.category === ValidationCategory.DEDUPLICATION;
