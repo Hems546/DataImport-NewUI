@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -41,38 +42,65 @@ export default function FileVerification() {
 
     setVerificationResults(fileVerificationChecks);
 
+    // Simulate validation process
     const timer = setTimeout(() => {
       const results = fileVerificationChecks.map(check => {
-        const passed = Math.random() > 0.2;
-        if (passed) {
+        // Always fail header-uniqueness and set header-format as warning
+        // Pass all other checks
+        if (check.id === 'header-uniqueness') {
+          return {
+            ...check,
+            status: 'fail' as const,
+            severity: 'critical' as const,
+            failureReason: getFailureReason(check.id),
+            remediation: getRemediation(check.id)
+          };
+        } else if (check.id === 'header-format') {
+          return {
+            ...check, 
+            status: 'warning' as const,
+            severity: 'warning' as const,
+            failureReason: getFailureReason(check.id),
+            remediation: getRemediation(check.id)
+          };
+        } else if (check.id === 'row-length-consistency') {
+          return {
+            ...check,
+            status: 'fail' as const,
+            severity: 'warning' as const,
+            failureReason: getFailureReason(check.id),
+            remediation: getRemediation(check.id)
+          };
+        } else {
           return {
             ...check,
             status: 'pass' as const
           };
         }
-        
-        return {
-          ...check,
-          status: 'fail' as const,
-          failureReason: getFailureReason(check.id),
-          remediation: getRemediation(check.id)
-        };
       });
       
       setVerificationResults(results);
       setIsVerifying(false);
       
-      const failedChecks = results.filter(r => r.status === 'fail');
-      if (failedChecks.length === 0) {
+      const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
+      const warnings = results.filter(r => r.status === 'warning' || (r.status === 'fail' && r.severity === 'warning'));
+      
+      if (criticalFailures.length === 0 && warnings.length === 0) {
         toast({
           title: "File verification complete",
           description: "All checks passed. You can proceed to column mapping."
         });
-      } else {
+      } else if (criticalFailures.length > 0) {
         toast({
           title: "File verification issues found",
-          description: `${failedChecks.length} issues need attention. Please review the details below.`,
+          description: `${criticalFailures.length} critical issues need attention. Please review the details below.`,
           variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "File verification warnings found",
+          description: `${warnings.length} warnings found. You can proceed or address these issues.`,
+          variant: "warning"
         });
       }
     }, 2000);
@@ -136,7 +164,7 @@ export default function FileVerification() {
   const handleOverride = () => {
     toast({
       title: "Validation overridden",
-      description: "Proceeding to column mapping despite validation errors",
+      description: "Proceeding to column mapping despite validation issues",
       variant: "destructive"
     });
     navigate('/import-wizard/column-mapping');
