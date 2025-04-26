@@ -26,19 +26,39 @@ export const validations: Validation[] = [
   // FILE UPLOAD validations
   {
     id: "file-type",
-    name: "File Type Check",
-    description: "Validates that the uploaded file is in a supported format (CSV, XLS, XLSX).",
+    name: "File Format Check",
+    description: "Validates that the uploaded file is in a supported format (CSV, XLS, XLSX, TSV).",
     category: ValidationCategory.FILE_UPLOAD,
     severity: "critical",
-    type: "format"
+    type: "format",
+    failAction: "reject"
   },
   {
     id: "file-size",
-    name: "File Size Check",
-    description: "Ensures the file is within the allowed size limit (10MB).",
+    name: "File Size Limit",
+    description: "Ensures the file is within the allowed size limit (50MB).",
     category: ValidationCategory.FILE_UPLOAD,
     severity: "critical",
-    type: "format"
+    type: "format",
+    failAction: "reject"
+  },
+  {
+    id: "file-encoding",
+    name: "Character Encoding",
+    description: "Verifies the file uses proper character encoding (UTF-8 preferred).",
+    category: ValidationCategory.FILE_UPLOAD,
+    severity: "high",
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "file-corruption",
+    name: "File Integrity Check",
+    description: "Detects if the file is corrupted or unreadable.",
+    category: ValidationCategory.FILE_UPLOAD,
+    severity: "critical",
+    type: "format",
+    failAction: "reject"
   },
   
   // VERIFY FILE validations (previously FILE_PREFLIGHT)
