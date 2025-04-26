@@ -24,6 +24,7 @@ const App = () => (
           <Route path="/import-wizard" element={<ImportTypeSelection />} />
           <Route path="/import-wizard/upload" element={<ImportUpload />} />
           <Route path="/import-wizard/verification" element={<FileVerification />} />
+          <Route path="/import-wizard/column-mapping" element={<NotFound />} /> {/* Adding a new route that will link to NotFound until we implement it */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

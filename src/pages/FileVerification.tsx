@@ -1,6 +1,7 @@
 
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -17,9 +18,63 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
+import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
+import { validations } from '@/constants/validations';
 
 export default function FileVerification() {
   const [progress] = React.useState(32);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [verificationResults, setVerificationResults] = useState<ValidationResult[]>([]);
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  useEffect(() => {
+    // Simulate file verification process
+    const fileVerificationChecks = validations
+      .filter(v => v.category === 'Verify File')
+      .map(v => ({
+        id: v.id,
+        name: v.name,
+        description: v.description,
+        status: 'pending' as const
+      }));
+
+    setVerificationResults(fileVerificationChecks);
+
+    // Simulate the verification process with a timer
+    const timer = setTimeout(() => {
+      // Set random results (in a real app, this would be actual verification)
+      const results = fileVerificationChecks.map((check, index) => ({
+        ...check,
+        status: Math.random() > 0.2 ? 'pass' as const : 'fail' as const
+      }));
+      
+      setVerificationResults(results);
+      setIsVerifying(false);
+      
+      // Show a toast notification
+      const failedChecks = results.filter(r => r.status === 'fail');
+      if (failedChecks.length === 0) {
+        toast({
+          title: "File verification complete",
+          description: "All checks passed. You can proceed to column mapping."
+        });
+      } else {
+        toast({
+          title: "File verification issues found",
+          description: `${failedChecks.length} issues need attention.`,
+          variant: "destructive"
+        });
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const handleContinue = () => {
+    // In a real app, we would check if all verifications passed
+    navigate('/import-wizard/column-mapping');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -76,7 +131,7 @@ export default function FileVerification() {
               label="File Upload"
               isComplete={true}
             />
-            <StepConnector />
+            <StepConnector isCompleted={true} />
             <ProgressStep 
               icon={<FileCheck />}
               label="File Preflighting"
@@ -120,10 +175,18 @@ export default function FileVerification() {
               We're checking your file for proper formatting and data quality.
             </p>
             
-            {/* File verification content will go here */}
-            <div className="p-4 bg-gray-50 border rounded-md">
-              <p className="text-center text-gray-500">File verification in progress...</p>
-            </div>
+            {/* File verification content */}
+            {isVerifying ? (
+              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
+                <p className="text-gray-500">File verification in progress...</p>
+              </div>
+            ) : (
+              <ValidationStatus 
+                results={verificationResults}
+                title="File Verification Results"
+              />
+            )}
           </div>
 
           <div className="mt-8 flex justify-between items-center">
@@ -135,7 +198,11 @@ export default function FileVerification() {
                 </Button>
               </Link>
             </div>
-            <Button className="bg-brand-purple hover:bg-brand-purple/90">
+            <Button 
+              className="bg-brand-purple hover:bg-brand-purple/90"
+              onClick={handleContinue}
+              disabled={isVerifying || verificationResults.some(v => v.status === 'fail')}
+            >
               Continue to Column Mapping
               <ArrowRight className="ml-2" />
             </Button>
