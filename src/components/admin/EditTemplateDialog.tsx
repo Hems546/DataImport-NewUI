@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,6 +59,7 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl">
+        {/* The DialogClose is already included in the DialogContent component from Shadcn UI */}
         <DialogHeader>
           <DialogTitle>Edit Template</DialogTitle>
         </DialogHeader>
