@@ -1,4 +1,3 @@
-
 // Define the ValidationCategory enum with all required categories
 export enum ValidationCategory {
   FILE_UPLOAD = "File Upload",
@@ -235,23 +234,65 @@ export const validations: Validation[] = [
     name: "Trim Whitespace",
     description: "Automatically removes leading and trailing spaces from text fields.",
     category: ValidationCategory.DATA_NORMALIZATION,
-    type: "auto-fix"
-  },
-  {
-    id: "date-format",
-    name: "Date Standardization",
-    description: "Converts various date formats to a standard format (YYYY-MM-DD).",
-    category: ValidationCategory.DATA_NORMALIZATION,
-    type: "conversion"
+    type: "auto-fix",
+    severity: "low",
+    failAction: "auto-fix"
   },
   {
     id: "text-case",
     name: "Text Case Normalization",
-    description: "Standardizes case for certain fields (e.g., lower case for emails).",
+    description: "Standardizes case for certain fields (e.g., Title Case for names, lowercase for emails).",
     category: ValidationCategory.DATA_NORMALIZATION,
-    type: "auto-fix"
+    type: "auto-fix",
+    severity: "low",
+    failAction: "auto-fix"
   },
-  
+  {
+    id: "date-standardization",
+    name: "Date Format Standardization",
+    description: "Converts various date formats to ISO standard (YYYY-MM-DD).",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "conversion",
+    severity: "medium",
+    failAction: "auto-fix"
+  },
+  {
+    id: "phone-format",
+    name: "Phone Number Formatting",
+    description: "Standardizes phone numbers to E.164 international format.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "auto-fix",
+    severity: "low",
+    failAction: "auto-fix"
+  },
+  {
+    id: "email-lowercase",
+    name: "Email Case Normalization",
+    description: "Converts all email addresses to lowercase for consistency.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "auto-fix",
+    severity: "low",
+    failAction: "auto-fix"
+  },
+  {
+    id: "location-names",
+    name: "Location Name Standardization",
+    description: "Normalizes country and state names to standard formats (e.g., 'USA' to 'United States').",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "conversion",
+    severity: "medium",
+    failAction: "auto-fix"
+  },
+  {
+    id: "auto-correct",
+    name: "Auto-correction Rules",
+    description: "Applies predefined rules to automatically correct known common errors.",
+    category: ValidationCategory.DATA_NORMALIZATION,
+    type: "auto-fix",
+    severity: "low",
+    failAction: "auto-fix"
+  },
+
   // DEDUPLICATION validations
   {
     id: "exact-duplicate",
