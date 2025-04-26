@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +19,6 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validations, ValidationCategory } from '@/constants/validations';
 import { validateFile, FileValidationResult } from '@/services/fileValidation';
 
 export default function FileVerification() {
@@ -40,7 +40,7 @@ export default function FileVerification() {
         const file = dataURLtoFile(fileData, 'uploaded-file.csv');
         const validationResults = await validateFile(file);
 
-        const results = validationResults.map(validation => ({
+        const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
           name: formatValidationName(validation.validation_type),
           status: validation.status === 'pass' ? 'pass' : 
