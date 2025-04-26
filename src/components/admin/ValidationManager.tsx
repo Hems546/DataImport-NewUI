@@ -10,7 +10,7 @@ export function ValidationManager() {
     { id: "file-preflight", label: "File Preflighting", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
-    { id: "data-transformation", label: "Data Transformation", icon: Waypoints },
+    { id: "data-corrections", label: "Data Corrections", icon: Waypoints },
     { id: "deduplication", label: "Deduping", icon: FileBox }
   ];
 
@@ -113,7 +113,7 @@ export function ValidationManager() {
                       return validation.category === ValidationCategory.COLUMN_MAPPING;
                     case 'data-quality':
                       return validation.category === ValidationCategory.DATA_QUALITY;
-                    case 'data-transformation':
+                    case 'data-corrections':
                       return validation.category === ValidationCategory.DATA_TRANSFORMATION;
                     case 'deduplication':
                       return validation.category === ValidationCategory.DEDUPLICATION;
