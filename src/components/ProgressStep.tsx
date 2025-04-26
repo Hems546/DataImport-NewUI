@@ -11,7 +11,7 @@ interface ProgressStepProps {
 
 const ProgressStep = ({ icon, label, isActive = false, isComplete = false }: ProgressStepProps) => {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center text-center">
       <div 
         className={cn(
           "w-12 h-12 rounded-full flex items-center justify-center mb-2",
@@ -23,7 +23,7 @@ const ProgressStep = ({ icon, label, isActive = false, isComplete = false }: Pro
         {icon}
       </div>
       <span className={cn(
-        "text-sm", 
+        "text-sm text-center w-full", 
         isActive ? "text-primary font-medium" : 
         isComplete ? "text-green-600" : 
         "text-gray-500"
