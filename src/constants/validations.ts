@@ -10,9 +10,11 @@ export type Validation = {
 };
 
 export enum ValidationCategory {
+  FILE_UPLOAD = "File Upload",
   FILE_PREFLIGHT = "File Preflight",
-  DATA_VALIDATION = "Data Validation",
-  FIELD_MAPPING = "Field Mapping",
+  COLUMN_MAPPING = "Column Mapping",
+  DATA_QUALITY = "Data Quality",
+  DATA_TRANSFORMATION = "Data Transformation",
   DEDUPLICATION = "Deduplication"
 }
 
@@ -133,131 +135,131 @@ export const validations: Validation[] = [
     description: "Checks if all rows have the same number of columns"
   },
   
-  // DATA VALIDATION checks (issues that can be fixed within the app)
+  // DATA QUALITY validations
   {
     id: "data-type",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Data Type Validation",
     description: "Ensures data matches expected types (numbers, dates, text, etc.)"
   },
   {
     id: "data-range",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Data Range Validation",
     description: "Validates that numeric values fall within acceptable ranges"
   },
   {
     id: "date-format",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Date Format Validation",
     description: "Checks that dates match required format patterns"
   },
   {
     id: "email-format",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Email Format Validation",
     description: "Verifies email addresses follow standard format"
   },
   {
     id: "phone-format",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Phone Number Format",
     description: "Validates phone numbers match expected patterns"
   },
   {
     id: "missing-values",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Missing Values Check",
     description: "Identifies required fields with missing values"
   },
   {
     id: "character-limit",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Character Limit Check",
     description: "Ensures text fields don't exceed maximum allowed length"
   },
   {
     id: "special-characters",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Special Characters Check",
     description: "Identifies potentially problematic special characters"
   },
   {
     id: "regex-pattern",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Pattern Matching",
     description: "Validates data against custom regular expression patterns"
   },
   {
     id: "whitespace",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Whitespace Check",
     description: "Detects unnecessary leading/trailing whitespace"
   },
   {
     id: "case-consistency",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Case Consistency",
     description: "Checks for consistent letter case in categorical fields"
   },
   {
     id: "url-format",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "URL Format Validation",
     description: "Validates URLs follow correct format"
   },
   {
     id: "foreign-key",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Foreign Key Validation",
     description: "Ensures values reference existing entities in other datasets"
   },
   {
     id: "json-validation",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "JSON Structure Validation",
     description: "Validates JSON fields have correct structure"
   },
   {
     id: "enumeration",
-    category: ValidationCategory.DATA_VALIDATION,
+    category: ValidationCategory.DATA_QUALITY,
     name: "Enumeration Check",
     description: "Verifies values belong to a predefined set of allowed values"
   },
   
-  // FIELD MAPPING checks
+  // COLUMN_MAPPING validations
   {
     id: "column-mapping",
-    category: ValidationCategory.FIELD_MAPPING,
+    category: ValidationCategory.COLUMN_MAPPING,
     name: "Column Mapping Verification",
     description: "Ensures all required destination fields are mapped to source columns"
   },
   {
     id: "header-synonyms",
-    category: ValidationCategory.FIELD_MAPPING,
+    category: ValidationCategory.COLUMN_MAPPING,
     name: "Header Synonym Recognition",
     description: "Identifies common variations of column headers to suggest mappings"
   },
   {
     id: "data-transformation",
-    category: ValidationCategory.FIELD_MAPPING,
+    category: ValidationCategory.COLUMN_MAPPING,
     name: "Transformation Compatibility",
     description: "Validates that data can be successfully transformed to target format"
   },
   {
     id: "multi-column-mapping",
-    category: ValidationCategory.FIELD_MAPPING,
+    category: ValidationCategory.COLUMN_MAPPING,
     name: "Multi-column Mapping Check",
     description: "Verifies correct mapping when destination fields require multiple source columns"
   },
   {
     id: "field-combination",
-    category: ValidationCategory.FIELD_MAPPING,
+    category: ValidationCategory.COLUMN_MAPPING,
     name: "Field Combination Validation",
     description: "Ensures fields that should be used together are properly mapped"
   },
   
-  // DEDUPLICATION checks
+  // DEDUPLICATION validations
   {
     id: "exact-duplicates",
     category: ValidationCategory.DEDUPLICATION,

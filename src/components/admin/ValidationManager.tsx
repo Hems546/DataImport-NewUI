@@ -9,7 +9,7 @@ import { validations } from "@/constants/validations";
 export function ValidationManager() {
   const tabs = [
     { id: "file-upload", label: "File Upload", icon: FileBox },
-    { id: "file-preflighting", label: "File Preflighting", icon: FileCheck },
+    { id: "file-preflight", label: "File Preflight", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-transformation", label: "Data Transformation", icon: Waypoints }
@@ -80,7 +80,7 @@ export function ValidationManager() {
         </p>
       </div>
 
-      <Tabs defaultValue="file-verification" className="w-full">
+      <Tabs defaultValue="file-preflight" className="w-full">
         <TabsList className="w-full bg-gray-50 p-1 h-auto flex-wrap">
           {tabs.map((tab) => (
             <TabsTrigger
