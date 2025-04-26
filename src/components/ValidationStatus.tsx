@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -20,9 +20,9 @@ import { Button } from "@/components/ui/button";
 export interface ValidationResult {
   id: string;
   name: string;
-  status: 'pending' | 'pass' | 'fail';
+  status: 'pending' | 'pass' | 'fail' | 'warning';
   description?: string;
-  severity?: string;
+  severity?: 'critical' | 'warning';
 }
 
 interface ValidationStatusProps {
@@ -39,6 +39,8 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
         return <Check className="h-4 w-4 text-green-500" />;
       case 'fail':
         return <X className="h-4 w-4 text-red-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       case 'pending':
         return <Loader className="h-4 w-4 text-gray-500 animate-spin" />;
     }
@@ -150,30 +152,31 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
     );
   };
 
-  const failedChecks = results.filter(result => result.status === 'fail');
-  const hasCriticalFailures = failedChecks.some(check => check.severity === 'critical');
+  const failedChecks = results.filter(result => result.status === 'fail' && result.severity === 'critical');
+  const warningChecks = results.filter(result => result.status === 'warning' || (result.status === 'fail' && result.severity === 'warning'));
+  const passedChecks = results.filter(result => result.status === 'pass');
 
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">{title}</h3>
-          {failedChecks.length > 0 && !hasCriticalFailures && (
-            <span className="text-sm text-yellow-600">
-              Non-critical issues found - Override available
-            </span>
-          )}
-        </div>
+  const getStatusBackground = (status: ValidationResult['status'], severity?: string) => {
+    if (status === 'fail' && severity === 'critical') return 'bg-red-50';
+    if (status === 'warning' || (status === 'fail' && severity === 'warning')) return 'bg-yellow-50';
+    if (status === 'pass') return 'bg-green-50';
+    return 'bg-gray-50';
+  };
+
+  const renderStatusSection = (items: ValidationResult[], title: string) => {
+    if (items.length === 0) return null;
+    
+    return (
+      <div className="mb-4">
+        <h4 className="text-sm font-medium mb-2">{title}</h4>
         <Accordion type="single" collapsible className="space-y-3">
-          {results.map((result) => (
+          {items.map((result) => (
             <AccordionItem
               key={result.id}
               value={result.id}
               className={cn(
                 "rounded border-none",
-                result.status === 'fail' ? 
-                  result.severity === 'critical' ? 'bg-red-50' : 'bg-yellow-50' 
-                  : 'bg-gray-50'
+                getStatusBackground(result.status, result.severity)
               )}
             >
               <AccordionTrigger className="px-4 py-2 hover:no-underline">
@@ -189,7 +192,7 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
                   </div>
                 </div>
               </AccordionTrigger>
-              {result.status === 'fail' && (
+              {(result.status === 'fail' || result.status === 'warning') && (
                 <AccordionContent className="px-4 pb-3">
                   <div className="space-y-3 text-sm text-gray-700">
                     {getTechnicalDescription(result.id).map((detail, index) => (
@@ -223,6 +226,29 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
             </AccordionItem>
           ))}
         </Accordion>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">{title}</h3>
+          {warningChecks.length > 0 && (
+            <span className="text-sm text-yellow-600">
+              Non-critical issues found - Override available
+            </span>
+          )}
+        </div>
+        
+        {failedChecks.length > 0 && renderStatusSection(failedChecks, "Critical Issues")}
+        {warningChecks.length > 0 && renderStatusSection(warningChecks, "Warnings")}
+        {passedChecks.length > 0 && renderStatusSection(passedChecks, "Passed Checks")}
+        
+        {results.length === 0 && (
+          <p className="text-gray-500 text-sm">No validation checks available.</p>
+        )}
       </div>
     </div>
   );
