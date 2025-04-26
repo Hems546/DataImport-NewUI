@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -20,6 +20,8 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
+import ValidationStatus from '@/components/ValidationStatus';
+import { validations } from '@/constants/validations';
 
 export default function ImportUpload() {
   const [progress] = React.useState(16);
@@ -27,6 +29,32 @@ export default function ImportUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
+
+  useEffect(() => {
+    if (file) {
+      const fileUploadChecks = validations
+        .filter(v => v.category === 'File Upload')
+        .map(v => ({
+          id: v.id,
+          name: v.name,
+          description: v.description,
+          status: 'pending' as const
+        }));
+      
+      setFileValidationResults(fileUploadChecks);
+      
+      setTimeout(() => {
+        const results = fileUploadChecks.map(check => ({
+          ...check,
+          status: check.id === 'file-size' && file.size > 10 * 1024 * 1024 
+            ? 'fail' as const 
+            : 'pass' as const
+        }));
+        setFileValidationResults(results);
+      }, 1000);
+    }
+  }, [file]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -209,83 +237,81 @@ export default function ImportUpload() {
             />
           </div>
 
-          <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <h3 className="text-xl font-semibold mb-4">Upload Your Data File</h3>
-            <p className="text-gray-600 mb-8">
-              Upload a CSV or Excel file to begin the import process. Your file should include header rows.
-            </p>
+          <div className="space-y-8">
+            <div className="bg-white p-8 rounded-lg border border-gray-200">
+              <h3 className="text-xl font-semibold mb-4">Upload Your Data File</h3>
+              <p className="text-gray-600 mb-8">
+                Upload a CSV or Excel file to begin the import process. Your file should include header rows.
+              </p>
 
-            <div 
-              className={`border-2 border-dashed ${isDragging ? 'border-brand-purple bg-purple-50' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex flex-col items-center">
-                {file ? (
-                  <>
-                    <FileCheck className="h-12 w-12 text-green-500 mb-4" />
-                    <p className="text-gray-600 mb-1">
-                      File selected: <span className="font-medium">{file.name}</span>
-                    </p>
-                    <p className="text-gray-500 text-sm mb-4">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <Button onClick={() => setFile(null)} variant="outline">
-                      Change File
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-600 mb-1">
-                      Drag & drop your file here, or <span className="text-blue-600">browse</span>
-                    </p>
-                    <p className="text-gray-500 text-sm mb-4">
-                      Supports CSV, XLS, XLSX (max 10MB)
-                    </p>
-                    <Button onClick={handleButtonClick}>Select File</Button>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef}
-                      className="hidden" 
-                      accept=".csv,.xls,.xlsx"
-                      onChange={handleFileChange}
-                    />
-                  </>
-                )}
+              <div 
+                className={`border-2 border-dashed ${isDragging ? 'border-brand-purple bg-purple-50' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center">
+                  {file ? (
+                    <>
+                      <FileCheck className="h-12 w-12 text-green-500 mb-4" />
+                      <p className="text-gray-600 mb-1">
+                        File selected: <span className="font-medium">{file.name}</span>
+                      </p>
+                      <p className="text-gray-500 text-sm mb-4">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <Button onClick={() => setFile(null)} variant="outline">
+                        Change File
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-600 mb-1">
+                        Drag & drop your file here, or <span className="text-blue-600">browse</span>
+                      </p>
+                      <p className="text-gray-500 text-sm mb-4">
+                        Supports CSV, XLS, XLSX (max 10MB)
+                      </p>
+                      <Button onClick={handleButtonClick}>Select File</Button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden" 
+                        accept=".csv,.xls,.xlsx"
+                        onChange={handleFileChange}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
+              
+              {file && fileValidationResults.length > 0 && (
+                <ValidationStatus 
+                  results={fileValidationResults}
+                  title="File Upload Validations"
+                />
+              )}
             </div>
-            
-            {file && (
-              <div className="mt-6 text-sm text-gray-600">
-                <p className="font-medium mb-2">What happens next?</p>
-                <ol className="list-decimal pl-5 space-y-1">
-                  <li>Your file will go through initial format validation</li>
-                  <li>Next, the file will be checked for structural issues in the Verify File step</li>
-                  <li>If any critical issues are found, you'll need to fix and re-upload the file</li>
-                </ol>
-              </div>
-            )}
-          </div>
 
-          <div className="mt-8 flex justify-between items-center">
-            <div className="flex gap-4">
-              <Link to="/import-wizard">
+            <div className="mt-8 flex justify-between items-center">
+              <div className="flex gap-4">
+                <Link to="/import-wizard">
+                  <Button variant="outline">
+                    <ArrowLeft className="mr-2" />
+                    Back
+                  </Button>
+                </Link>
                 <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
+                  <RotateCcw className="mr-2" />
+                  Start Over
                 </Button>
-              </Link>
-              <Button variant="outline">
-                <RotateCcw className="mr-2" />
-                Start Over
+              </div>
+              <Button disabled={!file} className="bg-brand-purple hover:bg-brand-purple/90">
+                Continue to File Verification
+                <ArrowRight className="ml-2" />
               </Button>
             </div>
-            <Button disabled={!file} className="bg-brand-purple hover:bg-brand-purple/90">
-              Continue to File Verification
-              <ArrowRight className="ml-2" />
-            </Button>
           </div>
         </div>
       </div>
