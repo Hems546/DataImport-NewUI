@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-const FileBox = ({ className = "w-6 h-6" }: { className?: string }) => {
+export const FileBox = ({ className = "w-6 h-6" }: { className?: string }) => {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
