@@ -127,7 +127,9 @@ export function ValidationManager() {
                 )}
                 {tab.id === "data-quality" && (
                   <p className="text-sm text-gray-600 mt-2">
-                    These validations check the content quality of individual data fields after mapping.
+                    Row-by-row and field-by-field validation of the actual data content. Checks data formats,
+                    required fields, value ranges, and identifies duplicates. Users can fix issues directly
+                    in a spreadsheet-like interface.
                   </p>
                 )}
                 {tab.id === "data-corrections" && (
@@ -177,3 +179,4 @@ export function ValidationManager() {
     </div>
   );
 }
+
