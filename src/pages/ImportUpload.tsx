@@ -146,7 +146,16 @@ export default function ImportUpload() {
   };
 
   const handleContinue = () => {
-    navigate('/import-wizard/verification');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target && e.target.result) {
+          localStorage.setItem('uploadedFile', e.target.result.toString());
+          navigate('/import-wizard/verification');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (

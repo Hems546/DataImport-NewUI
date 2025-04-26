@@ -39,7 +39,8 @@ export default function FileVerification() {
 
         const file = dataURLtoFile(fileData, 'uploaded-file.csv');
         const validationResults = await validateFile(file);
-
+        
+        // Map the FileValidationResult type to ValidationResult type
         const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
           name: formatValidationName(validation.validation_type),
@@ -49,6 +50,7 @@ export default function FileVerification() {
           description: validation.message
         }));
 
+        console.log('Validation results:', results);
         setVerificationResults(results);
         
         const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
