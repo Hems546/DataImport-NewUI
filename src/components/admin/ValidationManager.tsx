@@ -8,7 +8,7 @@ import { validations, ValidationCategory } from "@/constants/validations";
 export function ValidationManager() {
   const tabs = [
     { id: "file-upload", label: "File Upload", icon: Upload },
-    { id: "file-preflight", label: "File Preflighting", icon: FileCheck },
+    { id: "verify-file", label: "Verify File", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-corrections", label: "Data Corrections", icon: Waypoints },
@@ -69,7 +69,7 @@ export function ValidationManager() {
               <li>Fail Action: {validation.failAction}</li>
             )}
           </ul>
-          {validation.category === ValidationCategory.FILE_PREFLIGHT && (
+          {validation.category === ValidationCategory.VERIFY_FILE && (
             <p className="mt-3 text-sm text-amber-700 bg-amber-50 p-2 rounded-md">
               <strong>Note:</strong> File preflight checks must pass before proceeding. If these validations fail, 
               users will need to re-upload a corrected file.
@@ -153,6 +153,12 @@ export function ValidationManager() {
                     Supports manual review or automatic handling based on defined rules.
                   </p>
                 )}
+                {tab.id === "verify-file" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    These are structural checks to determine if the file can be processed at all.
+                    Failures here require the user to upload a fixed file.
+                  </p>
+                )}
               </div>
               <Button variant="outline">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -167,8 +173,8 @@ export function ValidationManager() {
                   switch(tab.id) {
                     case 'file-upload':
                       return validation.category === ValidationCategory.FILE_UPLOAD;
-                    case 'file-preflight':
-                      return validation.category === ValidationCategory.FILE_PREFLIGHT;
+                    case 'verify-file':
+                      return validation.category === ValidationCategory.VERIFY_FILE;
                     case 'column-mapping':
                       return validation.category === ValidationCategory.COLUMN_MAPPING;
                     case 'data-quality':
