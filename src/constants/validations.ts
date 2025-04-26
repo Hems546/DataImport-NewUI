@@ -318,6 +318,88 @@ export const validations: Validation[] = [
     severity: "low",
     type: "duplicate"
   },
+  {
+    id: "standardized-match",
+    name: "Standardized Field Matching",
+    description: "Matches records after normalizing case, whitespace, and punctuation.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate"
+  },
+  {
+    id: "phonetic-matching",
+    name: "Phonetic Similarity Detection",
+    description: "Finds records where names sound similar (e.g., Smith vs. Smyth).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "low",
+    type: "duplicate"
+  },
+  {
+    id: "cross-field-matching",
+    name: "Cross-Field Duplicate Detection",
+    description: "Identifies potential duplicates by matching across multiple fields (e.g., name + address).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate"
+  },
+  {
+    id: "name-nickname-matching",
+    name: "Name/Nickname Resolution",
+    description: "Matches records where one has a formal name and another uses a nickname (e.g., William vs. Bill).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "low",
+    type: "duplicate"
+  },
+  {
+    id: "email-domain-matching", 
+    name: "Username + Email Domain Matching",
+    description: "Identifies similar email patterns that may indicate the same person (john.smith@example.com vs jsmith@example.com).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate"
+  },
+  {
+    id: "address-normalization-matching",
+    name: "Normalized Address Matching",
+    description: "Matches addresses after standardizing formats (e.g., 'Street' vs 'St.', 'Avenue' vs 'Ave').",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate"
+  },
+  {
+    id: "company-name-matching",
+    name: "Company Name Variant Matching",
+    description: "Identifies company names that refer to the same entity with different formats (IBM Corp vs International Business Machines).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "duplicate"
+  },
+  {
+    id: "levenshtein-distance",
+    name: "Edit Distance Calculation",
+    description: "Uses Levenshtein distance to find text with minimal character differences.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "low",
+    type: "duplicate"
+  },
+  {
+    id: "auto-merge-duplicates",
+    name: "Auto-merge Similar Records",
+    description: "Automatically combines records with high similarity scores (configurable threshold).",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "high",
+    type: "action",
+    failAction: "merge"
+  },
+  {
+    id: "manual-review-queue",
+    name: "Manual Review Flagging",
+    description: "Flags records with moderate similarity for human review before merging.",
+    category: ValidationCategory.DEDUPLICATION,
+    severity: "medium",
+    type: "action",
+    failAction: "flag"
+  },
   
   // FINAL_REVIEW validations
   {
