@@ -44,6 +44,50 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     setOpen(false);
   };
 
+  const getTechnicalDescription = (type?: string, severity?: string, failAction?: string) => {
+    const details = [];
+
+    if (type === 'format') {
+      details.push("Input format validation");
+    } else if (type === 'structure') {
+      details.push("Structural data validation");
+    } else if (type === 'content') {
+      details.push("Content-based validation");
+    } else if (type === 'duplicate') {
+      details.push("Duplication detection logic");
+    } else if (type === 'mapping') {
+      details.push("Field mapping validation");
+    } else if (type === 'system') {
+      details.push("System-level validation");
+    } else if (type === 'review') {
+      details.push("Review process validation");
+    }
+
+    if (severity === 'critical') {
+      details.push("Blocks import process on failure");
+    } else if (severity === 'high') {
+      details.push("Requires immediate attention");
+    } else if (severity === 'medium') {
+      details.push("Warning with manual review option");
+    } else if (severity === 'low') {
+      details.push("Advisory notification only");
+    }
+
+    if (failAction === 'reject') {
+      details.push("Action: Reject import");
+    } else if (failAction === 'warn') {
+      details.push("Action: Display warning");
+    } else if (failAction === 'auto-fix') {
+      details.push("Action: Attempt automatic correction");
+    } else if (failAction === 'merge') {
+      details.push("Action: Auto-merge records");
+    } else if (failAction === 'flag') {
+      details.push("Action: Flag for review");
+    }
+
+    return details;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -59,7 +103,6 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           <div className="space-y-2">
             <label className="text-sm font-medium">Validation Stage</label>
             <Select
-              defaultValue={validation.category}
               value={selectedCategory}
               onValueChange={(value) => setSelectedCategory(value as ValidationCategory)}
             >
@@ -77,14 +120,28 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           </div>
           
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Current Settings</h3>
-            <div className="rounded-md bg-muted p-3 text-sm">
+            <h3 className="text-sm font-medium">Validation Details</h3>
+            <div className="rounded-md bg-muted p-3 text-sm space-y-2">
               <p><strong>Type:</strong> {validation.type || 'Not specified'}</p>
               <p><strong>Severity:</strong> {validation.severity || 'Not specified'}</p>
               {validation.failAction && (
                 <p><strong>Fail Action:</strong> {validation.failAction}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Technical Implementation</h3>
+            <div className="rounded-md bg-slate-100 p-3 text-sm space-y-1">
+              {getTechnicalDescription(validation.type, validation.severity, validation.failAction).map((detail, index) => (
+                <p key={index} className="text-slate-700">• {detail}</p>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Description</h3>
+            <p className="text-sm text-muted-foreground">{validation.description}</p>
           </div>
         </div>
         <DialogFooter>
@@ -95,3 +152,4 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     </Dialog>
   );
 }
+
