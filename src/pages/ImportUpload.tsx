@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +10,8 @@ import {
   Eye,
   RotateCcw,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  FileBox
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -30,11 +30,9 @@ export default function ImportUpload() {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       
-      // Check file type
       const validTypes = ['.csv', '.xls', '.xlsx'];
       const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
       
-      // Check file size (max 10MB)
       const maxSize = 10 * 1024 * 1024; // 10MB in bytes
       
       if (!validTypes.includes(fileExtension)) {
@@ -79,11 +77,9 @@ export default function ImportUpload() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
       
-      // Check file type
       const validTypes = ['.csv', '.xls', '.xlsx'];
       const fileExtension = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
       
-      // Check file size (max 10MB)
       const maxSize = 10 * 1024 * 1024; // 10MB in bytes
       
       if (!validTypes.includes(fileExtension)) {
@@ -170,7 +166,7 @@ export default function ImportUpload() {
           <div className="flex justify-between items-center mb-12">
             <ProgressStep 
               icon={<Upload />}
-              label="Upload File"
+              label="File Upload"
               isActive={true}
             />
             <StepConnector />
@@ -182,7 +178,7 @@ export default function ImportUpload() {
             <StepConnector />
             <ProgressStep 
               icon={<MapColumns />}
-              label="Map Columns"
+              label="Column Mapping"
             />
             <StepConnector />
             <ProgressStep 
@@ -192,12 +188,12 @@ export default function ImportUpload() {
             <StepConnector />
             <ProgressStep 
               icon={<TransformData />}
-              label="Data Corrections"
+              label="Data Normalization"
             />
             <StepConnector />
             <ProgressStep 
-              icon={<Eye />}
-              label="Preview & Import"
+              icon={<FileBox />}
+              label="Deduplication"
             />
           </div>
 

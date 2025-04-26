@@ -1,4 +1,3 @@
-
 // Define the ValidationCategory enum with all required categories
 export enum ValidationCategory {
   FILE_UPLOAD = "File Upload",

@@ -1,4 +1,3 @@
-
 import { FileBox, FileCheck, Database, Rows, Waypoints, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -13,7 +12,7 @@ export function ValidationManager() {
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
-    { id: "deduplication", label: "Deduping", icon: FileBox }
+    { id: "deduplication", label: "Deduplication", icon: FileBox }
   ];
 
   const getSeverityColor = (severity?: string) => {
