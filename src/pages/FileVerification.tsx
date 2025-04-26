@@ -28,7 +28,6 @@ export default function FileVerification() {
   const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    // Simulate file verification process
     const fileVerificationChecks = validations
       .filter(v => v.category === ValidationCategory.VERIFY_FILE)
       .map(v => ({
@@ -42,9 +41,7 @@ export default function FileVerification() {
 
     setVerificationResults(fileVerificationChecks);
 
-    // Simulate the verification process with a timer
     const timer = setTimeout(() => {
-      // Set random results with detailed failure information
       const results = fileVerificationChecks.map(check => {
         const passed = Math.random() > 0.2;
         if (passed) {
@@ -54,7 +51,6 @@ export default function FileVerification() {
           };
         }
         
-        // Add specific failure information based on the check
         return {
           ...check,
           status: 'fail' as const,
@@ -66,7 +62,6 @@ export default function FileVerification() {
       setVerificationResults(results);
       setIsVerifying(false);
       
-      // Show a toast notification
       const failedChecks = results.filter(r => r.status === 'fail');
       if (failedChecks.length === 0) {
         toast({
@@ -85,44 +80,56 @@ export default function FileVerification() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Helper functions to provide specific failure information
   const getFailureReason = (checkId: string): string => {
     const check = validations.find(v => v.id === checkId);
+    let baseReason = '';
     switch (checkId) {
       case 'required-columns':
-        return "Missing required columns in the file: Customer ID, Email, First Name";
+        baseReason = "Missing required columns in the file: Customer ID, Email, First Name";
+        break;
       case 'header-uniqueness':
-        return "Duplicate column headers found: 'Email' appears twice";
+        baseReason = "Duplicate column headers found: 'Email' appears twice";
+        break;
       case 'header-blank':
-        return "Empty column headers detected in columns F and H";
+        baseReason = "Empty column headers detected in columns F and H";
+        break;
       case 'header-format':
-        return "Invalid characters found in column headers: '@', '#', '%'";
+        baseReason = "Invalid characters found in column headers: '@', '#', '%'";
+        break;
       case 'delimiter-consistency':
-        return "Inconsistent delimiters found. Some rows use commas, others use semicolons";
+        baseReason = "Inconsistent delimiters found. Some rows use commas, others use semicolons";
+        break;
       default:
-        return check?.description || "Validation check failed";
+        baseReason = check?.description || "Validation check failed";
     }
+    return baseReason;
   };
 
   const getRemediation = (checkId: string): string => {
+    let baseRemediation = '';
     switch (checkId) {
       case 'required-columns':
-        return "Please ensure your file includes all required columns: Customer ID, Email, and First Name";
+        baseRemediation = "Ensure your file includes all required columns: Customer ID, Email, and First Name";
+        break;
       case 'header-uniqueness':
-        return "Rename duplicate columns to have unique names. Consider using 'Primary Email' and 'Secondary Email'";
+        baseRemediation = "Rename duplicate columns to have unique names. Consider using 'Primary Email' and 'Secondary Email'";
+        break;
       case 'header-blank':
-        return "Add descriptive names to all column headers. No blank headers are allowed";
+        baseRemediation = "Add descriptive names to all column headers. No blank headers are allowed";
+        break;
       case 'header-format':
-        return "Remove special characters from column headers. Use only letters, numbers, and underscores";
+        baseRemediation = "Remove special characters from column headers. Use only letters, numbers, and underscores";
+        break;
       case 'delimiter-consistency':
-        return "Ensure all rows use the same delimiter (comma). Check for and remove any semicolons";
+        baseRemediation = "Ensure all rows use the same delimiter (comma). Check for and remove any semicolons";
+        break;
       default:
-        return "Please review the file format requirements and try again";
+        baseRemediation = "Please review the file format requirements";
     }
+    return `${baseRemediation}. Please fix the file and reimport the file.`;
   };
 
   const handleContinue = () => {
-    // In a real app, we would check if all verifications passed
     navigate('/import-wizard/column-mapping');
   };
 
@@ -225,7 +232,6 @@ export default function FileVerification() {
               We're checking your file for proper formatting and data quality.
             </p>
             
-            {/* File verification content */}
             {isVerifying ? (
               <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
