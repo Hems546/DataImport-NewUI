@@ -8,7 +8,7 @@ import { validations, ValidationCategory } from "@/constants/validations";
 export function ValidationManager() {
   const tabs = [
     { id: "file-upload", label: "File Upload", icon: Upload },
-    { id: "verify-file", label: "Verify File", icon: FileCheck },
+    { id: "verify-file", label: "File Preflighting", icon: FileCheck }, // Updated label
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
@@ -109,15 +109,10 @@ export function ValidationManager() {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-xl font-bold">{tab.label} Validation Checks</h3>
-                {tab.id === "import-push" && (
+                {/* Update existing descriptions */}
+                {tab.id === "verify-file" && (
                   <p className="text-sm text-gray-600 mt-2">
-                    Final stage validations for pushing cleaned, validated, and deduplicated data 
-                    to the target system (database, CRM, ERP, etc).
-                  </p>
-                )}
-                {tab.id === "file-preflight" && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    These are structural checks to determine if the file can be processed at all. 
+                    Structural checks to determine if the file can be processed at all. 
                     Failures here require the user to upload a fixed file.
                   </p>
                 )}
@@ -153,17 +148,17 @@ export function ValidationManager() {
                     Supports manual review or automatic handling based on defined rules.
                   </p>
                 )}
-                {tab.id === "verify-file" && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    These are structural checks to determine if the file can be processed at all.
-                    Failures here require the user to upload a fixed file.
-                  </p>
-                )}
                 {tab.id === "final-review" && (
                   <p className="text-sm text-gray-600 mt-2">
                     Final review of all data corrections, including auto-fixed issues, manual corrections,
                     and overview of any ignored or missing data. Users must approve the final dataset
                     before import completion.
+                  </p>
+                )}
+                {tab.id === "import-push" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Final stage validations for pushing cleaned, validated, and deduplicated data 
+                    to the target system (database, CRM, ERP, etc).
                   </p>
                 )}
               </div>
@@ -192,6 +187,8 @@ export function ValidationManager() {
                       return validation.category === ValidationCategory.DEDUPLICATION;
                     case 'final-review':
                       return validation.category === ValidationCategory.FINAL_REVIEW;
+                    case 'import-push':
+                      return validation.category === ValidationCategory.IMPORT_PUSH;
                     default:
                       return false;
                   }

@@ -1,7 +1,7 @@
 // Define the ValidationCategory enum with all required categories
 export enum ValidationCategory {
   FILE_UPLOAD = "File Upload",
-  VERIFY_FILE = "Verify File",
+  VERIFY_FILE = "File Preflighting",
   COLUMN_MAPPING = "Column Mapping",
   DATA_QUALITY = "Data Quality",
   DATA_NORMALIZATION = "Data Normalization",

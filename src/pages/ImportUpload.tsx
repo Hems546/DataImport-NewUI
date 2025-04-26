@@ -174,7 +174,7 @@ export default function ImportUpload() {
             <StepConnector />
             <ProgressStep 
               icon={<FileCheck />}
-              label="Verify File"
+              label="File Preflighting"
               isComplete={false}
             />
             <StepConnector />
