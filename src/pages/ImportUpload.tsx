@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +21,7 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus from '@/components/ValidationStatus';
+import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations } from '@/constants/validations';
 
 export default function ImportUpload() {
