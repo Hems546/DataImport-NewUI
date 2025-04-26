@@ -1,5 +1,4 @@
-
-import { FileBox, FileCheck, Database, Rows, Waypoints, Upload, ClipboardCheck } from "lucide-react";
+import { FileBox, FileCheck, Database, Rows, Waypoints, Upload, ClipboardCheck, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -14,7 +13,8 @@ export function ValidationManager() {
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
     { id: "deduplication", label: "Deduplication", icon: FileBox },
-    { id: "final-review", label: "Final Review & Approval", icon: ClipboardCheck }
+    { id: "final-review", label: "Final Review & Approval", icon: ClipboardCheck },
+    { id: "import-push", label: "Import / Push to Target System", icon: ArrowUpCircle }
   ];
 
   const getSeverityColor = (severity?: string) => {
@@ -109,6 +109,12 @@ export function ValidationManager() {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-xl font-bold">{tab.label} Validation Checks</h3>
+                {tab.id === "import-push" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Final stage validations for pushing cleaned, validated, and deduplicated data 
+                    to the target system (database, CRM, ERP, etc).
+                  </p>
+                )}
                 {tab.id === "file-preflight" && (
                   <p className="text-sm text-gray-600 mt-2">
                     These are structural checks to determine if the file can be processed at all. 

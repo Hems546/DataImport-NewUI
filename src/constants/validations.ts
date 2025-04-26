@@ -6,7 +6,8 @@ export enum ValidationCategory {
   DATA_QUALITY = "Data Quality",
   DATA_NORMALIZATION = "Data Normalization",
   DEDUPLICATION = "Deduplication",
-  FINAL_REVIEW = "Final Review & Approval"
+  FINAL_REVIEW = "Final Review & Approval",
+  IMPORT_PUSH = "Import / Push to Target System"
 }
 
 // Define the Validation interface to provide type safety
@@ -165,5 +166,31 @@ export const validations: Validation[] = [
     description: "Overview of any ignored or missing data in the import.",
     category: ValidationCategory.FINAL_REVIEW,
     type: "review"
+  },
+  
+  // IMPORT_PUSH validations
+  {
+    id: "connection-check",
+    name: "Target System Connection Check",
+    description: "Verifies that the connection to the target system is active and authenticated.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "critical",
+    type: "connection"
+  },
+  {
+    id: "schema-compatibility",
+    name: "Schema Compatibility Check",
+    description: "Ensures the data structure matches the target system's requirements.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "critical",
+    type: "structure"
+  },
+  {
+    id: "data-integrity",
+    name: "Data Integrity Verification",
+    description: "Final verification of data integrity before pushing to target system.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "high",
+    type: "validation"
   }
 ];

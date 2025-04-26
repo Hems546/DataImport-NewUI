@@ -12,7 +12,8 @@ import {
   ArrowRight,
   ArrowLeft,
   FileBox,
-  ClipboardCheck
+  ClipboardCheck,
+  ArrowUpCircle
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -200,6 +201,11 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"
+            />
+            <StepConnector />
+            <ProgressStep 
+              icon={<ArrowUpCircle />}
+              label="Import / Push"
             />
           </div>
 
