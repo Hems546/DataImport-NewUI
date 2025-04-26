@@ -1,3 +1,4 @@
+
 import { FileBox, FileCheck, Database, Rows, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -19,9 +20,9 @@ export function ValidationManager() {
       case 'critical':
         return 'destructive';
       case 'high':
-        return 'orange';
+        return 'destructive'; // Changed from 'orange' to 'destructive'
       case 'medium':
-        return 'yellow';
+        return 'secondary'; // Changed from 'yellow' to 'secondary'
       case 'low':
         return 'secondary';
       default:

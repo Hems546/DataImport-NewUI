@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -15,6 +16,8 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        // Adding custom colors is not safe in this approach as it requires theme configuration
+        // Instead, we map severity levels to existing valid variants in the ValidationManager component
       },
     },
     defaultVariants: {
