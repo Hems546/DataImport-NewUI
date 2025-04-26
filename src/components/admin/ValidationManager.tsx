@@ -1,3 +1,4 @@
+
 import { FileBox, FileCheck, Database, Rows, Waypoints, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -11,7 +12,6 @@ export function ValidationManager() {
     { id: "verify-file", label: "Verify File", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
-    { id: "data-corrections", label: "Data Corrections", icon: Waypoints },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
     { id: "deduplication", label: "Deduping", icon: FileBox }
   ];
@@ -132,13 +132,6 @@ export function ValidationManager() {
                     in a spreadsheet-like interface.
                   </p>
                 )}
-                {tab.id === "data-corrections" && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    Automated cleanups and data standardization tasks. Includes trimming whitespace, 
-                    normalizing date formats, and standardizing common variations (e.g., "USA" vs "U.S." vs "United States").
-                    These changes help ensure data consistency before import.
-                  </p>
-                )}
                 {tab.id === "data-normalization" && (
                   <p className="text-sm text-gray-600 mt-2">
                     Automated cleanups and data standardization tasks. Includes trimming whitespace, 
@@ -179,10 +172,8 @@ export function ValidationManager() {
                       return validation.category === ValidationCategory.COLUMN_MAPPING;
                     case 'data-quality':
                       return validation.category === ValidationCategory.DATA_QUALITY;
-                    case 'data-corrections':
-                      return validation.category === ValidationCategory.DATA_CORRECTIONS;
                     case 'data-normalization':
-                      return validation.category === ValidationCategory.DATA_CORRECTIONS;
+                      return validation.category === ValidationCategory.DATA_NORMALIZATION;
                     case 'deduplication':
                       return validation.category === ValidationCategory.DEDUPLICATION;
                     default:
