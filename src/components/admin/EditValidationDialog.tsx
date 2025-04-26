@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,8 +43,15 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     setOpen(false);
   };
 
-  const getTechnicalDescription = (type?: string, severity?: string, failAction?: string) => {
+  const getTechnicalDescription = (type?: string, severity?: string, failAction?: string, validationId?: string) => {
     const details = [];
+
+    if (validationId === 'row-length-consistency') {
+      details.push("Ensures every data row has the same number of columns as the header");
+      details.push("Prevents partial or incomplete data imports");
+      details.push("Verifies consistent data structure across all rows");
+      details.push("Helps catch file corruption or manual editing errors");
+    }
 
     if (type === 'format') {
       details.push("Input format validation");
@@ -133,7 +139,12 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Technical Implementation</h3>
             <div className="rounded-md bg-slate-100 p-3 text-sm space-y-1">
-              {getTechnicalDescription(validation.type, validation.severity, validation.failAction).map((detail, index) => (
+              {getTechnicalDescription(
+                validation.type, 
+                validation.severity, 
+                validation.failAction, 
+                validation.id
+              ).map((detail, index) => (
                 <p key={index} className="text-slate-700">• {detail}</p>
               ))}
             </div>
@@ -152,4 +163,3 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     </Dialog>
   );
 }
-
