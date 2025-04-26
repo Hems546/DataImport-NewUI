@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +18,7 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validations } from '@/constants/validations';
+import { validations, ValidationCategory } from '@/constants/validations';
 
 export default function FileVerification() {
   const [progress] = React.useState(32);
@@ -31,7 +30,7 @@ export default function FileVerification() {
   useEffect(() => {
     // Simulate file verification process
     const fileVerificationChecks = validations
-      .filter(v => v.category === 'Verify File')
+      .filter(v => v.category === ValidationCategory.VERIFY_FILE)
       .map(v => ({
         id: v.id,
         name: v.name,
