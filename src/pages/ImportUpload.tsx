@@ -7,14 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Upload,
   FileCheck,
-  MapColumns,
-  DataQuality,
-  TransformData, 
   Eye,
   RotateCcw,
   ArrowRight,
   ArrowLeft
 } from "lucide-react";
+import MapColumns from "@/components/icons/MapColumns";
+import DataQuality from "@/components/icons/DataQuality";
+import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 
