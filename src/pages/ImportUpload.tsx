@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import Header from '@/components/Header';
 import ProgressStep from '@/components/ProgressStep';
 import StepConnector from '@/components/StepConnector';
+import FileBox from '@/components/FileBox';
+import FileCheck from '@/components/FileCheck';
 
 const ImportUpload = () => {
   const navigate = useNavigate();
@@ -121,13 +122,7 @@ const ImportUpload = () => {
           <div className="flex justify-center mb-12">
             <div className="flex items-center w-full max-w-4xl">
               <ProgressStep 
-                icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                }
+                icon={<FileBox className="w-6 h-6" />}
                 label="Upload File"
                 isActive={true}
               />
@@ -135,13 +130,8 @@ const ImportUpload = () => {
               <StepConnector />
               
               <ProgressStep 
-                icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                }
-                label="Verify File"
+                icon={<FileCheck className="w-6 h-6" />}
+                label="File Preflighting"
               />
               
               <StepConnector />

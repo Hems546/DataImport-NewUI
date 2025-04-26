@@ -1,4 +1,3 @@
-
 import { FileBox, FileCheck, Database, Rows, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -9,7 +8,7 @@ import { validations } from "@/constants/validations";
 export function ValidationManager() {
   const tabs = [
     { id: "file-upload", label: "File Upload", icon: FileBox },
-    { id: "file-verification", label: "File Verification", icon: FileCheck },
+    { id: "file-preflighting", label: "File Preflighting", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-transformation", label: "Data Transformation", icon: Waypoints }
