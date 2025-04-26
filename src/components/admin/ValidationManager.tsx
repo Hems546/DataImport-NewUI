@@ -1,4 +1,5 @@
-import { FileBox, FileCheck, Database, Rows, Waypoints, Upload } from "lucide-react";
+
+import { FileBox, FileCheck, Database, Rows, Waypoints, Upload, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
