@@ -462,27 +462,39 @@ export const validations: Validation[] = [
 
   // IMPORT_PUSH validations
   {
-    id: "connection-check",
-    name: "Target System Connection Check",
-    description: "Verifies that the connection to the target system is active and authenticated.",
-    category: ValidationCategory.IMPORT_PUSH,
-    severity: "critical",
-    type: "connection"
-  },
-  {
     id: "schema-compatibility",
     name: "Schema Compatibility Check",
-    description: "Ensures the data structure matches the target system's requirements.",
+    description: "Ensures all fields comply with target system's schema requirements and data types.",
     category: ValidationCategory.IMPORT_PUSH,
     severity: "critical",
-    type: "structure"
+    type: "structure",
+    failAction: "reject"
   },
   {
-    id: "data-integrity",
-    name: "Data Integrity Verification",
-    description: "Final verification of data integrity before pushing to target system.",
+    id: "batch-size-validation",
+    name: "Batch Size Validation",
+    description: "Verifies that the import size meets system batch processing limits and requirements.",
     category: ValidationCategory.IMPORT_PUSH,
     severity: "high",
-    type: "validation"
+    type: "system",
+    failAction: "warn"
+  },
+  {
+    id: "test-batch-validation",
+    name: "Test Batch Verification",
+    description: "Processes a small test batch to verify system compatibility before full import.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "medium",
+    type: "system",
+    failAction: "warn"
+  },
+  {
+    id: "transaction-integrity",
+    name: "Transaction Integrity Check",
+    description: "Ensures all data can be committed in a single transaction if required.",
+    category: ValidationCategory.IMPORT_PUSH,
+    severity: "critical",
+    type: "system",
+    failAction: "reject"
   }
 ];
