@@ -134,8 +134,9 @@ export function ValidationManager() {
                 )}
                 {tab.id === "data-corrections" && (
                   <p className="text-sm text-gray-600 mt-2">
-                    Batch updates and transformations to fix common data issues like splitting columns,
-                    normalizing values, or standardizing formats.
+                    Automated cleanups and data standardization tasks. Includes trimming whitespace, 
+                    normalizing date formats, and standardizing common variations (e.g., "USA" vs "U.S." vs "United States").
+                    These changes help ensure data consistency before import.
                   </p>
                 )}
                 {tab.id === "deduplication" && (
@@ -179,4 +180,3 @@ export function ValidationManager() {
     </div>
   );
 }
-
