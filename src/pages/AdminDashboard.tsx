@@ -1,6 +1,9 @@
+
 import React, { useState } from "react";
-import { FileText, Shield, Database } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import TemplateCard from "@/components/admin/TemplateCard";
 import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
@@ -13,7 +16,15 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       <Header currentPage="admin" />
       <div className="flex-1 container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Admin Dashboard</h1>
+        <div className="flex items-center mb-8">
+          <Link to="/">
+            <Button variant="outline" className="mr-4">
+              <ChevronLeft className="w-5 h-5 mr-2" />
+              Back to Welcome
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        </div>
         
         <div className="w-full bg-gray-50 rounded-lg p-4 mb-8">
           <nav className="flex space-x-4 overflow-x-auto">
