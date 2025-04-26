@@ -134,6 +134,22 @@ export const validations: Validation[] = [
     name: "Column Count Consistency",
     description: "Checks if all rows have the same number of columns"
   },
+  {
+    id: "missing-identifier",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Missing Identifier Check",
+    description: "Verifies that required unique identifier columns (e.g., email, ID) are present in the file",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "duplicate-identifiers",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Duplicate Identifiers Check",
+    description: "Detects duplicate values in unique identifier columns that must be unique across rows",
+    severity: "critical",
+    type: "structural"
+  },
   
   // DATA QUALITY validations
   {
