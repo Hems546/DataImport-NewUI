@@ -61,25 +61,98 @@ export const validations: Validation[] = [
     failAction: "reject"
   },
   
-  // VERIFY FILE validations (previously FILE_PREFLIGHT)
+  // VERIFY_FILE (Preflight) validations
   {
-    id: "has-headers",
-    name: "Header Row Check",
-    description: "Verifies the file has a proper header row.",
+    id: "required-columns",
+    name: "Required Columns Check",
+    description: "Verifies all mandatory columns are present in the file.",
     category: ValidationCategory.VERIFY_FILE,
     severity: "critical",
     type: "structure",
     failAction: "reject"
   },
   {
-    id: "min-rows",
-    name: "Minimum Row Count",
-    description: "Checks if the file has at least 1 data row.",
+    id: "header-uniqueness",
+    name: "Header Uniqueness Check",
+    description: "Ensures there are no duplicate column headers in the file.",
     category: ValidationCategory.VERIFY_FILE,
     severity: "critical",
-    type: "structure"
+    type: "structure",
+    failAction: "reject"
   },
-  
+  {
+    id: "header-blank",
+    name: "Blank Headers Check",
+    description: "Verifies that no column headers are empty or contain only whitespace.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "header-format",
+    name: "Header Format Validation",
+    description: "Checks that headers match expected patterns and contain no invalid characters.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "delimiter-consistency",
+    name: "Delimiter Consistency Check",
+    description: "For CSV/TSV files, ensures consistent use of delimiters throughout the file.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "blank-rows",
+    name: "Blank Rows Detection",
+    description: "Identifies and flags completely empty rows in the file.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "high",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "blank-columns",
+    name: "Blank Columns Detection",
+    description: "Identifies and flags completely empty columns in the file.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "high",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "row-length-consistency",
+    name: "Row Length Consistency",
+    description: "Verifies all rows have the same number of columns as the header.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "excel-sheet-validation",
+    name: "Excel Sheet Validation",
+    description: "For Excel files, validates correct sheet selection and structure.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+  {
+    id: "special-characters",
+    name: "Special Characters Detection",
+    description: "Checks for illegal or unexpected control characters in the file.",
+    category: ValidationCategory.VERIFY_FILE,
+    severity: "critical",
+    type: "structure",
+    failAction: "reject"
+  },
+
   // COLUMN MAPPING validations
   {
     id: "auto-mapping-accuracy",
