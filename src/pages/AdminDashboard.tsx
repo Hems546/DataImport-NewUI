@@ -1,22 +1,13 @@
-
 import React, { useState } from "react";
 import { FileText, Shield, Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
 import TemplateCard from "@/components/admin/TemplateCard";
 import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
+import { systemTemplates } from "@/data/systemTemplates";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
-
-  const systemTemplates = [
-    { title: "Contacts", fields: 14, required: 3 },
-    { title: "Orders", fields: 15, required: 6 },
-    { title: "Subscribers", fields: 12, required: 3 },
-    { title: "Subscriptions", fields: 16, required: 10 },
-    { title: "Custom", fields: 0, required: 0 },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -64,13 +55,13 @@ export default function AdminDashboard() {
                 <TabsContent value="system">
                   <div className="mt-6">
                     <h3 className="text-xl font-bold mb-6">System-defined Templates</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {systemTemplates.map((template) => (
                         <TemplateCard
                           key={template.title}
                           title={template.title}
+                          description={template.description}
                           fields={template.fields}
-                          required={template.required}
                         />
                       ))}
                     </div>
