@@ -43,8 +43,8 @@ export default function FileVerification() {
         const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
           name: formatValidationName(validation.validation_type),
-          status: validation.status === 'pass' ? 'pass' : 
-                 validation.status === 'warning' ? 'warning' : 'fail',
+          status: validation.status === 'pass' ? 'pass' as const : 
+                 validation.status === 'warning' ? 'warning' as const : 'fail' as const,
           severity: validation.severity,
           description: validation.message
         }));
