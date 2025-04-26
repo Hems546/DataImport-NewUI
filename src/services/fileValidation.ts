@@ -22,8 +22,8 @@ export async function validateFile(file: File): Promise<FileValidationResult[]> 
               original_filename: file.name,
               session_id: crypto.randomUUID(),
               row_count: results.data.length,
-              column_count: results.data[0]?.length || 0,
-              source_columns: results.data[0]
+              column_count: results.data[0] ? (results.data[0] as any[]).length : 0,
+              source_columns: results.data[0] || []
             })
             .select()
             .single();
@@ -45,7 +45,16 @@ export async function validateFile(file: File): Promise<FileValidationResult[]> 
 
           if (validationError) throw validationError;
           
-          resolve(validations || []);
+          // Map database results to our FileValidationResult type
+          const typedValidations: FileValidationResult[] = (validations || []).map(validation => ({
+            id: validation.id,
+            validation_type: validation.validation_type,
+            status: validation.status as 'pass' | 'fail' | 'warning',
+            severity: validation.severity as 'critical' | 'warning',
+            message: validation.message
+          }));
+          
+          resolve(typedValidations);
         } catch (error) {
           reject(error);
         }

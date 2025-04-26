@@ -19,6 +19,7 @@ import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, ValidationCategory } from '@/constants/validations';
+import { validateFile, FileValidationResult } from '@/services/fileValidation';
 
 export default function FileVerification() {
   const [progress] = React.useState(32);
