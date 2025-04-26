@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -29,132 +28,81 @@ export default function FileVerification() {
   const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    const fileVerificationChecks = validations
-      .filter(v => v.category === ValidationCategory.VERIFY_FILE)
-      .map(v => ({
-        id: v.id,
-        name: v.name,
-        description: v.description,
-        status: 'pending' as const,
-        failureReason: '',
-        remediation: ''
-      }));
-
-    setVerificationResults(fileVerificationChecks);
-
-    // Simulate validation process
-    const timer = setTimeout(() => {
-      const results = fileVerificationChecks.map(check => {
-        // Always fail header-uniqueness and set header-format as warning
-        // Pass all other checks
-        if (check.id === 'header-uniqueness') {
-          return {
-            ...check,
-            status: 'fail' as const,
-            severity: 'critical' as const,
-            failureReason: getFailureReason(check.id),
-            remediation: getRemediation(check.id)
-          };
-        } else if (check.id === 'header-format') {
-          return {
-            ...check, 
-            status: 'warning' as const,
-            severity: 'warning' as const,
-            failureReason: getFailureReason(check.id),
-            remediation: getRemediation(check.id)
-          };
-        } else if (check.id === 'row-length-consistency') {
-          return {
-            ...check,
-            status: 'fail' as const,
-            severity: 'warning' as const,
-            failureReason: getFailureReason(check.id),
-            remediation: getRemediation(check.id)
-          };
-        } else {
-          return {
-            ...check,
-            status: 'pass' as const
-          };
+    const validateUploadedFile = async () => {
+      try {
+        setIsVerifying(true);
+        const fileData = localStorage.getItem('uploadedFile');
+        if (!fileData) {
+          throw new Error('No file found');
         }
-      });
-      
-      setVerificationResults(results);
-      setIsVerifying(false);
-      
-      const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
-      const warnings = results.filter(r => r.status === 'warning' || (r.status === 'fail' && r.severity === 'warning'));
-      
-      if (criticalFailures.length === 0 && warnings.length === 0) {
+
+        const file = dataURLtoFile(fileData, 'uploaded-file.csv');
+        const validationResults = await validateFile(file);
+
+        const results = validationResults.map(validation => ({
+          id: validation.validation_type,
+          name: formatValidationName(validation.validation_type),
+          status: validation.status === 'pass' ? 'pass' : 
+                 validation.status === 'warning' ? 'warning' : 'fail',
+          severity: validation.severity,
+          description: validation.message
+        }));
+
+        setVerificationResults(results);
+        
+        const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
+        const warnings = results.filter(r => r.status === 'warning' || (r.status === 'fail' && r.severity === 'warning'));
+        
+        if (criticalFailures.length === 0 && warnings.length === 0) {
+          toast({
+            title: "File verification complete",
+            description: "All checks passed. You can proceed to column mapping."
+          });
+        } else if (criticalFailures.length > 0) {
+          toast({
+            title: "File verification issues found",
+            description: `${criticalFailures.length} critical issues need attention.`,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "File verification warnings found",
+            description: `${warnings.length} warnings found. You can proceed or address these issues.`,
+            variant: "warning"
+          });
+        }
+      } catch (error) {
+        console.error('Validation error:', error);
         toast({
-          title: "File verification complete",
-          description: "All checks passed. You can proceed to column mapping."
-        });
-      } else if (criticalFailures.length > 0) {
-        toast({
-          title: "File verification issues found",
-          description: `${criticalFailures.length} critical issues need attention. Please review the details below.`,
+          title: "Validation failed",
+          description: "An error occurred while validating the file.",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "File verification warnings found",
-          description: `${warnings.length} warnings found. You can proceed or address these issues.`,
-          variant: "warning"
-        });
+      } finally {
+        setIsVerifying(false);
       }
-    }, 2000);
+    };
 
-    return () => clearTimeout(timer);
+    validateUploadedFile();
   }, [toast]);
 
-  const getFailureReason = (checkId: string): string => {
-    const check = validations.find(v => v.id === checkId);
-    let baseReason = '';
-    switch (checkId) {
-      case 'required-columns':
-        baseReason = "Missing required columns in the file: Customer ID, Email, First Name";
-        break;
-      case 'header-uniqueness':
-        baseReason = "Duplicate column headers found: 'Email' appears twice";
-        break;
-      case 'header-blank':
-        baseReason = "Empty column headers detected in columns F and H";
-        break;
-      case 'header-format':
-        baseReason = "Invalid characters found in column headers: '@', '#', '%'";
-        break;
-      case 'delimiter-consistency':
-        baseReason = "Inconsistent delimiters found. Some rows use commas, others use semicolons";
-        break;
-      default:
-        baseReason = check?.description || "Validation check failed";
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
     }
-    return baseReason;
+    return new File([u8arr], filename, { type: mime });
   };
 
-  const getRemediation = (checkId: string): string => {
-    let baseRemediation = '';
-    switch (checkId) {
-      case 'required-columns':
-        baseRemediation = "Ensure your file includes all required columns: Customer ID, Email, and First Name";
-        break;
-      case 'header-uniqueness':
-        baseRemediation = "Rename duplicate columns to have unique names. Consider using 'Primary Email' and 'Secondary Email'";
-        break;
-      case 'header-blank':
-        baseRemediation = "Add descriptive names to all column headers. No blank headers are allowed";
-        break;
-      case 'header-format':
-        baseRemediation = "Remove special characters from column headers. Use only letters, numbers, and underscores";
-        break;
-      case 'delimiter-consistency':
-        baseRemediation = "Ensure all rows use the same delimiter (comma). Check for and remove any semicolons";
-        break;
-      default:
-        baseRemediation = "Please review the file format requirements";
-    }
-    return `${baseRemediation}. Please fix the file and reimport the file.`;
+  const formatValidationName = (type: string): string => {
+    return type
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const handleContinue = () => {

@@ -517,6 +517,39 @@ export type Database = {
           },
         ]
       }
+      file_validations: {
+        Row: {
+          created_at: string | null
+          id: string
+          import_session_id: string
+          message: string | null
+          metadata: Json | null
+          severity: Database["public"]["Enums"]["validation_severity"] | null
+          status: string
+          validation_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          import_session_id: string
+          message?: string | null
+          metadata?: Json | null
+          severity?: Database["public"]["Enums"]["validation_severity"] | null
+          status: string
+          validation_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          import_session_id?: string
+          message?: string | null
+          metadata?: Json | null
+          severity?: Database["public"]["Enums"]["validation_severity"] | null
+          status?: string
+          validation_type?: string
+        }
+        Relationships: []
+      }
       help_file_embeddings: {
         Row: {
           chunk_id: string
@@ -1478,6 +1511,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_file_headers: {
+        Args: { p_headers: string[]; p_import_session_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       application_status:
@@ -1487,6 +1524,7 @@ export type Database = {
         | "Offer"
         | "Rejected"
       user_role: "admin" | "editor" | "viewer" | "contributor"
+      validation_severity: "critical" | "warning"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1610,6 +1648,7 @@ export const Constants = {
         "Rejected",
       ],
       user_role: ["admin", "editor", "viewer", "contributor"],
+      validation_severity: ["critical", "warning"],
     },
   },
 } as const
