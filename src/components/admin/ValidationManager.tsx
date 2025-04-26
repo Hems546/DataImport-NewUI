@@ -14,14 +14,14 @@ export function ValidationManager() {
   const [localValidations, setLocalValidations] = useState(validations);
 
   const tabs = [
-    { id: "file-upload", label: "File Upload", icon: Upload },
-    { id: "verify-file", label: "File Preflighting", icon: FileCheck },
-    { id: "column-mapping", label: "Column Mapping", icon: Rows },
-    { id: "data-quality", label: "Data Quality", icon: Database },
-    { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
-    { id: "deduplication", label: "Deduplication", icon: FileBox },
-    { id: "final-review", label: "Final Review & Approval", icon: ClipboardCheck },
-    { id: "import-push", label: "Import / Push to Target System", icon: ArrowUpCircle }
+    { id: "file-upload", label: "File Upload", icon: Upload, category: ValidationCategory.FILE_UPLOAD },
+    { id: "verify-file", label: "File Preflighting", icon: FileCheck, category: ValidationCategory.VERIFY_FILE },
+    { id: "column-mapping", label: "Column Mapping", icon: Rows, category: ValidationCategory.COLUMN_MAPPING },
+    { id: "data-quality", label: "Data Quality", icon: Database, category: ValidationCategory.DATA_QUALITY },
+    { id: "data-normalization", label: "Data Normalization", icon: Waypoints, category: ValidationCategory.DATA_NORMALIZATION },
+    { id: "deduplication", label: "Deduplication", icon: FileBox, category: ValidationCategory.DEDUPLICATION },
+    { id: "final-review", label: "Final Review & Approval", icon: ClipboardCheck, category: ValidationCategory.FINAL_REVIEW },
+    { id: "import-push", label: "Import / Push to Target System", icon: ArrowUpCircle, category: ValidationCategory.IMPORT_PUSH }
   ];
 
   const getSeverityColor = (severity?: string) => {
@@ -194,7 +194,7 @@ export function ValidationManager() {
             </div>
             <Accordion type="single" collapsible>
               {localValidations
-                .filter(validation => validation.category === tab.id)
+                .filter(validation => validation.category === tab.category)
                 .map(renderValidationItem)}
             </Accordion>
           </TabsContent>
