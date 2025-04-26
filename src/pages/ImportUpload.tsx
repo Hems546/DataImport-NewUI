@@ -151,6 +151,16 @@ export default function ImportUpload() {
       reader.onload = (e) => {
         if (e.target && e.target.result) {
           localStorage.setItem('uploadedFile', e.target.result.toString());
+          
+          // Store file type information
+          const fileInfo = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            extension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+          };
+          localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
+          
           navigate('/import-wizard/verification');
         }
       };

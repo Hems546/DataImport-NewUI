@@ -54,123 +54,167 @@ export async function validateFile(file: File): Promise<FileValidationResult[]> 
   }
 
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
-      complete: async (parseResults) => {
-        try {
-          if (!parseResults.data || parseResults.data.length === 0) {
-            results.push({
-              id: 'file-empty',
-              validation_type: 'file-empty',
-              status: 'fail',
-              severity: 'critical',
-              message: 'File appears to be empty'
-            });
+    // Only attempt to parse CSV files
+    if (fileExtension === '.csv') {
+      Papa.parse(file, {
+        header: true, // Parse the header row
+        skipEmptyLines: true,
+        complete: async (parseResults) => {
+          try {
+            if (!parseResults.data || parseResults.data.length === 0) {
+              results.push({
+                id: 'file-empty',
+                validation_type: 'file-empty',
+                status: 'fail',
+                severity: 'critical',
+                message: 'File appears to be empty'
+              });
+              resolve(results);
+              return;
+            }
+
+            const headers = parseResults.meta.fields || [];
+            
+            // Header presence check
+            if (!headers || headers.length === 0) {
+              results.push({
+                id: 'header-presence',
+                validation_type: 'header-presence',
+                status: 'fail',
+                severity: 'critical',
+                message: 'No headers found in file'
+              });
+            } else {
+              results.push({
+                id: 'header-presence',
+                validation_type: 'header-presence',
+                status: 'pass',
+                severity: 'critical',
+                message: 'Headers found in file'
+              });
+            }
+
+            // Header uniqueness check
+            const uniqueHeaders = new Set(headers);
+            if (uniqueHeaders.size !== headers.length) {
+              results.push({
+                id: 'header-uniqueness',
+                validation_type: 'header-uniqueness',
+                status: 'fail',
+                severity: 'critical',
+                message: 'Duplicate column headers found'
+              });
+            } else {
+              results.push({
+                id: 'header-uniqueness',
+                validation_type: 'header-uniqueness',
+                status: 'pass',
+                severity: 'critical',
+                message: 'All column headers are unique'
+              });
+            }
+
+            // Empty headers check
+            if (headers.some(header => !header || header.trim() === '')) {
+              results.push({
+                id: 'header-blank',
+                validation_type: 'header-blank',
+                status: 'fail',
+                severity: 'critical',
+                message: 'Blank or empty column headers found'
+              });
+            } else {
+              results.push({
+                id: 'header-blank',
+                validation_type: 'header-blank',
+                status: 'pass',
+                severity: 'critical',
+                message: 'No blank column headers found'
+              });
+            }
+
+            // Row length consistency check
+            let inconsistentRows = false;
+            const firstRowLength = Object.keys(parseResults.data[0]).length;
+            
+            for (let i = 1; i < parseResults.data.length; i++) {
+              if (Object.keys(parseResults.data[i]).length !== firstRowLength) {
+                inconsistentRows = true;
+                break;
+              }
+            }
+
+            if (inconsistentRows) {
+              results.push({
+                id: 'row-length-consistency',
+                validation_type: 'row-length-consistency',
+                status: 'fail',
+                severity: 'critical',
+                message: 'Inconsistent number of columns across rows'
+              });
+            } else {
+              results.push({
+                id: 'row-length-consistency',
+                validation_type: 'row-length-consistency',
+                status: 'pass',
+                severity: 'critical',
+                message: 'All rows have consistent column count'
+              });
+            }
+
+            // Try to create import session in Supabase, but don't block validation results if it fails
+            try {
+              const { data: session, error: sessionError } = await supabase
+                .from('import_sessions')
+                .insert({
+                  original_filename: file.name,
+                  session_id: crypto.randomUUID(),
+                  row_count: parseResults.data.length,
+                  column_count: headers.length,
+                  source_columns: headers
+                })
+                .select()
+                .single();
+
+              if (sessionError) {
+                console.warn("Failed to save import session:", sessionError);
+                // Continue with validation even if session saving fails
+              }
+            } catch (dbError) {
+              console.warn("Error in database operation:", dbError);
+              // Proceed with validation results even if DB operation fails
+            }
+
             resolve(results);
-            return;
+          } catch (error) {
+            console.error("Validation error:", error);
+            // If there's an error in validation, still return what we have so far
+            resolve(results);
           }
-
-          const headers = parseResults.data[0] as string[];
-          
-          // Header presence check
-          if (!headers || headers.length === 0) {
-            results.push({
-              id: 'header-presence',
-              validation_type: 'header-presence',
-              status: 'fail',
-              severity: 'critical',
-              message: 'No headers found in file'
-            });
-          } else {
-            results.push({
-              id: 'header-presence',
-              validation_type: 'header-presence',
-              status: 'pass',
-              severity: 'critical',
-              message: 'Headers found in file'
-            });
-          }
-
-          // Header uniqueness check
-          const uniqueHeaders = new Set(headers);
-          if (uniqueHeaders.size !== headers.length) {
-            results.push({
-              id: 'header-uniqueness',
-              validation_type: 'header-uniqueness',
-              status: 'fail',
-              severity: 'critical',
-              message: 'Duplicate column headers found'
-            });
-          } else {
-            results.push({
-              id: 'header-uniqueness',
-              validation_type: 'header-uniqueness',
-              status: 'pass',
-              severity: 'critical',
-              message: 'All column headers are unique'
-            });
-          }
-
-          // Empty headers check
-          if (headers.some(header => !header || header.trim() === '')) {
-            results.push({
-              id: 'header-blank',
-              validation_type: 'header-blank',
-              status: 'fail',
-              severity: 'critical',
-              message: 'Blank or empty column headers found'
-            });
-          } else {
-            results.push({
-              id: 'header-blank',
-              validation_type: 'header-blank',
-              status: 'pass',
-              severity: 'critical',
-              message: 'No blank column headers found'
-            });
-          }
-
-          // Row length consistency check
-          const rowLengths = parseResults.data.map(row => (row as string[]).length);
-          const inconsistentRows = rowLengths.some(length => length !== headers.length);
-          if (inconsistentRows) {
-            results.push({
-              id: 'row-length-consistency',
-              validation_type: 'row-length-consistency',
-              status: 'fail',
-              severity: 'critical',
-              message: 'Inconsistent number of columns across rows'
-            });
-          } else {
-            results.push({
-              id: 'row-length-consistency',
-              validation_type: 'row-length-consistency',
-              status: 'pass',
-              severity: 'critical',
-              message: 'All rows have consistent column count'
-            });
-          }
-
-          // Create import session in Supabase
-          const { data: session, error: sessionError } = await supabase
-            .from('import_sessions')
-            .insert({
-              original_filename: file.name,
-              session_id: crypto.randomUUID(),
-              row_count: parseResults.data.length,
-              column_count: headers.length,
-              source_columns: headers
-            } as any)
-            .select()
-            .single();
-
-          if (sessionError) throw sessionError;
-
+        },
+        error: (error) => {
+          console.error("Parse error:", error);
+          results.push({
+            id: 'parse-error',
+            validation_type: 'parse-error',
+            status: 'fail',
+            severity: 'critical',
+            message: 'Error parsing file: ' + error.message
+          });
           resolve(results);
-        } catch (error) {
-          reject(error);
         }
-      },
-      error: (error) => reject(error)
-    });
+      });
+    } else {
+      // For non-CSV files, we don't have parsing validation yet
+      // Future enhancement: Add Excel file parsing and validation
+      results.push({
+        id: 'format-support',
+        validation_type: 'format-support',
+        status: 'warning',
+        severity: 'warning',
+        message: 'Excel files are supported for upload but detailed content validation is limited'
+      });
+      resolve(results);
+    }
   });
 }

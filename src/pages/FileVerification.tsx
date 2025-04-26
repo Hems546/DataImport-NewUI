@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -81,6 +80,7 @@ export default function FileVerification() {
           description: "An error occurred while validating the file.",
           variant: "destructive"
         });
+        setVerificationResults([]);
       } finally {
         setIsVerifying(false);
       }
@@ -226,10 +226,18 @@ export default function FileVerification() {
                 <p className="text-gray-500">File verification in progress...</p>
               </div>
             ) : (
-              <ValidationStatus 
-                results={verificationResults}
-                title="File Verification Results"
-              />
+              <>
+                {verificationResults.length > 0 ? (
+                  <ValidationStatus 
+                    results={verificationResults}
+                    title="File Verification Results"
+                  />
+                ) : (
+                  <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-700">No validation checks were completed. There might be an issue with the file format.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -243,7 +251,7 @@ export default function FileVerification() {
               </Link>
             </div>
             <div className="flex gap-4">
-              {verificationResults.some(v => v.status === 'fail') && (
+              {verificationResults.some(v => v.status === 'fail' && v.severity === 'critical') && (
                 <Button 
                   variant="destructive"
                   onClick={handleOverride}
@@ -254,7 +262,7 @@ export default function FileVerification() {
               <Button 
                 className="bg-brand-purple hover:bg-brand-purple/90"
                 onClick={handleContinue}
-                disabled={isVerifying || verificationResults.some(v => v.status === 'fail')}
+                disabled={isVerifying || verificationResults.some(v => v.status === 'fail' && v.severity === 'critical')}
               >
                 Continue to Column Mapping
                 <ArrowRight className="ml-2" />
