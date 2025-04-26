@@ -4,11 +4,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { validations, ValidationCategory } from "@/constants/validations";
+import { useState } from "react";
+import { EditValidationDialog } from "./EditValidationDialog";
+import { useToast } from "@/components/ui/use-toast";
 
 export function ValidationManager() {
+  const { toast } = useToast();
+  const [localValidations, setLocalValidations] = useState(validations);
+
   const tabs = [
     { id: "file-upload", label: "File Upload", icon: Upload },
-    { id: "verify-file", label: "File Preflighting", icon: FileCheck }, // Updated label
+    { id: "verify-file", label: "File Preflighting", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
@@ -32,6 +38,17 @@ export function ValidationManager() {
     }
   };
 
+  const handleUpdateValidation = (updatedValidation: any) => {
+    setLocalValidations(prev => 
+      prev.map(v => v.id === updatedValidation.id ? updatedValidation : v)
+    );
+    
+    toast({
+      title: "Validation Updated",
+      description: `${updatedValidation.name} has been moved to ${updatedValidation.category}`,
+    });
+  };
+
   const renderValidationItem = (validation: any) => (
     <AccordionItem value={validation.id} key={validation.id} className="border rounded-lg mb-4 bg-white">
       <AccordionTrigger className="px-4 hover:no-underline">
@@ -42,7 +59,13 @@ export function ValidationManager() {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-semibold">{validation.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold">{validation.name}</h3>
+              <EditValidationDialog 
+                validation={validation}
+                onSave={handleUpdateValidation}
+              />
+            </div>
             <p className="text-sm text-gray-500">{validation.description}</p>
           </div>
           <div className="flex gap-2">
@@ -109,7 +132,6 @@ export function ValidationManager() {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-xl font-bold">{tab.label} Validation Checks</h3>
-                {/* Update existing descriptions */}
                 {tab.id === "verify-file" && (
                   <p className="text-sm text-gray-600 mt-2">
                     Structural checks to determine if the file can be processed at all. 
@@ -170,29 +192,8 @@ export function ValidationManager() {
               </Button>
             </div>
             <Accordion type="single" collapsible>
-              {validations
-                .filter(validation => {
-                  switch(tab.id) {
-                    case 'file-upload':
-                      return validation.category === ValidationCategory.FILE_UPLOAD;
-                    case 'verify-file':
-                      return validation.category === ValidationCategory.VERIFY_FILE;
-                    case 'column-mapping':
-                      return validation.category === ValidationCategory.COLUMN_MAPPING;
-                    case 'data-quality':
-                      return validation.category === ValidationCategory.DATA_QUALITY;
-                    case 'data-normalization':
-                      return validation.category === ValidationCategory.DATA_NORMALIZATION;
-                    case 'deduplication':
-                      return validation.category === ValidationCategory.DEDUPLICATION;
-                    case 'final-review':
-                      return validation.category === ValidationCategory.FINAL_REVIEW;
-                    case 'import-push':
-                      return validation.category === ValidationCategory.IMPORT_PUSH;
-                    default:
-                      return false;
-                  }
-                })
+              {localValidations
+                .filter(validation => validation.category === tab.id)
                 .map(renderValidationItem)}
             </Accordion>
           </TabsContent>
