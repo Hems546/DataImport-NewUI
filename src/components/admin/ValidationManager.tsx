@@ -1,4 +1,5 @@
-import { FileBox, FileCheck, Database, Rows, Waypoints } from "lucide-react";
+
+import { FileBox, FileCheck, Database, Rows, Waypoints, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -7,6 +8,7 @@ import { validations, ValidationCategory } from "@/constants/validations";
 
 export function ValidationManager() {
   const tabs = [
+    { id: "file-upload", label: "File Upload", icon: Upload },
     { id: "file-preflight", label: "File Preflighting", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
@@ -78,7 +80,7 @@ export function ValidationManager() {
         </p>
       </div>
 
-      <Tabs defaultValue="file-preflight" className="w-full">
+      <Tabs defaultValue="file-upload" className="w-full">
         <TabsList className="w-full bg-gray-50 p-1 h-auto flex-wrap">
           {tabs.map((tab) => (
             <TabsTrigger
@@ -107,6 +109,8 @@ export function ValidationManager() {
               {validations
                 .filter(validation => {
                   switch(tab.id) {
+                    case 'file-upload':
+                      return validation.category === ValidationCategory.FILE_UPLOAD;
                     case 'file-preflight':
                       return validation.category === ValidationCategory.FILE_PREFLIGHT;
                     case 'column-mapping':
@@ -114,7 +118,7 @@ export function ValidationManager() {
                     case 'data-quality':
                       return validation.category === ValidationCategory.DATA_QUALITY;
                     case 'data-corrections':
-                      return validation.category === ValidationCategory.DATA_TRANSFORMATION;
+                      return validation.category === ValidationCategory.DATA_CORRECTIONS;
                     case 'deduplication':
                       return validation.category === ValidationCategory.DEDUPLICATION;
                     default:

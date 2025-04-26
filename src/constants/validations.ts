@@ -14,11 +14,53 @@ export enum ValidationCategory {
   FILE_PREFLIGHT = "File Preflight",
   COLUMN_MAPPING = "Column Mapping",
   DATA_QUALITY = "Data Quality",
-  DATA_TRANSFORMATION = "Data Transformation",
+  DATA_CORRECTIONS = "Data Corrections",
   DEDUPLICATION = "Deduplication"
 }
 
 export const validations: Validation[] = [
+  // FILE_UPLOAD validations (basic checks at upload time)
+  {
+    id: "file-format",
+    category: ValidationCategory.FILE_UPLOAD,
+    name: "File Format Check",
+    description: "Verifies the file is in a supported format (CSV, XLS, XLSX)",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "file-size-limit",
+    category: ValidationCategory.FILE_UPLOAD,
+    name: "File Size Limit Check",
+    description: "Verifies that the file size does not exceed upload limits",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "incomplete-upload",
+    category: ValidationCategory.FILE_UPLOAD,
+    name: "Incomplete Upload Check",
+    description: "Detects if file upload was interrupted or incomplete",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "file-encryption",
+    category: ValidationCategory.FILE_UPLOAD,
+    name: "File Encryption Check",
+    description: "Identifies encrypted or password-protected files that cannot be processed",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "file-encoding-type",
+    category: ValidationCategory.FILE_UPLOAD,
+    name: "File Encoding Type Check",
+    description: "Validates that the file uses proper encoding (e.g., UTF-8)",
+    severity: "high",
+    type: "structural"
+  },
+  
   // STRUCTURAL validations (critical issues that require immediate attention)
   {
     id: "missing-headers",
@@ -85,69 +127,7 @@ export const validations: Validation[] = [
     type: "structural"
   },
   
-  // FILE PREFLIGHT validations
-  {
-    id: "file-size-limit",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Size Limit Check",
-    description: "Verifies that the file size does not exceed upload limits",
-    severity: "critical",
-    type: "structural"
-  },
-  {
-    id: "incomplete-upload",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "Incomplete Upload Check",
-    description: "Detects if file upload was interrupted or incomplete",
-    severity: "critical",
-    type: "structural"
-  },
-  {
-    id: "file-encryption",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Encryption Check",
-    description: "Identifies encrypted or password-protected files that cannot be processed",
-    severity: "critical",
-    type: "structural"
-  },
-  {
-    id: "file-encoding-type",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Encoding Type Check",
-    description: "Validates that the file uses proper encoding (e.g., UTF-8)",
-    severity: "high",
-    type: "structural"
-  },
-  {
-    id: "file-format",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Format Check",
-    description: "Verifies the file is in a supported format (CSV, XLS, XLSX)"
-  },
-  {
-    id: "file-size",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Size Check",
-    description: "Ensures the file size is within acceptable limits"
-  },
-  {
-    id: "file-encoding",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "File Encoding Check",
-    description: "Validates that the file uses a supported character encoding (e.g., UTF-8)"
-  },
-  {
-    id: "header-row",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "Header Row Check",
-    description: "Confirms the presence of a header row with column names"
-  },
-  {
-    id: "required-columns",
-    category: ValidationCategory.FILE_PREFLIGHT,
-    name: "Required Columns Check",
-    description: "Verifies all required columns are present in the file"
-  },
+  // FILE PREFLIGHT validations (moved some validations from here to FILE_UPLOAD)
   {
     id: "empty-file",
     category: ValidationCategory.FILE_PREFLIGHT,

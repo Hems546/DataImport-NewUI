@@ -161,7 +161,7 @@ export default function ImportUpload() {
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">Upload Data</h2>
+            <h2 className="text-2xl font-bold">File Upload</h2>
             <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
               Target: customers
             </div>
@@ -191,7 +191,7 @@ export default function ImportUpload() {
             <StepConnector />
             <ProgressStep 
               icon={<TransformData />}
-              label="Transform Data"
+              label="Data Corrections"
             />
             <StepConnector />
             <ProgressStep 
