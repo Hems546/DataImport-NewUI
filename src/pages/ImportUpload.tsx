@@ -1,6 +1,7 @@
 
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +21,102 @@ import StepConnector from "@/components/StepConnector";
 
 export default function ImportUpload() {
   const [progress] = React.useState(16);
+  const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      
+      // Check file type
+      const validTypes = ['.csv', '.xls', '.xlsx'];
+      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+      
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      
+      if (!validTypes.includes(fileExtension)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a CSV or Excel file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (selectedFile.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setFile(selectedFile);
+      toast({
+        title: "File selected",
+        description: `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`,
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      
+      // Check file type
+      const validTypes = ['.csv', '.xls', '.xlsx'];
+      const fileExtension = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
+      
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      
+      if (!validTypes.includes(fileExtension)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a CSV or Excel file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (droppedFile.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setFile(droppedFile);
+      toast({
+        title: "File uploaded",
+        description: `${droppedFile.name} (${(droppedFile.size / 1024 / 1024).toFixed(2)} MB)`,
+      });
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -109,16 +206,45 @@ export default function ImportUpload() {
               Upload a CSV or Excel file to begin the import process. Your file should include header rows.
             </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+            <div 
+              className={`border-2 border-dashed ${isDragging ? 'border-brand-purple bg-purple-50' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <div className="flex flex-col items-center">
-                <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-1">
-                  Drag & drop your file here, or <span className="text-blue-600">browse</span>
-                </p>
-                <p className="text-gray-500 text-sm mb-4">
-                  Supports CSV, XLS, XLSX (max 10MB)
-                </p>
-                <Button>Select File</Button>
+                {file ? (
+                  <>
+                    <FileCheck className="h-12 w-12 text-green-500 mb-4" />
+                    <p className="text-gray-600 mb-1">
+                      File selected: <span className="font-medium">{file.name}</span>
+                    </p>
+                    <p className="text-gray-500 text-sm mb-4">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <Button onClick={() => setFile(null)} variant="outline">
+                      Change File
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-600 mb-1">
+                      Drag & drop your file here, or <span className="text-blue-600">browse</span>
+                    </p>
+                    <p className="text-gray-500 text-sm mb-4">
+                      Supports CSV, XLS, XLSX (max 10MB)
+                    </p>
+                    <Button onClick={handleButtonClick}>Select File</Button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      className="hidden" 
+                      accept=".csv,.xls,.xlsx"
+                      onChange={handleFileChange}
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -136,7 +262,7 @@ export default function ImportUpload() {
                 Start Over
               </Button>
             </div>
-            <Button>
+            <Button disabled={!file}>
               Continue
               <ArrowRight className="ml-2" />
             </Button>
