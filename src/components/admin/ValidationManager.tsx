@@ -1,18 +1,17 @@
-
 import { FileBox, FileCheck, Database, Rows, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { validations } from "@/constants/validations";
+import { validations, ValidationCategory } from "@/constants/validations";
 
 export function ValidationManager() {
   const tabs = [
-    { id: "file-upload", label: "File Upload", icon: FileBox },
-    { id: "file-preflight", label: "File Preflight", icon: FileCheck },
+    { id: "file-preflight", label: "File Preflighting", icon: FileCheck },
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
-    { id: "data-transformation", label: "Data Transformation", icon: Waypoints }
+    { id: "data-transformation", label: "Data Transformation", icon: Waypoints },
+    { id: "deduplication", label: "Deduping", icon: FileBox }
   ];
 
   const getSeverityColor = (severity?: string) => {
@@ -20,9 +19,9 @@ export function ValidationManager() {
       case 'critical':
         return 'destructive';
       case 'high':
-        return 'destructive'; // Changed from 'orange' to 'destructive'
+        return 'destructive';
       case 'medium':
-        return 'secondary'; // Changed from 'yellow' to 'secondary'
+        return 'secondary';
       case 'low':
         return 'secondary';
       default:
@@ -75,8 +74,7 @@ export function ValidationManager() {
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-2">Validation Checks Manager</h2>
         <p className="text-gray-600 max-w-3xl mx-auto">
-          Drag and drop validation checks between tabs to control where they appear in the import process. 
-          This also determines at which stage each validation check will be performed.
+          Configure and manage validation checks for different stages of the import process.
         </p>
       </div>
 
@@ -107,7 +105,22 @@ export function ValidationManager() {
             </div>
             <Accordion type="single" collapsible>
               {validations
-                .filter(validation => validation.category === tab.label)
+                .filter(validation => {
+                  switch(tab.id) {
+                    case 'file-preflight':
+                      return validation.category === ValidationCategory.FILE_PREFLIGHT;
+                    case 'column-mapping':
+                      return validation.category === ValidationCategory.COLUMN_MAPPING;
+                    case 'data-quality':
+                      return validation.category === ValidationCategory.DATA_QUALITY;
+                    case 'data-transformation':
+                      return validation.category === ValidationCategory.DATA_TRANSFORMATION;
+                    case 'deduplication':
+                      return validation.category === ValidationCategory.DEDUPLICATION;
+                    default:
+                      return false;
+                  }
+                })
                 .map(renderValidationItem)}
             </Accordion>
           </TabsContent>
