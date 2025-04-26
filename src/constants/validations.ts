@@ -403,27 +403,63 @@ export const validations: Validation[] = [
   
   // FINAL_REVIEW validations
   {
+    id: "validation-summary",
+    name: "Validation Summary Report",
+    description: "Generates a comprehensive report of all validation successes and failures.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "high"
+  },
+  {
+    id: "pending-errors-check",
+    name: "Unresolved Issues Check",
+    description: "Identifies any remaining unresolved validation issues that need attention.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "critical"
+  },
+  {
     id: "auto-corrections-review",
     name: "Auto-corrections Review",
     description: "Review of all data that was automatically corrected during the import process.",
     category: ValidationCategory.FINAL_REVIEW,
-    type: "review"
+    type: "review",
+    severity: "medium"
   },
   {
-    id: "manual-corrections-review",
-    name: "Manual Corrections Review",
-    description: "Summary of all manual corrections made to the data.",
+    id: "row-count-verification",
+    name: "Row Count Verification",
+    description: "Confirms the number of rows successfully processed versus the original file count.",
     category: ValidationCategory.FINAL_REVIEW,
-    type: "review"
+    type: "review",
+    severity: "high"
   },
   {
-    id: "missing-data-review",
-    name: "Missing Data Review",
-    description: "Overview of any ignored or missing data in the import.",
+    id: "ignored-errors-review",
+    name: "Ignored Errors Review",
+    description: "Lists all validation errors that were marked as ignored during the import process.",
     category: ValidationCategory.FINAL_REVIEW,
-    type: "review"
+    type: "review",
+    severity: "medium"
   },
-  
+  {
+    id: "data-transformations-log",
+    name: "Data Transformations Log",
+    description: "Detailed log of all data transformations and normalizations applied.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "low"
+  },
+  {
+    id: "final-approval-required",
+    name: "Final Approval Requirement",
+    description: "Requires explicit user approval before proceeding with the final import.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review",
+    severity: "critical",
+    failAction: "block"
+  },
+
   // IMPORT_PUSH validations
   {
     id: "connection-check",
