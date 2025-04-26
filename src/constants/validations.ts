@@ -182,6 +182,22 @@ export const validations: Validation[] = [
     severity: "critical",
     type: "structural"
   },
+  {
+    id: "mixed-formats",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Mixed Format Check",
+    description: "Detects inconsistent file formats across multi-sheet uploads",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "multi-value-cells",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Multi-value Cell Check",
+    description: "Identifies cells containing multiple values without proper delimitation",
+    severity: "high",
+    type: "structural"
+  },
   
   // DATA QUALITY validations
   {
