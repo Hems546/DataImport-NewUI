@@ -1,6 +1,5 @@
-
 import React, { useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ export default function ImportUpload() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (file) {
@@ -143,6 +143,10 @@ export default function ImportUpload() {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  const handleContinue = () => {
+    navigate('/import-wizard/verification');
   };
 
   return (
@@ -308,7 +312,11 @@ export default function ImportUpload() {
                   Start Over
                 </Button>
               </div>
-              <Button disabled={!file} className="bg-brand-purple hover:bg-brand-purple/90">
+              <Button 
+                disabled={!file} 
+                className="bg-brand-purple hover:bg-brand-purple/90"
+                onClick={handleContinue}
+              >
                 Continue to File Verification
                 <ArrowRight className="ml-2" />
               </Button>

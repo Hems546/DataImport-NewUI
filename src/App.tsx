@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ImportTypeSelection from "./pages/ImportTypeSelection";
 import ImportUpload from "./pages/ImportUpload";
+import FileVerification from "./pages/FileVerification";
 import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
@@ -21,6 +23,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/import-wizard" element={<ImportTypeSelection />} />
           <Route path="/import-wizard/upload" element={<ImportUpload />} />
+          <Route path="/import-wizard/verification" element={<FileVerification />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
