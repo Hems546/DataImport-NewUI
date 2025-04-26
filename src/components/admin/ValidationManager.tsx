@@ -12,7 +12,8 @@ export function ValidationManager() {
     { id: "column-mapping", label: "Column Mapping", icon: Rows },
     { id: "data-quality", label: "Data Quality", icon: Database },
     { id: "data-normalization", label: "Data Normalization", icon: Waypoints },
-    { id: "deduplication", label: "Deduplication", icon: FileBox }
+    { id: "deduplication", label: "Deduplication", icon: FileBox },
+    { id: "final-review", label: "Final Review & Approval", icon: ClipboardCheck }
   ];
 
   const getSeverityColor = (severity?: string) => {
@@ -151,6 +152,13 @@ export function ValidationManager() {
                     Failures here require the user to upload a fixed file.
                   </p>
                 )}
+                {tab.id === "final-review" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Final review of all data corrections, including auto-fixed issues, manual corrections,
+                    and overview of any ignored or missing data. Users must approve the final dataset
+                    before import completion.
+                  </p>
+                )}
               </div>
               <Button variant="outline">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -175,6 +183,8 @@ export function ValidationManager() {
                       return validation.category === ValidationCategory.DATA_NORMALIZATION;
                     case 'deduplication':
                       return validation.category === ValidationCategory.DEDUPLICATION;
+                    case 'final-review':
+                      return validation.category === ValidationCategory.FINAL_REVIEW;
                     default:
                       return false;
                   }

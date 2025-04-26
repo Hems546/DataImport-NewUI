@@ -11,7 +11,8 @@ import {
   RotateCcw,
   ArrowRight,
   ArrowLeft,
-  FileBox
+  FileBox,
+  ClipboardCheck
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -194,6 +195,11 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<FileBox />}
               label="Deduplication"
+            />
+            <StepConnector />
+            <ProgressStep 
+              icon={<ClipboardCheck />}
+              label="Final Review & Approval"
             />
           </div>
 

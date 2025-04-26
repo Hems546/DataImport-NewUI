@@ -5,7 +5,8 @@ export enum ValidationCategory {
   COLUMN_MAPPING = "Column Mapping",
   DATA_QUALITY = "Data Quality",
   DATA_NORMALIZATION = "Data Normalization",
-  DEDUPLICATION = "Deduplication"
+  DEDUPLICATION = "Deduplication",
+  FINAL_REVIEW = "Final Review & Approval"
 }
 
 // Define the Validation interface to provide type safety
@@ -141,5 +142,28 @@ export const validations: Validation[] = [
     category: ValidationCategory.DEDUPLICATION,
     severity: "low",
     type: "duplicate"
+  },
+  
+  // FINAL_REVIEW validations
+  {
+    id: "auto-corrections-review",
+    name: "Auto-corrections Review",
+    description: "Review of all data that was automatically corrected during the import process.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review"
+  },
+  {
+    id: "manual-corrections-review",
+    name: "Manual Corrections Review",
+    description: "Summary of all manual corrections made to the data.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review"
+  },
+  {
+    id: "missing-data-review",
+    name: "Missing Data Review",
+    description: "Overview of any ignored or missing data in the import.",
+    category: ValidationCategory.FINAL_REVIEW,
+    type: "review"
   }
 ];
