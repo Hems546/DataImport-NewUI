@@ -35,18 +35,33 @@ export default function FileVerification() {
         id: v.id,
         name: v.name,
         description: v.description,
-        status: 'pending' as const
+        status: 'pending' as const,
+        failureReason: '',
+        remediation: ''
       }));
 
     setVerificationResults(fileVerificationChecks);
 
     // Simulate the verification process with a timer
     const timer = setTimeout(() => {
-      // Set random results (in a real app, this would be actual verification)
-      const results = fileVerificationChecks.map((check, index) => ({
-        ...check,
-        status: Math.random() > 0.2 ? 'pass' as const : 'fail' as const
-      }));
+      // Set random results with detailed failure information
+      const results = fileVerificationChecks.map(check => {
+        const passed = Math.random() > 0.2;
+        if (passed) {
+          return {
+            ...check,
+            status: 'pass' as const
+          };
+        }
+        
+        // Add specific failure information based on the check
+        return {
+          ...check,
+          status: 'fail' as const,
+          failureReason: getFailureReason(check.id),
+          remediation: getRemediation(check.id)
+        };
+      });
       
       setVerificationResults(results);
       setIsVerifying(false);
@@ -61,7 +76,7 @@ export default function FileVerification() {
       } else {
         toast({
           title: "File verification issues found",
-          description: `${failedChecks.length} issues need attention.`,
+          description: `${failedChecks.length} issues need attention. Please review the details below.`,
           variant: "destructive"
         });
       }
@@ -69,6 +84,42 @@ export default function FileVerification() {
 
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Helper functions to provide specific failure information
+  const getFailureReason = (checkId: string): string => {
+    const check = validations.find(v => v.id === checkId);
+    switch (checkId) {
+      case 'required-columns':
+        return "Missing required columns in the file: Customer ID, Email, First Name";
+      case 'header-uniqueness':
+        return "Duplicate column headers found: 'Email' appears twice";
+      case 'header-blank':
+        return "Empty column headers detected in columns F and H";
+      case 'header-format':
+        return "Invalid characters found in column headers: '@', '#', '%'";
+      case 'delimiter-consistency':
+        return "Inconsistent delimiters found. Some rows use commas, others use semicolons";
+      default:
+        return check?.description || "Validation check failed";
+    }
+  };
+
+  const getRemediation = (checkId: string): string => {
+    switch (checkId) {
+      case 'required-columns':
+        return "Please ensure your file includes all required columns: Customer ID, Email, and First Name";
+      case 'header-uniqueness':
+        return "Rename duplicate columns to have unique names. Consider using 'Primary Email' and 'Secondary Email'";
+      case 'header-blank':
+        return "Add descriptive names to all column headers. No blank headers are allowed";
+      case 'header-format':
+        return "Remove special characters from column headers. Use only letters, numbers, and underscores";
+      case 'delimiter-consistency':
+        return "Ensure all rows use the same delimiter (comma). Check for and remove any semicolons";
+      default:
+        return "Please review the file format requirements and try again";
+    }
+  };
 
   const handleContinue = () => {
     // In a real app, we would check if all verifications passed
