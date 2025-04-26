@@ -14,6 +14,21 @@ export function ValidationManager() {
     { id: "data-transformation", label: "Data Transformation", icon: Waypoints }
   ];
 
+  const getSeverityColor = (severity?: string) => {
+    switch (severity) {
+      case 'critical':
+        return 'destructive';
+      case 'high':
+        return 'orange';
+      case 'medium':
+        return 'yellow';
+      case 'low':
+        return 'secondary';
+      default:
+        return 'default';
+    }
+  };
+
   const renderValidationItem = (validation: any) => (
     <AccordionItem value={validation.id} key={validation.id} className="border rounded-lg mb-4 bg-white">
       <AccordionTrigger className="px-4 hover:no-underline">
@@ -28,19 +43,26 @@ export function ValidationManager() {
             <p className="text-sm text-gray-500">{validation.description}</p>
           </div>
           <div className="flex gap-2">
-            {validation.category === "File Preflight" && (
-              <Badge variant="destructive" className="rounded-full">Critical</Badge>
+            {validation.severity && (
+              <Badge variant={getSeverityColor(validation.severity)} className="rounded-full">
+                {validation.severity}
+              </Badge>
             )}
-            <Badge variant="secondary" className="rounded-full">Requires Reimport</Badge>
+            {validation.type && (
+              <Badge variant="secondary" className="rounded-full">
+                {validation.type}
+              </Badge>
+            )}
           </div>
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-4 pb-4">
         <div className="pl-16">
-          <h4 className="font-medium mb-2">Checkpoints (2)</h4>
+          <h4 className="font-medium mb-2">Validation Details</h4>
           <ul className="list-disc pl-5 text-sm text-gray-600">
-            <li>Maximum file size: 100MB</li>
-            <li>Minimum file size: 1KB</li>
+            <li>Category: {validation.category}</li>
+            <li>Type: {validation.type || 'Not specified'}</li>
+            <li>Severity: {validation.severity || 'Not specified'}</li>
           </ul>
         </div>
       </AccordionContent>

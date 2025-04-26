@@ -1,4 +1,3 @@
-
 // Validation categories based on when they should be performed
 
 export type Validation = {
@@ -6,6 +5,8 @@ export type Validation = {
   category: ValidationCategory;
   name: string;
   description: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  type?: 'structural' | 'data' | 'business';
 };
 
 export enum ValidationCategory {
@@ -16,6 +17,72 @@ export enum ValidationCategory {
 }
 
 export const validations: Validation[] = [
+  // STRUCTURAL validations (critical issues that require immediate attention)
+  {
+    id: "missing-headers",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Missing Headers Check",
+    description: "Verifies that all required column headers are present in the file",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "duplicate-headers",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Duplicate Headers Check",
+    description: "Detects duplicate column headers that could cause mapping conflicts",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "blank-content",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Blank Content Check",
+    description: "Identifies empty rows or columns that might indicate data quality issues",
+    severity: "high",
+    type: "structural"
+  },
+  {
+    id: "delimiter-check",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Delimiter Validation",
+    description: "Ensures proper delimiter usage in CSV/TSV files",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "header-mismatch",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Header Row Mismatch",
+    description: "Validates that headers match expected column names and format",
+    severity: "high",
+    type: "structural"
+  },
+  {
+    id: "sheet-names",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Sheet Names Validation",
+    description: "Checks for consistency in sheet names for multi-sheet files",
+    severity: "medium",
+    type: "structural"
+  },
+  {
+    id: "nested-content",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Nested Content Check",
+    description: "Detects nested tables or embedded formatting that could cause import issues",
+    severity: "high",
+    type: "structural"
+  },
+  {
+    id: "file-integrity",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "File Integrity Check",
+    description: "Validates file type and checks for corruption",
+    severity: "critical",
+    type: "structural"
+  },
+  
   // FILE PREFLIGHT validations (critical issues that require a new file upload)
   {
     id: "file-format",
