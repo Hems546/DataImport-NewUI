@@ -1,3 +1,4 @@
+
 // Define the ValidationCategory enum with all required categories
 export enum ValidationCategory {
   FILE_UPLOAD = "File Upload",
@@ -125,15 +126,107 @@ export const validations: Validation[] = [
     description: "Validates that all required fields contain values.",
     category: ValidationCategory.DATA_QUALITY,
     severity: "high",
-    type: "content"
+    type: "content",
+    failAction: "reject"
   },
   {
     id: "email-format",
     name: "Email Format",
-    description: "Checks that email addresses have a valid format.",
+    description: "Checks that email addresses have a valid format with @ symbol and valid domain.",
     category: ValidationCategory.DATA_QUALITY,
     severity: "medium",
-    type: "format"
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "date-format",
+    name: "Date Format",
+    description: "Validates date fields are in the correct format (e.g., MM/DD/YYYY).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "medium",
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "numeric-values",
+    name: "Numeric Fields",
+    description: "Ensures numeric fields contain only valid numbers.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "high",
+    type: "format",
+    failAction: "reject"
+  },
+  {
+    id: "url-format",
+    name: "URL Format",
+    description: "Verifies that URL fields contain properly formatted web addresses.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "low",
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "value-range",
+    name: "Value Range Check",
+    description: "Checks that numeric values fall within acceptable ranges (e.g., age cannot be negative).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "medium",
+    type: "content",
+    failAction: "warn"
+  },
+  {
+    id: "reference-data",
+    name: "Reference Data Check",
+    description: "Validates values against controlled vocabularies (e.g., state codes match U.S. states list).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "high",
+    type: "content",
+    failAction: "warn"
+  },
+  {
+    id: "regex-pattern",
+    name: "Regex Pattern Validation",
+    description: "Checks that fields match specified patterns (e.g., ZIP codes = 5 digits or 5+4 format).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "medium",
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "whitespace",
+    name: "Whitespace Detection",
+    description: "Flags fields with leading or trailing spaces that may need trimming.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "low",
+    type: "format",
+    failAction: "auto-fix"
+  },
+  {
+    id: "multi-value",
+    name: "Multi-value Field Check",
+    description: "Validates separator characters in multi-value fields (e.g., tags separated by commas).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "low",
+    type: "format",
+    failAction: "warn"
+  },
+  {
+    id: "cross-field",
+    name: "Cross-Field Validation",
+    description: "Checks relationships between fields (e.g., End Date must be after Start Date).",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "high",
+    type: "content",
+    failAction: "reject"
+  },
+  {
+    id: "duplicate-row",
+    name: "Duplicate Row Detection",
+    description: "Flags identical or nearly identical rows within the imported file.",
+    category: ValidationCategory.DATA_QUALITY,
+    severity: "medium",
+    type: "duplicate",
+    failAction: "warn"
   },
   
   // DATA NORMALIZATION validations
