@@ -85,7 +85,39 @@ export const validations: Validation[] = [
     type: "structural"
   },
   
-  // FILE PREFLIGHT validations (critical issues that require a new file upload)
+  // FILE PREFLIGHT validations
+  {
+    id: "file-size-limit",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "File Size Limit Check",
+    description: "Verifies that the file size does not exceed upload limits",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "incomplete-upload",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "Incomplete Upload Check",
+    description: "Detects if file upload was interrupted or incomplete",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "file-encryption",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "File Encryption Check",
+    description: "Identifies encrypted or password-protected files that cannot be processed",
+    severity: "critical",
+    type: "structural"
+  },
+  {
+    id: "file-encoding-type",
+    category: ValidationCategory.FILE_PREFLIGHT,
+    name: "File Encoding Type Check",
+    description: "Validates that the file uses proper encoding (e.g., UTF-8)",
+    severity: "high",
+    type: "structural"
+  },
   {
     id: "file-format",
     category: ValidationCategory.FILE_PREFLIGHT,
