@@ -119,6 +119,28 @@ export function ValidationManager() {
                     Initial checks performed when a file is uploaded (file type, size, format recognition).
                   </p>
                 )}
+                {tab.id === "column-mapping" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    These checks verify that the imported data can be correctly mapped to expected fields.
+                    The system auto-maps columns and users can manually adjust if needed.
+                  </p>
+                )}
+                {tab.id === "data-quality" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    These validations check the content quality of individual data fields after mapping.
+                  </p>
+                )}
+                {tab.id === "data-corrections" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Batch updates and transformations to fix common data issues like splitting columns,
+                    normalizing values, or standardizing formats.
+                  </p>
+                )}
+                {tab.id === "deduplication" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Identifies and manages duplicate records based on configurable matching rules.
+                  </p>
+                )}
               </div>
               <Button variant="outline">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
