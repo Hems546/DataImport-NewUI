@@ -65,7 +65,16 @@ export function ValidationManager() {
             <li>Category: {validation.category}</li>
             <li>Type: {validation.type || 'Not specified'}</li>
             <li>Severity: {validation.severity || 'Not specified'}</li>
+            {validation.failAction && (
+              <li>Fail Action: {validation.failAction}</li>
+            )}
           </ul>
+          {validation.category === ValidationCategory.FILE_PREFLIGHT && (
+            <p className="mt-3 text-sm text-amber-700 bg-amber-50 p-2 rounded-md">
+              <strong>Note:</strong> File preflight checks must pass before proceeding. If these validations fail, 
+              users will need to re-upload a corrected file.
+            </p>
+          )}
         </div>
       </AccordionContent>
     </AccordionItem>
@@ -97,7 +106,20 @@ export function ValidationManager() {
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">{tab.label} Validation Checks</h3>
+              <div>
+                <h3 className="text-xl font-bold">{tab.label} Validation Checks</h3>
+                {tab.id === "file-preflight" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    These are structural checks to determine if the file can be processed at all. 
+                    Failures here require the user to upload a fixed file.
+                  </p>
+                )}
+                {tab.id === "file-upload" && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Initial checks performed when a file is uploaded (file type, size, format recognition).
+                  </p>
+                )}
+              </div>
               <Button variant="outline">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

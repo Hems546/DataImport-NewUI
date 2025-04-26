@@ -177,6 +177,7 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<FileCheck />}
               label="Verify File"
+              isComplete={false}
             />
             <StepConnector />
             <ProgressStep 
@@ -247,6 +248,17 @@ export default function ImportUpload() {
                 )}
               </div>
             </div>
+            
+            {file && (
+              <div className="mt-6 text-sm text-gray-600">
+                <p className="font-medium mb-2">What happens next?</p>
+                <ol className="list-decimal pl-5 space-y-1">
+                  <li>Your file will go through initial format validation</li>
+                  <li>Next, the file will be checked for structural issues in the Verify File step</li>
+                  <li>If any critical issues are found, you'll need to fix and re-upload the file</li>
+                </ol>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 flex justify-between items-center">
@@ -262,8 +274,8 @@ export default function ImportUpload() {
                 Start Over
               </Button>
             </div>
-            <Button disabled={!file}>
-              Continue
+            <Button disabled={!file} className="bg-brand-purple hover:bg-brand-purple/90">
+              Continue to File Verification
               <ArrowRight className="ml-2" />
             </Button>
           </div>

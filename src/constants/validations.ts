@@ -7,6 +7,7 @@ export type Validation = {
   description: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   type?: 'structural' | 'data' | 'business';
+  failAction?: string;
 };
 
 export enum ValidationCategory {
@@ -61,14 +62,15 @@ export const validations: Validation[] = [
     type: "structural"
   },
   
-  // STRUCTURAL validations (critical issues that require immediate attention)
+  // FILE_PREFLIGHT validations (structural issues that prevent processing)
   {
     id: "missing-headers",
     category: ValidationCategory.FILE_PREFLIGHT,
     name: "Missing Headers Check",
     description: "Verifies that all required column headers are present in the file",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with correct headers"
   },
   {
     id: "duplicate-headers",
@@ -76,7 +78,8 @@ export const validations: Validation[] = [
     name: "Duplicate Headers Check",
     description: "Detects duplicate column headers that could cause mapping conflicts",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with unique headers"
   },
   {
     id: "blank-content",
@@ -84,7 +87,8 @@ export const validations: Validation[] = [
     name: "Blank Content Check",
     description: "Identifies empty rows or columns that might indicate data quality issues",
     severity: "high",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with complete data"
   },
   {
     id: "delimiter-check",
@@ -92,7 +96,8 @@ export const validations: Validation[] = [
     name: "Delimiter Validation",
     description: "Ensures proper delimiter usage in CSV/TSV files",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with correct delimiters"
   },
   {
     id: "header-mismatch",
@@ -100,7 +105,8 @@ export const validations: Validation[] = [
     name: "Header Row Mismatch",
     description: "Validates that headers match expected column names and format",
     severity: "high",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with correct header format"
   },
   {
     id: "sheet-names",
@@ -108,7 +114,8 @@ export const validations: Validation[] = [
     name: "Sheet Names Validation",
     description: "Checks for consistency in sheet names for multi-sheet files",
     severity: "medium",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with correct sheet names"
   },
   {
     id: "nested-content",
@@ -116,7 +123,8 @@ export const validations: Validation[] = [
     name: "Nested Content Check",
     description: "Detects nested tables or embedded formatting that could cause import issues",
     severity: "high",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with simplified data structure"
   },
   {
     id: "file-integrity",
@@ -124,27 +132,35 @@ export const validations: Validation[] = [
     name: "File Integrity Check",
     description: "Validates file type and checks for corruption",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload an uncorrupted file"
   },
-  
-  // FILE PREFLIGHT validations (moved some validations from here to FILE_UPLOAD)
   {
     id: "empty-file",
     category: ValidationCategory.FILE_PREFLIGHT,
     name: "Empty File Check",
-    description: "Ensures the file contains data beyond the header row"
+    description: "Ensures the file contains data beyond the header row",
+    severity: "critical",
+    type: "structural",
+    failAction: "Re-upload with data content"
   },
   {
     id: "corrupt-file",
     category: ValidationCategory.FILE_PREFLIGHT,
     name: "Corrupt File Check",
-    description: "Detects if the file is corrupted or unreadable"
+    description: "Detects if the file is corrupted or unreadable",
+    severity: "critical",
+    type: "structural",
+    failAction: "Re-upload an uncorrupted file"
   },
   {
     id: "column-count",
     category: ValidationCategory.FILE_PREFLIGHT,
     name: "Column Count Consistency",
-    description: "Checks if all rows have the same number of columns"
+    description: "Checks if all rows have the same number of columns",
+    severity: "high",
+    type: "structural",
+    failAction: "Re-upload with consistent column count"
   },
   {
     id: "missing-identifier",
@@ -152,7 +168,8 @@ export const validations: Validation[] = [
     name: "Missing Identifier Check",
     description: "Verifies that required unique identifier columns (e.g., email, ID) are present in the file",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with identifier columns"
   },
   {
     id: "duplicate-identifiers",
@@ -160,7 +177,8 @@ export const validations: Validation[] = [
     name: "Duplicate Identifiers Check",
     description: "Detects duplicate values in unique identifier columns that must be unique across rows",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with unique identifiers"
   },
   {
     id: "mixed-formats",
@@ -168,7 +186,8 @@ export const validations: Validation[] = [
     name: "Mixed Format Check",
     description: "Detects inconsistent file formats across multi-sheet uploads",
     severity: "critical",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with consistent formats"
   },
   {
     id: "multi-value-cells",
@@ -176,10 +195,11 @@ export const validations: Validation[] = [
     name: "Multi-value Cell Check",
     description: "Identifies cells containing multiple values without proper delimitation",
     severity: "high",
-    type: "structural"
+    type: "structural",
+    failAction: "Re-upload with properly delimited values"
   },
   
-  // DATA QUALITY validations
+  // DATA_QUALITY validations
   {
     id: "data-type",
     category: ValidationCategory.DATA_QUALITY,
@@ -301,6 +321,71 @@ export const validations: Validation[] = [
     category: ValidationCategory.COLUMN_MAPPING,
     name: "Field Combination Validation",
     description: "Ensures fields that should be used together are properly mapped"
+  },
+  
+  // DATA_CORRECTIONS validations (formerly DATA_TRANSFORMATION)
+  {
+    id: "split-columns",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Split Columns",
+    description: "Splits a single column into multiple columns based on delimiters",
+    type: "data"
+  },
+  {
+    id: "normalize-states",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Normalize State Names",
+    description: "Standardizes state names/abbreviations to a consistent format",
+    type: "data"
+  },
+  {
+    id: "normalize-dates",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Date Format Standardization",
+    description: "Converts dates to a standard format",
+    type: "data"
+  },
+  {
+    id: "case-transformation",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Case Transformation",
+    description: "Changes text case to uppercase, lowercase, or proper case",
+    type: "data"
+  },
+  {
+    id: "combine-columns",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Combine Columns",
+    description: "Merges multiple columns into a single column",
+    type: "data"
+  },
+  {
+    id: "text-cleanup",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Text Cleanup",
+    description: "Removes unnecessary characters, extra spaces, and formats text",
+    type: "data"
+  },
+  {
+    id: "phone-formatting",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Phone Number Formatting",
+    description: "Standardizes phone number formats",
+    type: "data"
+  },
+  {
+    id: "address-standardization",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Address Standardization",
+    description: "Formats addresses to meet postal standards",
+    type: "data"
+  },
+  {
+    id: "value-replacement",
+    category: ValidationCategory.DATA_CORRECTIONS,
+    name: "Value Replacement",
+    description: "Replaces specific values with standardized alternatives",
+    type: "data"
   },
   
   // DEDUPLICATION validations
