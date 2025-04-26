@@ -1,3 +1,5 @@
+
+import React, { useState } from "react";
 import { FileText, Shield, Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -6,7 +8,7 @@ import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = React.useState('templates');
+  const [activeTab, setActiveTab] = useState('templates');
 
   const systemTemplates = [
     { title: "Contacts", fields: 14, required: 3 },
