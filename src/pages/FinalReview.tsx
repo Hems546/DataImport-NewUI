@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -40,9 +39,11 @@ interface AutoFix {
   canUndo: boolean;
 }
 
+type IssueSeverity = 'warning' | 'critical';
+
 interface UnresolvedIssue {
   id: string;
-  severity: 'warning' | 'critical';
+  severity: IssueSeverity;
   description: string;
   affectedCount: number;
   stage: string;
@@ -64,10 +65,8 @@ export default function FinalReview() {
     const loadReviewData = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1200));
         
-        // Simulated data - in a real app these would come from your backend
         const mockAutoFixes = [
           {
             id: "af1",
@@ -92,17 +91,17 @@ export default function FinalReview() {
           }
         ];
 
-        const mockUnresolvedIssues = [
+        const mockUnresolvedIssues: UnresolvedIssue[] = [
           {
             id: "ui1",
-            severity: "warning" as const,
+            severity: "warning",
             description: "Potential duplicate records (85-95% similarity)",
             affectedCount: 8,
             stage: "Deduplication"
           },
           {
             id: "ui2",
-            severity: "warning" as const,
+            severity: "warning",
             description: "Missing optional fields (website URLs)",
             affectedCount: 23,
             stage: "Data Quality"
@@ -119,10 +118,13 @@ export default function FinalReview() {
         setUnresolvedIssues(mockUnresolvedIssues);
         setRowStats(mockRowStats);
         
-        const hasCriticalIssues = mockUnresolvedIssues.some(i => i.severity === 'critical');
+        const hasCriticalIssues = mockUnresolvedIssues.some(
+          (issue): issue is UnresolvedIssue & { severity: 'critical' } => 
+            issue.severity === 'critical'
+        );
+
         setCanContinue(!hasCriticalIssues);
 
-        // Show toast notification
         if (hasCriticalIssues) {
           toast({
             title: "Critical issues found",
@@ -162,8 +164,6 @@ export default function FinalReview() {
       description: "The automated fix has been reversed.",
     });
     
-    // In a real app, you would call an API to undo the fix
-    // and then update the state with the response
     setAutoFixes(prev => prev.filter(fix => fix.id !== fixId));
   };
 
@@ -173,8 +173,6 @@ export default function FinalReview() {
       description: "You've chosen to proceed despite this warning.",
     });
     
-    // In a real app, you would call an API to mark the issue as overridden
-    // and then update the state with the response
     setUnresolvedIssues(prev => prev.filter(issue => issue.id !== issueId));
   };
 
@@ -258,7 +256,6 @@ export default function FinalReview() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Row count summary */}
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                   <div className="flex items-center mb-2">
                     <FileText className="h-5 w-5 text-blue-600 mr-2" />
@@ -286,7 +283,6 @@ export default function FinalReview() {
                   </div>
                 </div>
                 
-                {/* Auto-fixes summary */}
                 {autoFixes.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-800 mb-3 flex items-center">
@@ -328,7 +324,6 @@ export default function FinalReview() {
                   </div>
                 )}
                 
-                {/* Unresolved issues */}
                 {unresolvedIssues.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-800 mb-3 flex items-center">
@@ -371,7 +366,6 @@ export default function FinalReview() {
                   </div>
                 )}
                 
-                {/* When everything is perfect */}
                 {unresolvedIssues.length === 0 && autoFixes.length === 0 && (
                   <Alert className="bg-green-50 text-green-800 border-green-200">
                     <Check className="h-5 w-5 text-green-600" />
