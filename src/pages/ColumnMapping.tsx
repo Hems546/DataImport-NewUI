@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { ColumnMappingForm } from "@/components/admin/ColumnMappingForm";
 import { 
   FileCheck,
   ArrowRight,
@@ -17,9 +18,25 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 export default function ColumnMapping() {
   const { toast } = useToast();
+  
+  const handleMappingSave = () => {
+    toast({
+      title: "Column mapping saved",
+      description: "Your column mapping has been saved successfully."
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,6 +59,7 @@ export default function ColumnMapping() {
             </div>
           </div>
 
+          {/* Progress Steps */}
           <div className="flex justify-between items-center mb-12">
             <ProgressStep 
               icon={<FileCheck />}
@@ -87,18 +105,46 @@ export default function ColumnMapping() {
             />
           </div>
 
+          {/* Instructions Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Map Your Columns</CardTitle>
+              <CardDescription>
+                Match your file columns with our system fields to ensure data is imported correctly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Choose a mapping strategy:
+                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
+                    <li><strong>Auto-Map:</strong> Automatically matches columns based on similar names</li>
+                    <li><strong>Manual:</strong> Manually select matches for each column</li>
+                    <li><strong>AI-Assisted:</strong> Uses AI to suggest the best matches</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium">Tips for successful mapping:</p>
+                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
+                    <li>Required fields are marked with a red asterisk (*)</li>
+                    <li>Use "Ignore this column" for data you don't want to import</li>
+                    <li>Review auto-mapped fields for accuracy</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+
+          {/* Column Mapping Form */}
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <h3 className="text-xl font-semibold mb-4">Column Mapping</h3>
-            <p className="text-gray-600 mb-6">
-              Map your file columns to our system fields. This helps us properly organize your data.
-            </p>
-            
-            <div className="p-8 bg-gray-50 border rounded-md text-center">
-              <p className="text-gray-500">Column mapping interface will be implemented here.</p>
-              <p className="text-sm text-gray-400 mt-2">Currently in development</p>
-            </div>
+            <ColumnMappingForm />
           </div>
 
+          {/* Navigation */}
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
               <Link to="/import-wizard/verification">
@@ -108,13 +154,15 @@ export default function ColumnMapping() {
                 </Button>
               </Link>
             </div>
-            <Button 
-              className="bg-brand-purple hover:bg-brand-purple/90"
-              disabled={true}
-            >
-              Continue to Data Quality
-              <ArrowRight className="ml-2" />
-            </Button>
+            <Link to="/import-wizard/data-quality">
+              <Button 
+                className="bg-brand-purple hover:bg-brand-purple/90"
+                onClick={handleMappingSave}
+              >
+                Continue to Data Quality
+                <ArrowRight className="ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
