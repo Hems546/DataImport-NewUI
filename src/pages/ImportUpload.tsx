@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -42,9 +43,9 @@ export default function ImportUpload() {
           name: v.name,
           description: v.description,
           status: 'pending' as const,
-          severity: v.severity,
+          severity: v.severity || '', // Ensuring severity is a string
           technical_details: getTechnicalDescription(v.id)
-        }));
+        } as ValidationResult)); // Explicitly casting to ValidationResult
       
       setFileValidationResults(fileUploadChecks);
       
@@ -54,9 +55,9 @@ export default function ImportUpload() {
           if (result) {
             return {
               ...check,
-              status: result.status as any,
+              status: result.status,
               technical_details: getTechnicalDescription(check.id)
-            };
+            } as ValidationResult; // Explicitly casting to ValidationResult
           }
           return check;
         });

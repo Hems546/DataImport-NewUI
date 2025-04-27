@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Check, X, Loader, ChevronDown, Table, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ export interface ValidationResult {
   name: string;
   status: 'pending' | 'pass' | 'fail' | 'warning';
   description?: string;
-  severity?: 'critical' | 'warning';
+  severity?: string; // Changed from 'critical' | 'warning' to string to be more flexible
   technical_details?: string | string[];
 }
 

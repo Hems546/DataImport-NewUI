@@ -7,7 +7,7 @@ export interface FileValidationResult {
   id: string;
   validation_type: string;
   status: 'pass' | 'fail' | 'warning';
-  severity: 'critical' | 'warning';
+  severity: string; // Changed from 'critical' | 'warning' to string for consistency
   message: string;
   technical_details?: string | string[];
 }
