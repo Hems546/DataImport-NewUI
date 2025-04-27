@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -40,10 +39,8 @@ export default function FileVerification() {
         const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
         const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
         
-        // Skip basic checks (file type, size) that were performed during upload
         const validationResults = await validateFile(file, true);
         
-        // Map the validation results to include technical details
         const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
           name: formatValidationName(validation.validation_type),
@@ -184,8 +181,19 @@ export default function FileVerification() {
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
             <h3 className="text-xl font-semibold mb-4">File Verification</h3>
-            <p className="text-gray-600 mb-4">
-              We're checking your file for proper formatting and data quality.
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-blue-700">
+                We're checking your file for proper formatting and data quality. This includes:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>File type verification (CSV, Excel)</li>
+                  <li>File size check</li>
+                  <li>Character encoding validation</li>
+                  <li>Basic structure validation</li>
+                </ul>
+              </p>
+            </div>
+            <p className="text-gray-600 mb-6">
+              If any critical issues are found, you'll need to fix them before proceeding. Warnings can be reviewed but won't block the import process.
             </p>
             
             {isVerifying ? (

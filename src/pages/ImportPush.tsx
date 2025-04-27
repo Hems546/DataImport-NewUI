@@ -220,14 +220,34 @@ export default function ImportPush() {
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
             <h3 className="text-xl font-semibold mb-4">Import Data</h3>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-yellow-800">
+                <strong>Important:</strong> Before starting the import:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Make sure all critical validation issues are resolved</li>
+                  <li>Review your column mappings</li>
+                  <li>Check data transformations and normalization rules</li>
+                  <li>Verify deduplication settings</li>
+                </ul>
+              </p>
+            </div>
+            
             <p className="text-gray-600 mb-6">
-              Your data has been validated and is ready to be imported into the system.
+              Once started, the import process will:
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>Validate your data one final time</li>
+                <li>Process each row according to your settings</li>
+                <li>Apply transformations and normalizations</li>
+                <li>Handle duplicates based on your rules</li>
+                <li>Import valid records into your database</li>
+              </ol>
             </p>
             
             {importStatus === 'pending' ? (
               <div className="p-8 bg-gray-50 border rounded-md text-center">
-                <p className="text-gray-600">Click "Start Import" to begin importing your data.</p>
-                <p className="text-sm text-gray-500 mt-2">Make sure all validations have passed.</p>
+                <p className="text-gray-600">Click "Start Import" when you're ready to begin.</p>
+                <p className="text-sm text-gray-500 mt-2">This process cannot be interrupted once started.</p>
               </div>
             ) : (
               <ImportProgress 
