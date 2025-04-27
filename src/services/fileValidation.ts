@@ -12,38 +12,44 @@ export interface FileValidationResult {
   technical_details?: string | string[];
 }
 
-export async function validateFile(file: File): Promise<FileValidationResult[]> {
+export async function validateFile(file: File, skipBasicChecks = false): Promise<FileValidationResult[]> {
   const results: FileValidationResult[] = [];
   
-  // File size validation (10MB limit)
-  const fileSizeResult = {
-    id: 'file-size',
-    validation_type: 'file-size',
-    status: file.size > 10 * 1024 * 1024 ? 'fail' as const : 'pass' as const,
-    severity: 'critical' as const,
-    message: file.size > 10 * 1024 * 1024 
-      ? 'File size exceeds 10MB limit'
-      : 'File size is within acceptable limits',
-    technical_details: getTechnicalDescription('file-size')
-  };
-  results.push(fileSizeResult);
+  // Skip basic checks if they've already been performed during upload
+  if (!skipBasicChecks) {
+    // File size validation (10MB limit)
+    const fileSizeResult = {
+      id: 'file-size',
+      validation_type: 'file-size',
+      status: file.size > 10 * 1024 * 1024 ? 'fail' as const : 'pass' as const,
+      severity: 'critical' as const,
+      message: file.size > 10 * 1024 * 1024 
+        ? 'File size exceeds 10MB limit'
+        : 'File size is within acceptable limits',
+      technical_details: getTechnicalDescription('file-size')
+    };
+    results.push(fileSizeResult);
 
-  // File type validation
-  const allowedTypes = ['.csv', '.xls', '.xlsx'];
-  const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-  const fileTypeResult = {
-    id: 'file-type',
-    validation_type: 'file-type',
-    status: !allowedTypes.includes(fileExtension) ? 'fail' as const : 'pass' as const,
-    severity: 'critical' as const,
-    message: !allowedTypes.includes(fileExtension)
-      ? 'Invalid file type. Only CSV and Excel files are supported.'
-      : 'File type is supported',
-    technical_details: getTechnicalDescription('file-type')
-  };
-  results.push(fileTypeResult);
+    // File type validation
+    const allowedTypes = ['.csv', '.xls', '.xlsx'];
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    const fileTypeResult = {
+      id: 'file-type',
+      validation_type: 'file-type',
+      status: !allowedTypes.includes(fileExtension) ? 'fail' as const : 'pass' as const,
+      severity: 'critical' as const,
+      message: !allowedTypes.includes(fileExtension)
+        ? 'Invalid file type. Only CSV and Excel files are supported.'
+        : 'File type is supported',
+      technical_details: getTechnicalDescription('file-type')
+    };
+    results.push(fileTypeResult);
+  }
 
   return new Promise((resolve) => {
+    // Get the file extension
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    
     // Only attempt to parse CSV files
     if (fileExtension === '.csv') {
       Papa.parse(file, {

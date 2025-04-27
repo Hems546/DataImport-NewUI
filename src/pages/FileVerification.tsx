@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +39,9 @@ export default function FileVerification() {
 
         const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
         const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
-        const validationResults = await validateFile(file);
+        
+        // Skip basic checks (file type, size) that were performed during upload
+        const validationResults = await validateFile(file, true);
         
         // Map the validation results to include technical details
         const results: ValidationResult[] = validationResults.map(validation => ({

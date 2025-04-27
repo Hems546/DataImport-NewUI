@@ -3,11 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { 
   Upload,
   FileCheck,
-  Eye,
   RotateCcw,
   ArrowRight,
   ArrowLeft,
@@ -41,26 +39,33 @@ export default function ImportUpload() {
           name: v.name,
           description: v.description,
           status: 'pending' as const,
-          severity: v.severity || '', // Ensuring severity is a string
+          severity: v.severity || '' as string,
           technical_details: getTechnicalDescription(v.id)
-        } as ValidationResult)); // Explicitly casting to ValidationResult
+        } as ValidationResult));
       
       setFileValidationResults(fileUploadChecks);
       
       validateFile(file).then(validationResults => {
+        const basicValidations = validationResults.filter(
+          v => v.id === 'file-type' || v.id === 'file-size' || v.id === 'file-encoding' || v.id === 'file-corruption'
+        );
+        
         const uiResults = fileUploadChecks.map(check => {
-          const result = validationResults.find(r => r.id === check.id);
+          const result = basicValidations.find(r => r.id === check.id);
           if (result) {
             return {
               ...check,
               status: result.status,
+              description: result.message,
               technical_details: getTechnicalDescription(check.id)
-            } as ValidationResult; // Explicitly casting to ValidationResult
+            } as ValidationResult;
           }
           return check;
         });
         
         setFileValidationResults(uiResults);
+        
+        localStorage.setItem('uploadValidationResults', JSON.stringify(basicValidations));
       }).catch(error => {
         console.error("Error validating file:", error);
         toast({
