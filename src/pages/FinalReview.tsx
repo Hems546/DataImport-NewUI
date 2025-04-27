@@ -159,12 +159,40 @@ export default function FinalReview() {
   }, [toast]);
 
   const handleUndoFix = (fixId: string) => {
-    toast({
-      title: "Fix undone",
-      description: "The automated fix has been reversed.",
-    });
+    const fixToUndo = autoFixes.find(fix => fix.id === fixId);
     
-    setAutoFixes(prev => prev.filter(fix => fix.id !== fixId));
+    if (!fixToUndo) return;
+
+    const undoDetails = {
+      "af1": () => {
+        toast({
+          title: "Phone Number Fix Undone",
+          description: "Reverted 45 phone numbers to original format.",
+          variant: "warning"
+        });
+      },
+      "af2": () => {
+        toast({
+          title: "Email Domain Fix Undone",
+          description: "Restored 12 email domains to their original form.",
+          variant: "warning"
+        });
+      },
+      "af3": () => {
+        toast({
+          title: "Cannot Undo",
+          description: "This normalization cannot be reversed.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    };
+
+    const canUndo = undoDetails[fixId as keyof typeof undoDetails]?.();
+
+    if (canUndo !== false) {
+      setAutoFixes(prev => prev.filter(fix => fix.id !== fixId));
+    }
   };
 
   const handleOverrideIssue = (issueId: string) => {
