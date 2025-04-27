@@ -47,59 +47,8 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
   };
 
   const getTechnicalDescription = (validationId: string) => {
-    const descriptions: Record<string, string[]> = {
-      'row-length-consistency': [
-        "Purpose: Verifies data structure integrity by comparing row lengths",
-        "Implementation: Counts columns in each row and compares to header length",
-        "Common Issues:",
-        "- Missing delimiters causing merged columns",
-        "- Extra delimiters creating empty columns",
-        "- Line breaks within fields causing row splits",
-        "Resolution Steps:",
-        "1. Export data with proper delimiters",
-        "2. Remove any line breaks within fields",
-        "3. Ensure all rows have consistent delimiters"
-      ],
-      'required-columns': [
-        "Purpose: Ensures all mandatory fields are present in the import file",
-        "Implementation: Compares header names against required field list",
-        "Common Issues:",
-        "- Missing required column headers",
-        "- Misspelled column names",
-        "- Case sensitivity mismatches",
-        "Resolution Steps:",
-        "1. Compare headers against template",
-        "2. Add missing columns with valid data",
-        "3. Correct any misspelled headers"
-      ],
-      'header-uniqueness': [
-        "Purpose: Prevents ambiguous column mapping",
-        "Implementation: Checks for duplicate column names",
-        "Common Issues:",
-        "- Multiple columns with same name",
-        "- Hidden whitespace in headers",
-        "Resolution Steps:",
-        "1. Rename duplicate columns uniquely",
-        "2. Remove any trailing/leading spaces"
-      ],
-      'data-type-validation': [
-        "Purpose: Ensures data matches expected format and type",
-        "Implementation: Validates each cell against field type rules",
-        "Common Issues:",
-        "- Text in numeric fields",
-        "- Incorrectly formatted dates",
-        "- Invalid email formats",
-        "Resolution Steps:",
-        "1. Review data type requirements",
-        "2. Convert data to correct format",
-        "3. Clean up any special characters"
-      ]
-    };
-
-    return descriptions[validationId] || [
-      "Detailed technical information for this validation is not available.",
-      "Please contact support for more information."
-    ];
+    const { getTechnicalDescription } = require('@/constants/validations');
+    return getTechnicalDescription(validationId);
   };
 
   const renderHeaderUniquenessExample = () => {

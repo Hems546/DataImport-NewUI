@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import Papa from 'papaparse';
+import { getTechnicalDescription } from '@/constants/validations';
 
 export interface FileValidationResult {
   id: string;
@@ -8,52 +8,41 @@ export interface FileValidationResult {
   status: 'pass' | 'fail' | 'warning';
   severity: 'critical' | 'warning';
   message: string;
+  technical_details?: string;
 }
 
 export async function validateFile(file: File): Promise<FileValidationResult[]> {
   const results: FileValidationResult[] = [];
   
   // File size validation (10MB limit)
-  if (file.size > 10 * 1024 * 1024) {
-    results.push({
-      id: 'file-size',
-      validation_type: 'file-size',
-      status: 'fail',
-      severity: 'critical',
-      message: 'File size exceeds 10MB limit'
-    });
-  } else {
-    results.push({
-      id: 'file-size',
-      validation_type: 'file-size',
-      status: 'pass',
-      severity: 'critical',
-      message: 'File size is within acceptable limits'
-    });
-  }
+  const fileSizeResult = {
+    id: 'file-size',
+    validation_type: 'file-size',
+    status: file.size > 10 * 1024 * 1024 ? 'fail' as const : 'pass' as const,
+    severity: 'critical' as const,
+    message: file.size > 10 * 1024 * 1024 
+      ? 'File size exceeds 10MB limit'
+      : 'File size is within acceptable limits',
+    technical_details: getTechnicalDescription('file-size')
+  };
+  results.push(fileSizeResult);
 
   // File type validation
   const allowedTypes = ['.csv', '.xls', '.xlsx'];
   const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-  if (!allowedTypes.includes(fileExtension)) {
-    results.push({
-      id: 'file-type',
-      validation_type: 'file-type',
-      status: 'fail',
-      severity: 'critical',
-      message: 'Invalid file type. Only CSV and Excel files are supported.'
-    });
-  } else {
-    results.push({
-      id: 'file-type',
-      validation_type: 'file-type',
-      status: 'pass',
-      severity: 'critical',
-      message: 'File type is supported'
-    });
-  }
+  const fileTypeResult = {
+    id: 'file-type',
+    validation_type: 'file-type',
+    status: !allowedTypes.includes(fileExtension) ? 'fail' as const : 'pass' as const,
+    severity: 'critical' as const,
+    message: !allowedTypes.includes(fileExtension)
+      ? 'Invalid file type. Only CSV and Excel files are supported.'
+      : 'File type is supported',
+    technical_details: getTechnicalDescription('file-type')
+  };
+  results.push(fileTypeResult);
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // Only attempt to parse CSV files
     if (fileExtension === '.csv') {
       Papa.parse(file, {

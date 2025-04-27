@@ -27,7 +27,7 @@ export const validations: Validation[] = [
   {
     id: "file-type",
     name: "File Format Check",
-    description: "Validates that the uploaded file is in a supported format (CSV, XLS, XLSX, TSV).",
+    description: "Validates that the uploaded file is in a supported format (CSV, XLS, XLSX).",
     category: ValidationCategory.FILE_UPLOAD,
     severity: "critical",
     type: "format",
@@ -773,3 +773,107 @@ export const validations: Validation[] = [
     failAction: "warn"
   }
 ];
+
+// Add detailed technical descriptions for file format checks
+export const getTechnicalDescription = (validationId: string): string[] => {
+  const descriptions: Record<string, string[]> = {
+    'file-type': [
+      "Purpose: Ensures uploaded file matches supported formats",
+      "Implementation: Validates file extension and MIME type",
+      "Common Issues:",
+      "- Unsupported file formats",
+      "- Mismatched extensions",
+      "- Hidden file extensions",
+      "Resolution Steps:",
+      "1. Verify file has .csv, .xls, or .xlsx extension",
+      "2. Ensure file is not renamed from another format",
+      "3. Check file is not corrupted"
+    ],
+    'file-size': [
+      "Purpose: Prevents oversized file uploads",
+      "Implementation: Checks file size against 10MB limit",
+      "Common Issues:",
+      "- Files exceeding size limit",
+      "- Hidden content increasing file size",
+      "Resolution Steps:",
+      "1. Check file size before upload",
+      "2. Remove unnecessary data/formatting",
+      "3. Split large files if needed"
+    ],
+    'file-encoding': [
+      "Purpose: Validates character encoding compatibility",
+      "Implementation: Checks for UTF-8 encoding",
+      "Common Issues:",
+      "- Non-UTF-8 encoded files",
+      "- Special character corruption",
+      "- Mixed encodings",
+      "Resolution Steps:",
+      "1. Save file with UTF-8 encoding",
+      "2. Remove special characters if needed",
+      "3. Use text editor to convert encoding"
+    ],
+    'file-corruption': [
+      "Purpose: Detects file integrity issues",
+      "Implementation: Validates file can be properly parsed",
+      "Common Issues:",
+      "- Partially downloaded files",
+      "- Network transmission errors",
+      "- Binary file corruption",
+      "Resolution Steps:",
+      "1. Re-download or re-export file",
+      "2. Check for complete file transfer",
+      "3. Verify source file is valid"
+    ],
+        'row-length-consistency': [
+        "Purpose: Verifies data structure integrity by comparing row lengths",
+        "Implementation: Counts columns in each row and compares to header length",
+        "Common Issues:",
+        "- Missing delimiters causing merged columns",
+        "- Extra delimiters creating empty columns",
+        "- Line breaks within fields causing row splits",
+        "Resolution Steps:",
+        "1. Export data with proper delimiters",
+        "2. Remove any line breaks within fields",
+        "3. Ensure all rows have consistent delimiters"
+      ],
+      'required-columns': [
+        "Purpose: Ensures all mandatory fields are present in the import file",
+        "Implementation: Compares header names against required field list",
+        "Common Issues:",
+        "- Missing required column headers",
+        "- Misspelled column names",
+        "- Case sensitivity mismatches",
+        "Resolution Steps:",
+        "1. Compare headers against template",
+        "2. Add missing columns with valid data",
+        "3. Correct any misspelled headers"
+      ],
+      'header-uniqueness': [
+        "Purpose: Prevents ambiguous column mapping",
+        "Implementation: Checks for duplicate column names",
+        "Common Issues:",
+        "- Multiple columns with same name",
+        "- Hidden whitespace in headers",
+        "Resolution Steps:",
+        "1. Rename duplicate columns uniquely",
+        "2. Remove any trailing/leading spaces"
+      ],
+      'data-type-validation': [
+        "Purpose: Ensures data matches expected format and type",
+        "Implementation: Validates each cell against field type rules",
+        "Common Issues:",
+        "- Text in numeric fields",
+        "- Incorrectly formatted dates",
+        "- Invalid email formats",
+        "Resolution Steps:",
+        "1. Review data type requirements",
+        "2. Convert data to correct format",
+        "3. Clean up any special characters"
+      ]
+  };
+  
+  return descriptions[validationId] || [
+    "Technical details for this validation are not yet documented.",
+    "Please refer to the validation documentation for more information."
+  ];
+};
