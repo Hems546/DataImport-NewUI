@@ -10,6 +10,11 @@ import ImportTypeSelection from "./pages/ImportTypeSelection";
 import ImportUpload from "./pages/ImportUpload";
 import FileVerification from "./pages/FileVerification";
 import ColumnMapping from "./pages/ColumnMapping";
+import DataQuality from "./pages/DataQuality";
+import DataNormalization from "./pages/DataNormalization";
+import Deduplication from "./pages/Deduplication";
+import FinalReview from "./pages/FinalReview";
+import ImportPush from "./pages/ImportPush";
 import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
@@ -26,6 +31,11 @@ const App = () => (
           <Route path="/import-wizard/upload" element={<ImportUpload />} />
           <Route path="/import-wizard/verification" element={<FileVerification />} />
           <Route path="/import-wizard/column-mapping" element={<ColumnMapping />} />
+          <Route path="/import-wizard/data-quality" element={<DataQuality />} />
+          <Route path="/import-wizard/normalization" element={<DataNormalization />} />
+          <Route path="/import-wizard/deduplication" element={<Deduplication />} />
+          <Route path="/import-wizard/review" element={<FinalReview />} />
+          <Route path="/import-wizard/import" element={<ImportPush />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
