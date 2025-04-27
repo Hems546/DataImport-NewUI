@@ -583,6 +583,56 @@ export type Database = {
         }
         Relationships: []
       }
+      import_executions: {
+        Row: {
+          completed_at: string | null
+          error_log: Json | null
+          failed_rows: number | null
+          id: string
+          import_session_id: string
+          metadata: Json | null
+          processed_rows: number | null
+          started_at: string | null
+          status: string
+          total_rows: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_log?: Json | null
+          failed_rows?: number | null
+          id?: string
+          import_session_id: string
+          metadata?: Json | null
+          processed_rows?: number | null
+          started_at?: string | null
+          status?: string
+          total_rows: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_log?: Json | null
+          failed_rows?: number | null
+          id?: string
+          import_session_id?: string
+          metadata?: Json | null
+          processed_rows?: number | null
+          started_at?: string | null
+          status?: string
+          total_rows?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_executions_import_session_id_fkey"
+            columns: ["import_session_id"]
+            isOneToOne: false
+            referencedRelation: "import_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_logs: {
         Row: {
           column_name: string | null
