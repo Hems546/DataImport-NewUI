@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +25,6 @@ import { validations, getTechnicalDescription } from '@/constants/validations';
 import { validateFile } from '@/services/fileValidation';
 
 export default function ImportUpload() {
-  const [progress] = React.useState(16);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -186,43 +184,7 @@ export default function ImportUpload() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="bg-brand-purple">
-        <Header currentPage="import-wizard" />
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center text-white">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard">
-                <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-semibold">Data Import</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                Audit History
-                <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
-              </Button>
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                File History
-                <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
-              </Button>
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                Admin
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <div className="flex justify-between items-center text-white mb-2">
-              <span>Upload Progress</span>
-              <span>{progress}% Complete</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </div>
-      </div>
+      <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
