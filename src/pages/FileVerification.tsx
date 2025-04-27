@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { 
   FileCheck,
   ArrowRight,
@@ -18,7 +17,8 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validateFile, FileValidationResult } from '@/services/fileValidation';
+import { validateFile } from '@/services/fileValidation';
+import { getTechnicalDescription } from '@/constants/validations';
 
 export default function FileVerification() {
   const [progress] = React.useState(32);
@@ -36,20 +36,21 @@ export default function FileVerification() {
           throw new Error('No file found');
         }
 
-        const file = dataURLtoFile(fileData, 'uploaded-file.csv');
+        const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
+        const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
         const validationResults = await validateFile(file);
         
-        // Map the FileValidationResult type to ValidationResult type
+        // Map the validation results to include technical details
         const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
           name: formatValidationName(validation.validation_type),
           status: validation.status === 'pass' ? 'pass' as const : 
                  validation.status === 'warning' ? 'warning' as const : 'fail' as const,
-          severity: validation.severity,
-          description: validation.message
+          severity: validation.severity as 'critical' | 'warning',
+          description: validation.message,
+          technical_details: getTechnicalDescription(validation.validation_type)
         }));
 
-        console.log('Validation results:', results);
         setVerificationResults(results);
         
         const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
@@ -123,43 +124,7 @@ export default function FileVerification() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="bg-brand-purple">
-        <Header currentPage="import-wizard" />
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center text-white">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/upload">
-                <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-semibold">Data Import</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                Audit History
-                <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
-              </Button>
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                File History
-                <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
-              </Button>
-              <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                Admin
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <div className="flex justify-between items-center text-white mb-2">
-              <span>Upload Progress</span>
-              <span>{progress}% Complete</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </div>
-      </div>
+      <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
