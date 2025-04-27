@@ -78,12 +78,17 @@ export default function ImportPush() {
       }
 
       // Create import execution record
+      // Since we don't have authentication implemented yet, we'll use a placeholder user_id
+      // In a real application, this would come from the authenticated user's session
+      const placeholderUserId = '00000000-0000-0000-0000-000000000000';
+      
       const { data: execution, error: executionError } = await supabase
         .from('import_executions')
         .insert({
           import_session_id: importSessionId,
           total_rows: importedData.row_count,
-          status: 'processing'
+          status: 'processing',
+          user_id: placeholderUserId // Add the required user_id field
         })
         .select()
         .single();
