@@ -21,7 +21,8 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validations } from '@/constants/validations';
+import { validations, getTechnicalDescription } from '@/constants/validations';
+import { validateFile } from '@/services/fileValidation';
 
 export default function ImportUpload() {
   const [progress] = React.useState(16);
@@ -40,20 +41,35 @@ export default function ImportUpload() {
           id: v.id,
           name: v.name,
           description: v.description,
-          status: 'pending' as const
+          status: 'pending' as const,
+          severity: v.severity,
+          technical_details: getTechnicalDescription(v.id)
         }));
       
       setFileValidationResults(fileUploadChecks);
       
-      setTimeout(() => {
-        const results = fileUploadChecks.map(check => ({
-          ...check,
-          status: check.id === 'file-size' && file.size > 10 * 1024 * 1024 
-            ? 'fail' as const 
-            : 'pass' as const
-        }));
-        setFileValidationResults(results);
-      }, 1000);
+      validateFile(file).then(validationResults => {
+        const uiResults = fileUploadChecks.map(check => {
+          const result = validationResults.find(r => r.id === check.id);
+          if (result) {
+            return {
+              ...check,
+              status: result.status as any,
+              technical_details: getTechnicalDescription(check.id)
+            };
+          }
+          return check;
+        });
+        
+        setFileValidationResults(uiResults);
+      }).catch(error => {
+        console.error("Error validating file:", error);
+        toast({
+          title: "Validation error",
+          description: "There was a problem validating the file",
+          variant: "destructive",
+        });
+      });
     }
   }, [file]);
 
@@ -152,7 +168,6 @@ export default function ImportUpload() {
         if (e.target && e.target.result) {
           localStorage.setItem('uploadedFile', e.target.result.toString());
           
-          // Store file type information
           const fileInfo = {
             name: file.name,
             type: file.type,

@@ -1,13 +1,13 @@
-
 import { FileBox, FileCheck, Database, Rows, Waypoints, Upload, ClipboardCheck, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { validations, ValidationCategory } from "@/constants/validations";
+import { validations, ValidationCategory, getTechnicalDescription } from "@/constants/validations";
 import { useState } from "react";
 import { EditValidationDialog } from "./EditValidationDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 export function ValidationManager() {
   const { toast } = useToast();
@@ -48,6 +48,24 @@ export function ValidationManager() {
       title: "Validation Updated",
       description: `${updatedValidation.name} has been moved to ${updatedValidation.category}`,
     });
+  };
+
+  const renderTechnicalDetails = (details: string | string[] | undefined) => {
+    if (!details) return null;
+    
+    if (typeof details === 'string') {
+      return <p className="leading-relaxed">{details}</p>;
+    }
+    
+    return details.map((detail, index) => (
+      <p key={index} className={cn(
+        "leading-relaxed",
+        detail.startsWith('-') ? 'pl-4' : '',
+        detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
+      )}>
+        {detail}
+      </p>
+    ));
   };
 
   const renderValidationItem = (validation: any) => (
@@ -94,6 +112,16 @@ export function ValidationManager() {
               <li>Fail Action: {validation.failAction}</li>
             )}
           </ul>
+
+          {getTechnicalDescription(validation.id) && (
+            <div className="mt-3 space-y-2">
+              <h4 className="font-medium">Technical Implementation</h4>
+              <div className="rounded-md bg-slate-100 p-3 text-sm space-y-1">
+                {renderTechnicalDetails(getTechnicalDescription(validation.id))}
+              </div>
+            </div>
+          )}
+          
           {validation.category === ValidationCategory.VERIFY_FILE && (
             <p className="mt-3 text-sm text-amber-700 bg-amber-50 p-2 rounded-md">
               <strong>Note:</strong> File preflight checks must pass before proceeding. If these validations fail, 

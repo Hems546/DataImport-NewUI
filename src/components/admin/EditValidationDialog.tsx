@@ -15,9 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ValidationCategory } from "@/constants/validations";
+import { ValidationCategory, getTechnicalDescription } from "@/constants/validations";
 import { Edit } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface EditValidationDialogProps {
   validation: {
@@ -44,50 +45,22 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
     setOpen(false);
   };
 
-  const getTechnicalDescription = (validationId: string) => {
-    const descriptions: Record<string, string[]> = {
-      'row-length-consistency': [
-        "Purpose: Verifies data structure integrity by comparing row lengths",
-        "Implementation: Counts columns in each row and compares to header length",
-        "Common Issues:",
-        "- Missing delimiters causing merged columns",
-        "- Extra delimiters creating empty columns",
-        "- Line breaks within fields causing row splits",
-        "Resolution Steps:",
-        "1. Export data with proper delimiters",
-        "2. Remove any line breaks within fields",
-        "3. Ensure all rows have consistent delimiters"
-      ],
-      'required-columns': [
-        "Purpose: Ensures all mandatory fields are present in the import file",
-        "Implementation: Compares header names against required field list",
-        "Common Issues:",
-        "- Missing required column headers",
-        "- Misspelled column names",
-        "- Case sensitivity mismatches",
-        "Resolution Steps:",
-        "1. Compare headers against template",
-        "2. Add missing columns with valid data",
-        "3. Correct any misspelled headers"
-      ],
-      'header-uniqueness': [
-        "Purpose: Prevents ambiguous column mapping",
-        "Implementation: Checks for duplicate column names",
-        "Common Issues:",
-        "- Multiple columns with same name",
-        "- Hidden whitespace in headers",
-        "Resolution Steps:",
-        "1. Rename duplicate columns uniquely",
-        "2. Remove any trailing/leading spaces"
-      ]
-      // ... Add more validation descriptions as needed
-    };
-
-    return descriptions[validationId] || [
-      "Type: " + (validation.type || 'Not specified'),
-      "Implementation details not yet documented.",
-      "Please refer to validation documentation for more information."
-    ];
+  const renderTechnicalDetails = (details: string | string[] | undefined) => {
+    if (!details) return null;
+    
+    if (typeof details === 'string') {
+      return <p className="text-slate-700">{details}</p>;
+    }
+    
+    return details.map((detail, index) => (
+      <p key={index} className={cn(
+        "text-slate-700",
+        detail.startsWith('-') ? 'ml-4' : '',
+        detail.match(/^\d+\./) ? 'ml-4' : ''
+      )}>
+        {detail.startsWith('-') || detail.match(/^\d+\./) ? detail : `• ${detail}`}
+      </p>
+    ));
   };
 
   const isCriticalSeverity = validation.severity === 'critical';
@@ -145,11 +118,7 @@ export function EditValidationDialog({ validation, onSave }: EditValidationDialo
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Technical Implementation</h3>
             <div className="rounded-md bg-slate-100 p-3 text-sm space-y-1">
-              {getTechnicalDescription(validation.id).map((detail, index) => (
-                <p key={index} className="text-slate-700">
-                  {detail.startsWith('-') || detail.match(/^\d+\./) ? detail : `• ${detail}`}
-                </p>
-              ))}
+              {renderTechnicalDetails(getTechnicalDescription(validation.id))}
             </div>
           </div>
 

@@ -23,6 +23,7 @@ export interface ValidationResult {
   status: 'pending' | 'pass' | 'fail' | 'warning';
   description?: string;
   severity?: 'critical' | 'warning';
+  technical_details?: string | string[];
 }
 
 interface ValidationStatusProps {
@@ -46,9 +47,22 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
     }
   };
 
-  const getTechnicalDescription = (validationId: string) => {
-    const { getTechnicalDescription } = require('@/constants/validations');
-    return getTechnicalDescription(validationId);
+  const renderTechnicalDetails = (details: string | string[] | undefined) => {
+    if (!details) return null;
+    
+    if (typeof details === 'string') {
+      return <p className="leading-relaxed">{details}</p>;
+    }
+    
+    return details.map((detail, index) => (
+      <p key={index} className={cn(
+        "leading-relaxed",
+        detail.startsWith('-') ? 'pl-4' : '',
+        detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
+      )}>
+        {detail}
+      </p>
+    ));
   };
 
   const renderHeaderUniquenessExample = () => {
@@ -141,18 +155,10 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
                   </div>
                 </div>
               </AccordionTrigger>
-              {(result.status === 'fail' || result.status === 'warning') && (
+              {(result.status === 'fail' || result.status === 'warning' || result.status === 'pass') && (
                 <AccordionContent className="px-4 pb-3">
                   <div className="space-y-3 text-sm text-gray-700">
-                    {getTechnicalDescription(result.id).map((detail, index) => (
-                      <p key={index} className={cn(
-                        "leading-relaxed",
-                        detail.startsWith('-') ? 'pl-4' : '',
-                        detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
-                      )}>
-                        {detail}
-                      </p>
-                    ))}
+                    {result.technical_details && renderTechnicalDetails(result.technical_details)}
                     
                     {result.id === 'header-uniqueness' && (
                       <div className="mt-4">

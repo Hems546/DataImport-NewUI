@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import Papa from 'papaparse';
 import { getTechnicalDescription } from '@/constants/validations';
@@ -8,7 +9,7 @@ export interface FileValidationResult {
   status: 'pass' | 'fail' | 'warning';
   severity: 'critical' | 'warning';
   message: string;
-  technical_details?: string;
+  technical_details?: string | string[];
 }
 
 export async function validateFile(file: File): Promise<FileValidationResult[]> {
