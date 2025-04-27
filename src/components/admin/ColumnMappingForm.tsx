@@ -1,9 +1,9 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Wand2 } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { systemTemplates } from "@/data/systemTemplates";
+import { useToast } from "@/hooks/use-toast";
 
 const FormSchema = z.object({
   mappingStrategy: z.enum(["auto", "manual", "ai"], {
@@ -34,6 +35,8 @@ const FormSchema = z.object({
 type MappingStrategy = "auto" | "manual" | "ai";
 
 export function ColumnMappingForm({ template = "Contacts" }) {
+  const { toast } = useToast();
+  
   // Find the selected template
   const selectedTemplate = systemTemplates.find(t => t.title === template) || systemTemplates[0];
   
@@ -44,40 +47,135 @@ export function ColumnMappingForm({ template = "Contacts" }) {
     "Country", "ZIP/Postal"
   ];
 
+  // Track which fields have been auto-mapped
+  const [autoMappedFields, setAutoMappedFields] = useState<string[]>([]);
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       mappingStrategy: "auto",
       columnMappings: sourceColumns.map(col => ({
         sourceColumn: col,
-        targetField: "" // Auto-mapping would fill this based on algorithms
+        targetField: "" // Auto-mapping will fill this
       })),
     },
   });
 
-  // This would be populated by auto-mapping algorithm in production
-  React.useEffect(() => {
-    if (form.watch("mappingStrategy") === "auto") {
-      // Simple exact match or fuzzy match example
-      const mappings = sourceColumns.map(sourceCol => {
-        const matchedField = selectedTemplate.fields.find(field => 
-          field.name.toLowerCase() === sourceCol.toLowerCase().replace(/[^a-zA-Z0-9]/g, "") ||
-          sourceCol.toLowerCase().includes(field.name.toLowerCase())
-        );
-        
-        return {
-          sourceColumn: sourceCol,
-          targetField: matchedField?.name || ""
-        };
-      });
+  // Apply the mapping strategy when it changes
+  useEffect(() => {
+    const applyMappingStrategy = async () => {
+      const strategy = form.watch("mappingStrategy");
+      let mappings = [...form.getValues("columnMappings")];
       
+      // Clear previous mappings if switching strategies
+      if (strategy === "manual") {
+        // In manual mode, we clear all mappings for user to set
+        mappings = sourceColumns.map(sourceCol => ({
+          sourceColumn: sourceCol,
+          targetField: ""
+        }));
+        setAutoMappedFields([]);
+      } 
+      else if (strategy === "auto") {
+        // Simple auto-mapping based on name similarity
+        mappings = sourceColumns.map(sourceCol => {
+          const normalizedSourceCol = sourceCol.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+          
+          const matchedField = selectedTemplate.fields.find(field => {
+            const normalizedFieldName = field.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+            return normalizedSourceCol === normalizedFieldName || 
+                  normalizedSourceCol.includes(normalizedFieldName) || 
+                  normalizedFieldName.includes(normalizedSourceCol);
+          });
+          
+          return {
+            sourceColumn: sourceCol,
+            targetField: matchedField?.name || ""
+          };
+        });
+        
+        // Track which fields were auto-mapped
+        setAutoMappedFields(mappings.filter(m => m.targetField).map(m => m.sourceColumn));
+        
+        // Show success toast
+        toast({
+          title: "Auto-mapping complete",
+          description: `Mapped ${mappings.filter(m => m.targetField).length} out of ${sourceColumns.length} fields.`
+        });
+      }
+      else if (strategy === "ai") {
+        // Simulate AI processing with a delay
+        toast({
+          title: "AI mapping in progress",
+          description: "Analyzing your data and finding the best matches..."
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // AI mapping would be more sophisticated, here it's just a smarter auto-map
+        mappings = sourceColumns.map(sourceCol => {
+          // AI would use more sophisticated logic, here we simulate with smarter matching
+          const normalizedSource = sourceCol.toLowerCase();
+          
+          // Specific cases for common fields with different naming conventions
+          let bestMatch;
+          
+          if (normalizedSource.includes("first") || normalizedSource.includes("fname")) {
+            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("first"));
+          } 
+          else if (normalizedSource.includes("last") || normalizedSource.includes("lname")) {
+            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("last"));
+          }
+          else if (normalizedSource.includes("email")) {
+            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("email"));
+          }
+          else if (normalizedSource.includes("phone")) {
+            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("phone"));
+          }
+          else if (normalizedSource.includes("zip") || normalizedSource.includes("postal")) {
+            bestMatch = selectedTemplate.fields.find(f => 
+              f.name.toLowerCase().includes("zip") || f.name.toLowerCase().includes("postal"));
+          }
+          else {
+            // Fallback to simple similarity check
+            bestMatch = selectedTemplate.fields.find(field => {
+              const normalizedField = field.name.toLowerCase();
+              return normalizedSource.includes(normalizedField) || 
+                    normalizedField.includes(normalizedSource);
+            });
+          }
+          
+          return {
+            sourceColumn: sourceCol,
+            targetField: bestMatch?.name || ""
+          };
+        });
+        
+        // Track which fields were AI-mapped
+        setAutoMappedFields(mappings.filter(m => m.targetField).map(m => m.sourceColumn));
+        
+        // Show success toast for AI mapping
+        toast({
+          title: "AI mapping complete",
+          description: `Successfully mapped ${mappings.filter(m => m.targetField).length} out of ${sourceColumns.length} fields.`
+        });
+      }
+      
+      // Update form with new mappings
       form.setValue("columnMappings", mappings);
-    }
-  }, [form.watch("mappingStrategy"), selectedTemplate]);
+    };
+    
+    applyMappingStrategy();
+  }, [form.watch("mappingStrategy")]);
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     console.log("Column mapping submitted:", data);
     // Here you would save the mapping or proceed to next stage
+    
+    toast({
+      title: "Column mapping saved",
+      description: `Successfully mapped ${data.columnMappings.filter(m => m.targetField).length} fields.`
+    });
   }
 
   return (
@@ -97,10 +195,10 @@ export function ColumnMappingForm({ template = "Contacts" }) {
                 defaultValue={field.value}
                 className="grid grid-cols-3 gap-4"
               >
-                <FormItem className="flex flex-col items-center space-y-3 rounded-md border p-4">
+                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'auto' ? 'border-primary bg-primary/5' : ''}`}>
                   <FormLabel className="cursor-pointer font-normal">
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="rounded-full bg-primary/10 p-2">
+                      <div className={`rounded-full ${field.value === 'auto' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
                         <ArrowRightLeft className="h-5 w-5 text-primary" />
                       </div>
                       <div className="text-center font-medium">Auto-Map</div>
@@ -114,10 +212,10 @@ export function ColumnMappingForm({ template = "Contacts" }) {
                   </FormControl>
                 </FormItem>
 
-                <FormItem className="flex flex-col items-center space-y-3 rounded-md border p-4">
+                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'manual' ? 'border-primary bg-primary/5' : ''}`}>
                   <FormLabel className="cursor-pointer font-normal">
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="rounded-full bg-primary/10 p-2">
+                      <div className={`rounded-full ${field.value === 'manual' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
                         <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none">
                           <path d="M15 5L9 12L15 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
@@ -133,14 +231,11 @@ export function ColumnMappingForm({ template = "Contacts" }) {
                   </FormControl>
                 </FormItem>
 
-                <FormItem className="flex flex-col items-center space-y-3 rounded-md border p-4">
+                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'ai' ? 'border-primary bg-primary/5' : ''}`}>
                   <FormLabel className="cursor-pointer font-normal">
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="rounded-full bg-primary/10 p-2">
-                        <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 3V4M12 20V21M4 12H3M6.31412 6.31412L5.5 5.5M17.6859 6.31412L18.5 5.5M6.31412 17.69L5.5 18.5M17.6859 17.69L18.5 18.5M21 12H20M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" 
-                            stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
+                      <div className={`rounded-full ${field.value === 'ai' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
+                        <Wand2 className="h-5 w-5 text-primary" />
                       </div>
                       <div className="text-center font-medium">AI-Assisted</div>
                       <div className="text-center text-xs text-gray-500">
@@ -166,7 +261,7 @@ export function ColumnMappingForm({ template = "Contacts" }) {
               <div>Target Field</div>
             </div>
             {sourceColumns.map((column, index) => (
-              <div key={index} className="grid grid-cols-2 gap-4 items-center bg-gray-50 p-4 rounded-md">
+              <div key={index} className={`grid grid-cols-2 gap-4 items-center p-4 rounded-md ${autoMappedFields.includes(column) ? 'bg-green-50 border border-green-100' : 'bg-gray-50'}`}>
                 <div>
                   <Input
                     value={column}
@@ -181,10 +276,10 @@ export function ColumnMappingForm({ template = "Contacts" }) {
                     <FormItem>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className={field.value ? 'bg-white' : ''}>
                             <SelectValue placeholder="Select field..." />
                           </SelectTrigger>
                         </FormControl>
@@ -215,7 +310,7 @@ export function ColumnMappingForm({ template = "Contacts" }) {
         </div>
 
         <div className="flex justify-end space-x-4">
-          <Button variant="outline" type="button">Cancel</Button>
+          <Button variant="outline" type="button">Reset</Button>
           <Button type="submit">Save Mapping</Button>
         </div>
       </form>
