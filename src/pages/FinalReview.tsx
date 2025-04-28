@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import FinalReviewValidations from "@/components/FinalReviewValidations";
 
 interface AutoFix {
   id: string;
@@ -60,6 +62,7 @@ export default function FinalReview() {
     percentValid: 0,
   });
   const [canContinue, setCanContinue] = useState(false);
+  const [finalApproved, setFinalApproved] = useState(false);
 
   useEffect(() => {
     const loadReviewData = async () => {
@@ -204,6 +207,14 @@ export default function FinalReview() {
     setUnresolvedIssues(prev => prev.filter(issue => issue.id !== issueId));
   };
 
+  const handleFinalApproval = () => {
+    setFinalApproved(true);
+    toast({
+      title: "Final approval granted",
+      description: "You have approved the import. You can now proceed to the final step.",
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header currentPage="import-wizard" />
@@ -275,7 +286,7 @@ export default function FinalReview() {
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 mb-6">
-            <h3 className="text-xl font-semibold mb-6">Import Summary</h3>
+            <h3 className="text-xl font-semibold mb-6">Final Review & Approval</h3>
             
             {isLoading ? (
               <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
@@ -287,7 +298,7 @@ export default function FinalReview() {
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                   <div className="flex items-center mb-2">
                     <FileText className="h-5 w-5 text-blue-600 mr-2" />
-                    <h4 className="font-medium text-blue-800">Row Counts</h4>
+                    <h4 className="font-medium text-blue-800">Import Summary</h4>
                   </div>
                   
                   <div className="flex justify-between items-center mb-2">
@@ -309,6 +320,11 @@ export default function FinalReview() {
                       <div className="bg-blue-600" />
                     </Progress>
                   </div>
+                </div>
+
+                {/* New Final Review Validations Component */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <FinalReviewValidations isLoading={false} />
                 </div>
                 
                 {autoFixes.length > 0 && (
@@ -403,6 +419,24 @@ export default function FinalReview() {
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {/* Final approval button */}
+                <div className="border-t pt-4 mt-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 font-medium">Final Approval</span>
+                    <Button 
+                      variant={finalApproved ? "outline" : "default"}
+                      className={finalApproved ? "bg-green-50 text-green-700 border-green-200" : "bg-brand-purple"}
+                      onClick={handleFinalApproval}
+                      disabled={finalApproved}
+                    >
+                      {finalApproved ? "Approved ✓" : "Approve Import Data"}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    By approving, you confirm that you have reviewed all data modifications and are ready to proceed with the import.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -419,7 +453,7 @@ export default function FinalReview() {
             <Link to="/import-wizard/import">
               <Button 
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isLoading || !canContinue}
+                disabled={isLoading || !canContinue || !finalApproved}
               >
                 Continue to Import
                 <ArrowRight className="ml-2" />
