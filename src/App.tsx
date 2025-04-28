@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,8 @@ import Deduplication from "./pages/Deduplication";
 import FinalReview from "./pages/FinalReview";
 import ImportPush from "./pages/ImportPush";
 import AdminDashboard from "./pages/AdminDashboard";
+import FileHistoryDetails from "./pages/FileHistoryDetails"; 
+import FileHistory from "./pages/FileHistory";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,8 @@ const App = () => (
           <Route path="/import-wizard/review" element={<FinalReview />} />
           <Route path="/import-wizard/import" element={<ImportPush />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/file-history" element={<FileHistory />} />
+          <Route path="/file-history/:fileId" element={<FileHistoryDetails />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
