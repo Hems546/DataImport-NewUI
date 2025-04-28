@@ -10,79 +10,79 @@ import {
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Info,
+  AlertTriangle
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQualityIcon from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
+import ValidationStatus from '@/components/ValidationStatus';
+import { validateDataQuality } from "@/services/fileValidation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [validationResults, setValidationResults] = useState<any[]>([]);
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
       try {
         setIsAnalyzing(true);
-        // Simulated data quality checks - in production these would come from your backend
-        const results: ValidationResult[] = [
-          {
-            id: 'missing-data',
-            name: 'Missing Data Check',
-            status: 'warning',
-            severity: 'warning',
-            description: 'Some records are missing optional fields',
-            technical_details: [
-              'Found 12 records with missing phone numbers',
-              'Found 5 records with missing department information',
-              'All required fields are populated'
-            ]
+        
+        // In a real application, this would come from your state/context
+        // For demonstration, we'll use mock data
+        const mockData = [
+          { 
+            name: "John Smith", 
+            email: "john@example.com", 
+            age: 32, 
+            state: "CA", 
+            zip_code: "94103",
+            company: "  Acme Corp  ",
+            start_date: "2022-01-01",
+            end_date: "2023-01-01"
           },
-          {
-            id: 'email-format',
-            name: 'Email Format Validation',
-            status: 'pass',
-            severity: 'critical',
-            description: 'All email addresses are properly formatted',
-            technical_details: [
-              'All 234 email addresses follow valid format',
-              'No duplicate email addresses found'
-            ]
+          { 
+            name: "Jane Doe", 
+            email: "not-an-email", 
+            age: 28, 
+            state: "TX", 
+            zip_code: "75001",
+            company: "XYZ Inc",
+            start_date: "2022-05-01",
+            end_date: "2022-03-01" // intentional error: end before start
           },
-          {
-            id: 'phone-format',
-            name: 'Phone Number Format',
-            status: 'warning',
-            severity: 'warning',
-            description: 'Some phone numbers need standardization',
-            technical_details: [
-              '15 phone numbers are missing country codes',
-              '8 phone numbers use inconsistent formatting',
-              'Recommendation: Use data normalization step to standardize formats'
-            ]
-          },
-          {
-            id: 'data-consistency',
-            name: 'Data Consistency Check',
-            status: 'pass',
-            severity: 'high',
-            description: 'Data follows consistent formatting patterns',
-            technical_details: [
-              'Name fields use consistent capitalization',
-              'Address fields follow standard format',
-              'State/Province codes are standardized'
-            ]
+          { 
+            name: "Bob Johnson", 
+            email: "bob@example.com", 
+            age: 150, // out of range
+            state: "ZZ", // invalid state
+            zip_code: "12345-678", // invalid format
+            company: "123 Company",
+            start_date: "2022-01-15",
+            end_date: "2022-06-30"
           }
         ];
 
+        // Run data quality validation
+        const results = validateDataQuality(mockData);
+
         setValidationResults(results);
         
+        // Analyze results for toast notification
         const warnings = results.filter(r => r.status === 'warning');
-        const failures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
+        const failures = results.filter(r => r.status === 'fail' && r.severity === 'high');
 
         if (failures.length > 0) {
           toast({
@@ -183,13 +183,37 @@ export default function DataQualityPage() {
               label="Import / Push"
             />
           </div>
+          
+          {/* Instructions Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Data Quality Analysis</CardTitle>
+              <CardDescription>
+                We're analyzing your data for quality issues and providing recommendations for improvement
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium">About Data Quality Analysis:</p>
+                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
+                    <li>Fields are being checked for proper formatting, valid values, and logical consistency</li>
+                    <li>Critical issues must be resolved before proceeding</li>
+                    <li>Warnings can be addressed in the normalization step</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+              <Alert variant="warning">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Common issues include invalid email formats, out-of-range values, and inconsistent date ranges
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <h3 className="text-xl font-semibold mb-4">Data Quality Analysis</h3>
-            <p className="text-gray-600 mb-6">
-              We're analyzing your data for quality issues and will provide recommendations for improvement.
-            </p>
-            
             {isAnalyzing ? (
               <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
@@ -215,7 +239,7 @@ export default function DataQualityPage() {
             <Link to="/import-wizard/normalization">
               <Button 
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isAnalyzing || validationResults.some(v => v.status === 'fail' && v.severity === 'critical')}
+                disabled={isAnalyzing || validationResults.some(v => v.status === 'fail' && v.severity === 'high')}
               >
                 Continue to Data Normalization
                 <ArrowRight className="ml-2" />
