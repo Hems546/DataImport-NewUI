@@ -122,7 +122,54 @@ export async function validateFile(file: File, skipBasicChecks = false): Promise
               message: 'Headers found in file',
               technical_details: getTechnicalDescription('header-presence')
             });
+            
+            // Header uniqueness check (only if headers are present)
+            const headers = parseResults.meta.fields;
+            const uniqueHeaders = new Set(headers);
+            const hasDuplicateHeaders = headers.length !== uniqueHeaders.size;
+            
+            results.push({
+              id: 'header-uniqueness',
+              validation_type: 'header-uniqueness',
+              status: hasDuplicateHeaders ? 'fail' : 'pass',
+              severity: 'high',
+              message: hasDuplicateHeaders 
+                ? 'Duplicate headers found in the file'
+                : 'All headers are unique',
+              technical_details: getTechnicalDescription('header-uniqueness')
+            });
+            
+            // Check for blank headers
+            const hasBlankHeaders = headers.some(header => !header.trim());
+            results.push({
+              id: 'header-blank',
+              validation_type: 'header-blank',
+              status: hasBlankHeaders ? 'fail' : 'pass',
+              severity: 'high',
+              message: hasBlankHeaders
+                ? 'Blank or empty headers found in the file'
+                : 'No blank headers found',
+              technical_details: getTechnicalDescription('header-blank')
+            });
           }
+
+          // Row length consistency check
+          const rowLengths = new Set();
+          parseResults.data.forEach((row: any) => {
+            rowLengths.add(Object.keys(row).length);
+          });
+          
+          const hasInconsistentRowLengths = rowLengths.size > 1;
+          results.push({
+            id: 'row-length-consistency',
+            validation_type: 'row-length-consistency',
+            status: hasInconsistentRowLengths ? 'fail' : 'pass',
+            severity: 'medium',
+            message: hasInconsistentRowLengths
+              ? 'Inconsistent row lengths detected in the file'
+              : 'All rows have consistent length',
+            technical_details: getTechnicalDescription('row-length-consistency')
+          });
 
           // Maximum row count check (100,000 rows limit)
           const maxRows = 100000;
@@ -136,6 +183,38 @@ export async function validateFile(file: File, skipBasicChecks = false): Promise
               ? `File exceeds maximum row limit of ${maxRows.toLocaleString()} rows`
               : `Row count (${rowCount.toLocaleString()}) is within limits`,
             technical_details: getTechnicalDescription('max-row-count')
+          });
+
+          // Empty file check (no rows)
+          results.push({
+            id: 'empty-file',
+            validation_type: 'empty-file',
+            status: rowCount === 0 ? 'fail' : 'pass',
+            severity: 'critical',
+            message: rowCount === 0
+              ? 'File appears to be empty (no data rows found)'
+              : 'File contains data rows',
+            technical_details: getTechnicalDescription('empty-file')
+          });
+
+          // Required columns check 
+          // Note: We'll implement a simple check here, but in a real application,
+          // this would be configured based on the target system or template
+          const requiredColumns = ['name', 'email']; // Example required columns
+          const headerLowerCase = parseResults.meta.fields?.map(h => h.toLowerCase()) || [];
+          const missingRequiredColumns = requiredColumns.filter(
+            col => !headerLowerCase.includes(col)
+          );
+          
+          results.push({
+            id: 'required-columns',
+            validation_type: 'required-columns',
+            status: missingRequiredColumns.length > 0 ? 'warning' : 'pass',
+            severity: 'medium',
+            message: missingRequiredColumns.length > 0
+              ? `Missing recommended columns: ${missingRequiredColumns.join(', ')}`
+              : 'All recommended columns are present',
+            technical_details: getTechnicalDescription('required-columns')
           });
 
           resolve(results);

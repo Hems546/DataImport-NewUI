@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -39,7 +40,8 @@ export default function FileVerification() {
         const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
         const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
         
-        const validationResults = await validateFile(file, true);
+        // Skip basic checks that were already done in the upload stage
+        const validationResults = await validateFile(file, false);
         
         const results: ValidationResult[] = validationResults.map(validation => ({
           id: validation.validation_type,
@@ -185,10 +187,10 @@ export default function FileVerification() {
               <p className="text-blue-700">
                 We're checking your file for proper formatting and data quality. This includes:
                 <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>File type verification (CSV, Excel)</li>
-                  <li>File size check</li>
-                  <li>Character encoding validation</li>
-                  <li>Basic structure validation</li>
+                  <li>File structure validation</li>
+                  <li>Header validation (uniqueness, required columns)</li>
+                  <li>Data structure consistency</li>
+                  <li>Row count verification</li>
                 </ul>
               </p>
             </div>
