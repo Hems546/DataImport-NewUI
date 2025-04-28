@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -18,6 +18,8 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
+import ValidationStatus from "@/components/ValidationStatus";
+import { validateColumnMappings, FileValidationResult } from "@/services/fileValidation";
 import {
   Card,
   CardContent,
@@ -27,15 +29,53 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { systemTemplates } from "@/data/systemTemplates";
 
 export default function ColumnMapping() {
   const { toast } = useToast();
+  const [validationResults, setValidationResults] = useState<FileValidationResult[]>([]);
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
   
-  const handleMappingSave = () => {
-    toast({
-      title: "Column mapping saved",
-      description: "Your column mapping has been saved successfully."
-    });
+  // Mock source columns (would come from context or state in a real application)
+  const sourceColumns = [
+    "First Name", "Last Name", "Email Address", "Company", "Phone Number", 
+    "Job Title", "Department", "Address Line 1", "City", "State/Province", 
+    "Country", "ZIP/Postal"
+  ];
+  
+  // Find the selected template (default to Contacts)
+  const template = "Contacts";
+  const selectedTemplate = systemTemplates.find(t => t.title === template) || systemTemplates[0];
+  
+  // Required fields (in a real app, this would come from the selected template)
+  const requiredTargetFields = selectedTemplate.fields
+    .filter(field => field.required)
+    .map(field => field.name);
+  
+  const handleMappingSave = (mappings: { sourceColumn: string, targetField: string }[]) => {
+    // Run validation on the mappings
+    const results = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
+    setValidationResults(results);
+    
+    // Check if there are any critical failures
+    const hasCriticalErrors = results.some(result => 
+      result.status === 'fail' && result.severity === 'critical'
+    );
+    
+    setHasValidationErrors(hasCriticalErrors);
+    
+    if (hasCriticalErrors) {
+      toast({
+        title: "Validation errors detected",
+        description: "Please fix the critical errors before continuing.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Column mapping saved",
+        description: "Your column mapping has been saved successfully."
+      });
+    }
   };
 
   return (
@@ -139,9 +179,19 @@ export default function ColumnMapping() {
             </CardContent>
           </Card>
 
+          {/* Validation Results Section */}
+          {validationResults.length > 0 && (
+            <div className="mb-6">
+              <ValidationStatus
+                results={validationResults}
+                title="Column Mapping Validation Results"
+              />
+            </div>
+          )}
+
           {/* Column Mapping Form */}
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <ColumnMappingForm />
+            <ColumnMappingForm onSave={handleMappingSave} />
           </div>
 
           {/* Navigation */}
@@ -157,7 +207,7 @@ export default function ColumnMapping() {
             <Link to="/import-wizard/data-quality">
               <Button 
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                onClick={handleMappingSave}
+                disabled={hasValidationErrors}
               >
                 Continue to Data Quality
                 <ArrowRight className="ml-2" />

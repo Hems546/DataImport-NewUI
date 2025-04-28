@@ -34,7 +34,12 @@ const FormSchema = z.object({
 
 type MappingStrategy = "auto" | "manual" | "ai";
 
-export function ColumnMappingForm({ template = "Contacts" }) {
+interface ColumnMappingFormProps {
+  template?: string;
+  onSave?: (mappings: { sourceColumn: string, targetField: string }[]) => void;
+}
+
+export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappingFormProps) {
   const { toast } = useToast();
   
   // Find the selected template
@@ -170,8 +175,13 @@ export function ColumnMappingForm({ template = "Contacts" }) {
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     console.log("Column mapping submitted:", data);
-    // Here you would save the mapping or proceed to next stage
     
+    // Call the onSave callback if provided
+    if (onSave) {
+      onSave(data.columnMappings);
+    }
+    
+    // Show success toast
     toast({
       title: "Column mapping saved",
       description: `Successfully mapped ${data.columnMappings.filter(m => m.targetField).length} fields.`
@@ -310,7 +320,22 @@ export function ColumnMappingForm({ template = "Contacts" }) {
         </div>
 
         <div className="flex justify-end space-x-4">
-          <Button variant="outline" type="button">Reset</Button>
+          <Button 
+            variant="outline" 
+            type="button" 
+            onClick={() => {
+              form.reset({
+                mappingStrategy: "manual",
+                columnMappings: sourceColumns.map(col => ({
+                  sourceColumn: col,
+                  targetField: ""
+                }))
+              });
+              setAutoMappedFields([]);
+            }}
+          >
+            Reset
+          </Button>
           <Button type="submit">Save Mapping</Button>
         </div>
       </form>
