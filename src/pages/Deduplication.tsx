@@ -19,16 +19,55 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
+import { 
+  Table, 
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 
 export default function Deduplication() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [deduplicationResults, setDeduplicationResults] = useState<ValidationResult[]>([]);
+  const [duplicateRecords, setDuplicateRecords] = useState<any[]>([]);
+  const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<number | null>(null);
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
       try {
         setIsAnalyzing(true);
+        
+        // Simulated delay to mimic backend processing
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Sample duplicate records for demonstration
+        const sampleDuplicates = [
+          [
+            { id: 1, email: "john.doe@example.com", name: "John Doe", phone: "555-1234", company: "Acme Inc" },
+            { id: 2, email: "john.doe@example.com", name: "Johnny Doe", phone: "555-1234", company: "ACME Inc." }
+          ],
+          [
+            { id: 5, email: "sarah@example.net", name: "Sarah Smith", phone: "555-9876", company: "Tech Corp" },
+            { id: 6, email: "s.smith@example.net", name: "Sarah Smith", phone: "555-9876", company: "Technology Corp" }
+          ],
+          [
+            { id: 9, email: "mike@company.co", name: "Michael Brown", phone: "555-5678", company: "XYZ Ltd" },
+            { id: 10, email: "mike@company.co", name: "Mike Brown", phone: "555-5678", company: "XYZ Limited" },
+            { id: 11, email: "mbrown@personal.net", name: "Michael Brown", phone: "555-5678", company: "XYZ Ltd" }
+          ]
+        ];
+        
+        setDuplicateRecords(sampleDuplicates);
+        
         // Simulated deduplication checks - in production these would come from your backend
         const results: ValidationResult[] = [
           {
@@ -78,6 +117,31 @@ export default function Deduplication() {
               'Manual review required for fuzzy matches',
               'Strategy is ready for implementation'
             ]
+          },
+          {
+            id: 'cross-file-duplicates',
+            name: 'Cross-File Duplicate Detection',
+            status: 'warning',
+            severity: 'medium',
+            description: 'Potential duplicates with existing database records',
+            technical_details: [
+              'Found 7 records matching existing database entries',
+              'Based on email and phone number matching',
+              'Review recommended before merging/updating'
+            ]
+          },
+          {
+            id: 'duplicate-confidence',
+            name: 'Duplicate Confidence Scoring',
+            status: 'pass',
+            severity: 'low',
+            description: 'Confidence scores calculated for potential matches',
+            technical_details: [
+              'High confidence matches (90%+): 8 records',
+              'Medium confidence matches (70-89%): 4 records',
+              'Low confidence matches (<70%): 3 records',
+              'Automatic resolution configured for high confidence matches only'
+            ]
           }
         ];
 
@@ -118,6 +182,89 @@ export default function Deduplication() {
 
     analyzeDeduplication();
   }, [toast]);
+  
+  const handleViewDuplicates = (groupIndex: number) => {
+    setSelectedDuplicateGroup(groupIndex === selectedDuplicateGroup ? null : groupIndex);
+  };
+  
+  const renderDuplicateRecordsTable = () => {
+    if (duplicateRecords.length === 0) return null;
+    
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Duplicate Record Groups</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {duplicateRecords.map((group, groupIndex) => (
+              <div key={groupIndex} className="border rounded-lg overflow-hidden">
+                <div 
+                  className="p-3 bg-gray-50 border-b flex justify-between items-center cursor-pointer"
+                  onClick={() => handleViewDuplicates(groupIndex)}
+                >
+                  <div>
+                    <span className="font-medium">Group {groupIndex + 1}</span>
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({group.length} potential matches)
+                    </span>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                  </Button>
+                </div>
+                
+                {selectedDuplicateGroup === groupIndex && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">Select</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.map((record, index) => (
+                        <TableRow key={record.id} className={index === 0 ? "bg-blue-50" : ""}>
+                          <TableCell>
+                            <input 
+                              type="radio" 
+                              name={`group-${groupIndex}`} 
+                              defaultChecked={index === 0} 
+                              className="h-4 w-4"
+                            />
+                          </TableCell>
+                          <TableCell>{record.email}</TableCell>
+                          <TableCell>{record.name}</TableCell>
+                          <TableCell>{record.phone}</TableCell>
+                          <TableCell>{record.company}</TableCell>
+                          <TableCell>
+                            {index !== 0 && (
+                              <Button size="sm" variant="ghost">
+                                Discard
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            ))}
+            
+            <div className="flex justify-end space-x-2 mt-4">
+              <Button variant="outline">Discard All Duplicates</Button>
+              <Button variant="default">Apply Selected Resolutions</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -191,7 +338,7 @@ export default function Deduplication() {
           <div className="bg-white p-8 rounded-lg border border-gray-200">
             <h3 className="text-xl font-semibold mb-4">Deduplication Analysis</h3>
             <p className="text-gray-600 mb-6">
-              We're analyzing your data for duplicate records and similar entries.
+              We're analyzing your data for duplicate records within this file and against your existing database.
             </p>
             
             {isAnalyzing ? (
@@ -200,10 +347,14 @@ export default function Deduplication() {
                 <p className="text-gray-500">Analyzing data for duplicates...</p>
               </div>
             ) : (
-              <ValidationStatus 
-                results={deduplicationResults}
-                title="Deduplication Results"
-              />
+              <>
+                <ValidationStatus 
+                  results={deduplicationResults}
+                  title="Deduplication Results"
+                />
+                
+                {renderDuplicateRecordsTable()}
+              </>
             )}
           </div>
 
