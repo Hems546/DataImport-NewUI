@@ -34,9 +34,14 @@ const FormSchema = z.object({
 
 type MappingStrategy = "auto" | "manual" | "ai";
 
+export interface ColumnMapping {
+  sourceColumn: string;
+  targetField: string;
+}
+
 interface ColumnMappingFormProps {
   template?: string;
-  onSave?: (mappings: { sourceColumn: string, targetField: string }[]) => void;
+  onSave?: (mappings: ColumnMapping[]) => void;
 }
 
 export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappingFormProps) {
@@ -178,7 +183,13 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
     
     // Call the onSave callback if provided
     if (onSave) {
-      onSave(data.columnMappings);
+      // Ensure all mappings have valid sourceColumn and targetField values
+      const validMappings: ColumnMapping[] = data.columnMappings.map(mapping => ({
+        sourceColumn: mapping.sourceColumn || '',
+        targetField: mapping.targetField || ''
+      }));
+      
+      onSave(validMappings);
     }
     
     // Show success toast

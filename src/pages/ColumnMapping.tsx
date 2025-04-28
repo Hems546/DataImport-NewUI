@@ -4,14 +4,15 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { ColumnMappingForm } from "@/components/admin/ColumnMappingForm";
+import { ColumnMappingForm, ColumnMapping as ColumnMappingType } from "@/components/admin/ColumnMappingForm";
 import { 
   FileCheck,
   ArrowRight,
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Info
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -28,12 +29,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
 import { systemTemplates } from "@/data/systemTemplates";
+
+// Define the interface ValidationResult to match what ValidationStatus expects
+interface ValidationResult {
+  id: string;
+  name?: string; // Add the missing 'name' property
+  validation_type: string;
+  status: 'pass' | 'fail' | 'warning';
+  severity: string;
+  message: string;
+  technical_details?: string | string[];
+}
 
 export default function ColumnMapping() {
   const { toast } = useToast();
-  const [validationResults, setValidationResults] = useState<FileValidationResult[]>([]);
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
   
   // Mock source columns (would come from context or state in a real application)
@@ -52,9 +63,16 @@ export default function ColumnMapping() {
     .filter(field => field.required)
     .map(field => field.name);
   
-  const handleMappingSave = (mappings: { sourceColumn: string, targetField: string }[]) => {
+  const handleMappingSave = (mappings: ColumnMappingType[]) => {
     // Run validation on the mappings
-    const results = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
+    const fileValidationResults = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
+    
+    // Convert to ValidationResult[] by adding the missing 'name' property
+    const results: ValidationResult[] = fileValidationResults.map(result => ({
+      ...result,
+      name: result.validation_type // Use validation_type as name
+    }));
+    
     setValidationResults(results);
     
     // Check if there are any critical failures
