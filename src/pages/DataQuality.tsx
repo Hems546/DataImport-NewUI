@@ -19,7 +19,7 @@ import DataQualityIcon from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus from '@/components/ValidationStatus';
+import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
 import { validateDataQuality } from "@/services/fileValidation";
 import {
   Card,
@@ -33,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
-  const [validationResults, setValidationResults] = useState<any[]>([]);
+  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
@@ -78,11 +78,17 @@ export default function DataQualityPage() {
         // Run data quality validation
         const results = validateDataQuality(mockData);
 
-        setValidationResults(results);
+        // Ensure all results have the required properties for ValidationStatusResult
+        const formattedResults: ValidationStatusResult[] = results.map(result => ({
+          ...result,
+          name: result.name || result.id || ''
+        }));
+
+        setValidationResults(formattedResults);
         
         // Analyze results for toast notification
-        const warnings = results.filter(r => r.status === 'warning');
-        const failures = results.filter(r => r.status === 'fail' && r.severity === 'high');
+        const warnings = formattedResults.filter(r => r.status === 'warning');
+        const failures = formattedResults.filter(r => r.status === 'fail' && r.severity === 'high');
 
         if (failures.length > 0) {
           toast({

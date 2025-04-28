@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +18,7 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus from "@/components/ValidationStatus";
+import ValidationStatus, { ValidationResult as ValidationStatusResult } from "@/components/ValidationStatus";
 import { validateColumnMappings, FileValidationResult } from "@/services/fileValidation";
 import {
   Card,
@@ -31,20 +30,9 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { systemTemplates } from "@/data/systemTemplates";
 
-// Define the interface ValidationResult to match what ValidationStatus expects
-interface ValidationResult {
-  id: string;
-  name?: string; // Add the missing 'name' property
-  validation_type: string;
-  status: 'pass' | 'fail' | 'warning';
-  severity: string;
-  message: string;
-  technical_details?: string | string[];
-}
-
 export default function ColumnMapping() {
   const { toast } = useToast();
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
   
   // Mock source columns (would come from context or state in a real application)
@@ -67,10 +55,14 @@ export default function ColumnMapping() {
     // Run validation on the mappings
     const fileValidationResults = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
     
-    // Convert to ValidationResult[] by adding the missing 'name' property
-    const results: ValidationResult[] = fileValidationResults.map(result => ({
-      ...result,
-      name: result.validation_type // Use validation_type as name
+    // Convert to ValidationStatusResult format
+    const results: ValidationStatusResult[] = fileValidationResults.map(result => ({
+      id: result.id || result.validation_type,
+      name: result.validation_type, // Use validation_type as name (required)
+      status: result.status,
+      description: result.message,
+      severity: result.severity || 'warning',
+      technical_details: result.technical_details
     }));
     
     setValidationResults(results);
