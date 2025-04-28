@@ -39,33 +39,38 @@ export default function ImportUpload() {
           name: v.name,
           description: v.description,
           status: 'pending' as const,
-          severity: v.severity || '' as string,
+          severity: v.severity || '',
           technical_details: getTechnicalDescription(v.id)
-        } as ValidationResult));
+        }));
       
       setFileValidationResults(fileUploadChecks);
       
-      validateFile(file).then(validationResults => {
-        const basicValidations = validationResults.filter(
-          v => v.id === 'file-type' || v.id === 'file-size' || v.id === 'file-encoding' || v.id === 'file-corruption'
-        );
-        
+      validateFile(file).then(results => {
         const uiResults = fileUploadChecks.map(check => {
-          const result = basicValidations.find(r => r.id === check.id);
+          const result = results.find(r => r.id === check.id);
           if (result) {
             return {
               ...check,
               status: result.status,
               description: result.message,
               technical_details: getTechnicalDescription(check.id)
-            } as ValidationResult;
+            };
           }
           return check;
         });
         
         setFileValidationResults(uiResults);
         
-        localStorage.setItem('uploadValidationResults', JSON.stringify(basicValidations));
+        const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
+        if (criticalFailures.length > 0) {
+          toast({
+            title: "File validation failed",
+            description: `${criticalFailures.length} critical issues need attention.`,
+            variant: "destructive"
+          });
+        }
+        
+        localStorage.setItem('uploadValidationResults', JSON.stringify(results));
       }).catch(error => {
         console.error("Error validating file:", error);
         toast({
@@ -75,7 +80,7 @@ export default function ImportUpload() {
         });
       });
     }
-  }, [file]);
+  }, [file, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

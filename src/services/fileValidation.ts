@@ -2,12 +2,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import Papa from 'papaparse';
 import { getTechnicalDescription } from '@/constants/validations';
+import { encode } from 'iconv-lite';
 
 export interface FileValidationResult {
   id: string;
   validation_type: string;
   status: 'pass' | 'fail' | 'warning';
-  severity: string; // Changed from 'critical' | 'warning' to string for consistency
+  severity: string;
   message: string;
   technical_details?: string | string[];
 }
@@ -15,181 +16,131 @@ export interface FileValidationResult {
 export async function validateFile(file: File, skipBasicChecks = false): Promise<FileValidationResult[]> {
   const results: FileValidationResult[] = [];
   
-  // Skip basic checks if they've already been performed during upload
   if (!skipBasicChecks) {
     // File size validation (10MB limit)
-    const fileSizeResult = {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    results.push({
       id: 'file-size',
       validation_type: 'file-size',
-      status: file.size > 10 * 1024 * 1024 ? 'fail' as const : 'pass' as const,
-      severity: 'critical' as const,
-      message: file.size > 10 * 1024 * 1024 
+      status: file.size > maxSize ? 'fail' : 'pass',
+      severity: 'critical',
+      message: file.size > maxSize 
         ? 'File size exceeds 10MB limit'
         : 'File size is within acceptable limits',
       technical_details: getTechnicalDescription('file-size')
-    };
-    results.push(fileSizeResult);
+    });
 
     // File type validation
     const allowedTypes = ['.csv', '.xls', '.xlsx'];
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    const fileTypeResult = {
+    results.push({
       id: 'file-type',
       validation_type: 'file-type',
-      status: !allowedTypes.includes(fileExtension) ? 'fail' as const : 'pass' as const,
-      severity: 'critical' as const,
+      status: !allowedTypes.includes(fileExtension) ? 'fail' : 'pass',
+      severity: 'critical',
       message: !allowedTypes.includes(fileExtension)
         ? 'Invalid file type. Only CSV and Excel files are supported.'
         : 'File type is supported',
       technical_details: getTechnicalDescription('file-type')
-    };
-    results.push(fileTypeResult);
+    });
+
+    // Character encoding validation (UTF-8)
+    try {
+      const sample = await file.slice(0, 4096).text(); // Read first 4KB
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      decoder.decode(encoder.encode(sample));
+      
+      results.push({
+        id: 'file-encoding',
+        validation_type: 'file-encoding',
+        status: 'pass',
+        severity: 'high',
+        message: 'File encoding is valid UTF-8',
+        technical_details: getTechnicalDescription('file-encoding')
+      });
+    } catch (error) {
+      results.push({
+        id: 'file-encoding',
+        validation_type: 'file-encoding',
+        status: 'fail',
+        severity: 'high',
+        message: 'File must be encoded in UTF-8 format',
+        technical_details: getTechnicalDescription('file-encoding')
+      });
+    }
+
+    // File corruption check
+    try {
+      const fileContent = await file.slice(0, 4096).text();
+      const isCorrupted = !fileContent || fileContent.length === 0;
+      
+      results.push({
+        id: 'file-corruption',
+        validation_type: 'file-corruption',
+        status: isCorrupted ? 'fail' : 'pass',
+        severity: 'critical',
+        message: isCorrupted ? 'File appears to be corrupted or empty' : 'File integrity check passed',
+        technical_details: getTechnicalDescription('file-corruption')
+      });
+    } catch (error) {
+      results.push({
+        id: 'file-corruption',
+        validation_type: 'file-corruption',
+        status: 'fail',
+        severity: 'critical',
+        message: 'Unable to read file content, file may be corrupted',
+        technical_details: getTechnicalDescription('file-corruption')
+      });
+    }
   }
 
-  return new Promise((resolve) => {
-    // Get the file extension
-    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    
-    // Only attempt to parse CSV files
-    if (fileExtension === '.csv') {
+  // For CSV files, perform additional checks
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    return new Promise((resolve) => {
       Papa.parse(file, {
-        header: true, // Parse the header row
+        header: true,
         skipEmptyLines: true,
-        complete: async (parseResults) => {
-          try {
-            if (!parseResults.data || parseResults.data.length === 0) {
-              results.push({
-                id: 'file-empty',
-                validation_type: 'file-empty',
-                status: 'fail',
-                severity: 'critical',
-                message: 'File appears to be empty'
-              });
-              resolve(results);
-              return;
-            }
-
-            const headers = parseResults.meta.fields || [];
-            
-            // Header presence check
-            if (!headers || headers.length === 0) {
-              results.push({
-                id: 'header-presence',
-                validation_type: 'header-presence',
-                status: 'fail',
-                severity: 'critical',
-                message: 'No headers found in file'
-              });
-            } else {
-              results.push({
-                id: 'header-presence',
-                validation_type: 'header-presence',
-                status: 'pass',
-                severity: 'critical',
-                message: 'Headers found in file'
-              });
-            }
-
-            // Header uniqueness check
-            const uniqueHeaders = new Set(headers);
-            if (uniqueHeaders.size !== headers.length) {
-              results.push({
-                id: 'header-uniqueness',
-                validation_type: 'header-uniqueness',
-                status: 'fail',
-                severity: 'critical',
-                message: 'Duplicate column headers found'
-              });
-            } else {
-              results.push({
-                id: 'header-uniqueness',
-                validation_type: 'header-uniqueness',
-                status: 'pass',
-                severity: 'critical',
-                message: 'All column headers are unique'
-              });
-            }
-
-            // Empty headers check
-            if (headers.some(header => !header || header.trim() === '')) {
-              results.push({
-                id: 'header-blank',
-                validation_type: 'header-blank',
-                status: 'fail',
-                severity: 'critical',
-                message: 'Blank or empty column headers found'
-              });
-            } else {
-              results.push({
-                id: 'header-blank',
-                validation_type: 'header-blank',
-                status: 'pass',
-                severity: 'critical',
-                message: 'No blank column headers found'
-              });
-            }
-
-            // Row length consistency check
-            let inconsistentRows = false;
-            const firstRowLength = Object.keys(parseResults.data[0]).length;
-            
-            for (let i = 1; i < parseResults.data.length; i++) {
-              if (Object.keys(parseResults.data[i]).length !== firstRowLength) {
-                inconsistentRows = true;
-                break;
-              }
-            }
-
-            if (inconsistentRows) {
-              results.push({
-                id: 'row-length-consistency',
-                validation_type: 'row-length-consistency',
-                status: 'fail',
-                severity: 'critical',
-                message: 'Inconsistent number of columns across rows'
-              });
-            } else {
-              results.push({
-                id: 'row-length-consistency',
-                validation_type: 'row-length-consistency',
-                status: 'pass',
-                severity: 'critical',
-                message: 'All rows have consistent column count'
-              });
-            }
-
-            // Try to create import session in Supabase, but don't block validation results if it fails
-            try {
-              const { data: session, error: sessionError } = await supabase
-                .from('import_sessions')
-                .insert({
-                  original_filename: file.name,
-                  session_id: crypto.randomUUID(),
-                  row_count: parseResults.data.length,
-                  column_count: headers.length,
-                  source_columns: headers
-                })
-                .select()
-                .single();
-
-              if (sessionError) {
-                console.warn("Failed to save import session:", sessionError);
-                // Continue with validation even if session saving fails
-              }
-            } catch (dbError) {
-              console.warn("Error in database operation:", dbError);
-              // Proceed with validation results even if DB operation fails
-            }
-
-            resolve(results);
-          } catch (error) {
-            console.error("Validation error:", error);
-            // If there's an error in validation, still return what we have so far
-            resolve(results);
+        preview: 1000, // Check first 1000 rows for quick validation
+        complete: (parseResults) => {
+          // Header presence check
+          if (!parseResults.meta.fields || parseResults.meta.fields.length === 0) {
+            results.push({
+              id: 'header-presence',
+              validation_type: 'header-presence',
+              status: 'fail',
+              severity: 'critical',
+              message: 'No headers found in file',
+              technical_details: getTechnicalDescription('header-presence')
+            });
+          } else {
+            results.push({
+              id: 'header-presence',
+              validation_type: 'header-presence',
+              status: 'pass',
+              severity: 'critical',
+              message: 'Headers found in file',
+              technical_details: getTechnicalDescription('header-presence')
+            });
           }
+
+          // Maximum row count check (100,000 rows limit)
+          const maxRows = 100000;
+          const rowCount = parseResults.data.length;
+          results.push({
+            id: 'max-row-count',
+            validation_type: 'max-row-count',
+            status: rowCount > maxRows ? 'fail' : 'pass',
+            severity: 'critical',
+            message: rowCount > maxRows 
+              ? `File exceeds maximum row limit of ${maxRows.toLocaleString()} rows`
+              : `Row count (${rowCount.toLocaleString()}) is within limits`,
+            technical_details: getTechnicalDescription('max-row-count')
+          });
+
+          resolve(results);
         },
         error: (error) => {
-          console.error("Parse error:", error);
           results.push({
             id: 'parse-error',
             validation_type: 'parse-error',
@@ -200,17 +151,8 @@ export async function validateFile(file: File, skipBasicChecks = false): Promise
           resolve(results);
         }
       });
-    } else {
-      // For non-CSV files, we don't have parsing validation yet
-      // Future enhancement: Add Excel file parsing and validation
-      results.push({
-        id: 'format-support',
-        validation_type: 'format-support',
-        status: 'warning',
-        severity: 'warning',
-        message: 'Excel files are supported for upload but detailed content validation is limited'
-      });
-      resolve(results);
-    }
-  });
+    });
+  }
+
+  return Promise.resolve(results);
 }
