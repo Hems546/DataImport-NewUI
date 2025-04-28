@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -231,9 +230,6 @@ export default function FinalReview() {
               </Link>
               <h2 className="text-2xl font-bold">Final Review & Approval</h2>
             </div>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
-            </div>
           </div>
 
           <div className="flex justify-between items-center mb-12">
@@ -322,7 +318,6 @@ export default function FinalReview() {
                   </div>
                 </div>
 
-                {/* New Final Review Validations Component */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <FinalReviewValidations isLoading={false} />
                 </div>
@@ -420,7 +415,6 @@ export default function FinalReview() {
                   </Alert>
                 )}
 
-                {/* Final approval button */}
                 <div className="border-t pt-4 mt-6">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">Final Approval</span>

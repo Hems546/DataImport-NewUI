@@ -104,9 +104,6 @@ export default function ColumnMapping() {
               </Link>
               <h2 className="text-2xl font-bold">Column Mapping</h2>
             </div>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
-            </div>
           </div>
 
           {/* Progress Steps */}

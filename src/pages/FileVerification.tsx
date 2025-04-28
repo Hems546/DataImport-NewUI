@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -40,7 +39,6 @@ export default function FileVerification() {
         const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
         const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
         
-        // Skip basic checks that were already done in the upload stage
         const validationResults = await validateFile(file, false);
         
         const results: ValidationResult[] = validationResults.map(validation => ({
@@ -132,9 +130,6 @@ export default function FileVerification() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">File Verification</h2>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
-            </div>
           </div>
 
           <div className="flex justify-between items-center mb-12">

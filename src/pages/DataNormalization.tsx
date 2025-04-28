@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +27,6 @@ export default function DataNormalization() {
     const analyzeNormalization = async () => {
       try {
         setIsAnalyzing(true);
-        // Simulated normalization checks - in production these would come from your backend
         const results: ValidationResult[] = [
           {
             id: 'phone-standardization',
@@ -134,9 +132,6 @@ export default function DataNormalization() {
                 </Button>
               </Link>
               <h2 className="text-2xl font-bold">Data Normalization</h2>
-            </div>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
             </div>
           </div>
 
