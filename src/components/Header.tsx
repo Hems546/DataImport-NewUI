@@ -27,9 +27,6 @@ const Header = ({ currentPage }: HeaderProps) => {
             {currentPage === "import-wizard" && (
               <>
                 <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
-                  Import Wizard
-                </Button>
-                <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
                   Audit History
                   <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
                 </Button>
