@@ -422,342 +422,297 @@ export function validateColumnMappings(
   return results;
 }
 
-export function validateDataQuality(data: any[]): DataQualityValidationResult[] {
-  const results: DataQualityValidationResult[] = [];
+export function validateDataQuality(data: any[]) {
+  const validations = [];
   
-  // Required Fields Check
-  const requiredFields = ['email', 'name']; // Example required fields, in a real app would be configurable
-  const missingRequiredFields = data.some(row => 
-    requiredFields.some(field => !row[field] || row[field].trim() === '')
-  );
+  // Email Format Validation
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const invalidEmails = data.filter(item => item.email && !emailRegex.test(item.email));
   
-  results.push({
-    id: 'required-fields',
-    name: 'Required Fields',
-    status: missingRequiredFields ? 'fail' : 'pass',
-    severity: missingRequiredFields ? 'high' : 'low',
-    description: missingRequiredFields ? 
-      'Some records are missing required fields' : 
-      'All required fields are populated',
-    technical_details: [
-      "Purpose: Ensures that all required fields have values",
-      "Implementation: Checks each record for empty or null required fields",
-      missingRequiredFields ? 
-        "Issue detected: Some records have missing required fields that need to be filled" : 
-        "All records have the required fields populated"
-    ]
-  });
-  
-  // Email Format Check
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const invalidEmails = data.filter(row => 
-    row.email && typeof row.email === 'string' && !emailRegex.test(row.email)
-  );
-  
-  results.push({
+  const emailValidation = {
     id: 'email-format',
     name: 'Email Format',
     status: invalidEmails.length > 0 ? 'warning' : 'pass',
-    severity: 'medium',
-    description: invalidEmails.length > 0 ?
-      `${invalidEmails.length} records have invalid email formats` :
-      'All email addresses are properly formatted',
-    technical_details: [
-      "Purpose: Validates email address formatting",
-      "Implementation: Regular expression check for standard email pattern",
-      invalidEmails.length > 0 ? 
-        `Found ${invalidEmails.length} records with improperly formatted emails` :
-        "All email addresses follow valid format"
-    ]
-  });
-  
-  // Date Format Check
-  const dateFields = ['birthdate', 'registration_date', 'last_contact_date']; // Example date fields
-  const invalidDates = data.filter(row => 
-    dateFields.some(field => {
-      if (!row[field]) return false;
-      const date = new Date(row[field]);
-      return isNaN(date.getTime());
-    })
-  );
-  
-  results.push({
-    id: 'date-format',
-    name: 'Date Format',
-    status: invalidDates.length > 0 ? 'warning' : 'pass',
-    severity: 'medium',
-    description: invalidDates.length > 0 ?
-      `${invalidDates.length} records have invalid date formats` :
-      'All date fields are properly formatted',
-    technical_details: [
-      "Purpose: Ensures dates are in valid formats",
-      "Implementation: Date parsing validation for date fields",
-      invalidDates.length > 0 ?
-        `Found ${invalidDates.length} records with improperly formatted dates` :
-        "All dates follow valid format"
-    ]
-  });
-  
-  // Numeric Fields Check
-  const numericFields = ['age', 'income', 'id_number']; // Example numeric fields
-  const invalidNumeric = data.filter(row => 
-    numericFields.some(field => {
-      if (!row[field]) return false;
-      return isNaN(Number(row[field]));
-    })
-  );
-  
-  results.push({
-    id: 'numeric-values',
-    name: 'Numeric Fields',
-    status: invalidNumeric.length > 0 ? 'fail' : 'pass',
-    severity: 'high',
-    description: invalidNumeric.length > 0 ?
-      `${invalidNumeric.length} records have non-numeric values in numeric fields` :
-      'All numeric fields contain valid numbers',
-    technical_details: [
-      "Purpose: Verifies that numeric fields contain only numbers",
-      "Implementation: Type checking and numeric validation",
-      invalidNumeric.length > 0 ?
-        `Found ${invalidNumeric.length} records with non-numeric values in numeric fields` :
-        "All numeric fields contain valid numeric values"
-    ]
-  });
-  
-  // URL Format Check
-  const urlRegex = /^(https?:\/\/)([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
-  const urlFields = ['website', 'profile_url']; // Example URL fields
-  const invalidUrls = data.filter(row => 
-    urlFields.some(field => {
-      if (!row[field]) return false;
-      return !urlRegex.test(row[field]);
-    })
-  );
-  
-  results.push({
-    id: 'url-format',
-    name: 'URL Format',
-    status: invalidUrls.length > 0 ? 'warning' : 'pass',
-    severity: 'low',
-    description: invalidUrls.length > 0 ?
-      `${invalidUrls.length} records have invalid URL formats` :
-      'All URLs are properly formatted',
-    technical_details: [
-      "Purpose: Validates web URLs format",
-      "Implementation: Regular expression check for standard URL pattern",
-      invalidUrls.length > 0 ?
-        `Found ${invalidUrls.length} records with improperly formatted URLs` :
-        "All URLs follow valid format"
-    ]
-  });
-  
-  // Value Range Check
-  const rangeChecks = [
-    { field: 'age', min: 0, max: 120 },
-    { field: 'score', min: 0, max: 100 }
-  ];
-  
-  const outOfRangeValues = data.filter(row => 
-    rangeChecks.some(check => {
-      if (!row[check.field]) return false;
-      const value = Number(row[check.field]);
-      return value < check.min || value > check.max;
-    })
-  );
-  
-  results.push({
-    id: 'value-range',
-    name: 'Value Range Check',
-    status: outOfRangeValues.length > 0 ? 'warning' : 'pass',
-    severity: 'medium',
-    description: outOfRangeValues.length > 0 ?
-      `${outOfRangeValues.length} records have values outside of accepted ranges` :
-      'All values are within acceptable ranges',
-    technical_details: [
-      "Purpose: Ensures numeric values fall within expected ranges",
-      "Implementation: Range boundary checks for numeric fields",
-      outOfRangeValues.length > 0 ?
-        `Found ${outOfRangeValues.length} records with values outside acceptable ranges` :
-        "All values fall within acceptable ranges"
-    ]
-  });
-  
-  // Reference Data Check
-  const stateValues = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
-                        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
-                        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
-                        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
-                        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
-  
-  const invalidStates = data.filter(row => 
-    row.state && !stateValues.includes(row.state.toUpperCase())
-  );
-  
-  results.push({
-    id: 'reference-data',
-    name: 'Reference Data Check',
-    status: invalidStates.length > 0 ? 'warning' : 'pass',
-    severity: 'high',
-    description: invalidStates.length > 0 ?
-      `${invalidStates.length} records have invalid state codes` :
-      'All reference data matches expected values',
-    technical_details: [
-      "Purpose: Validates values against controlled vocabulary lists",
-      "Implementation: Lookup against reference lists (e.g., US state codes)",
-      invalidStates.length > 0 ?
-        `Found ${invalidStates.length} records with invalid state codes` :
-        "All reference data matches expected values"
-    ]
-  });
-  
-  // Regex Pattern Validation
-  const zipCodeRegex = /^\d{5}(-\d{4})?$/;
-  const invalidZipCodes = data.filter(row => 
-    row.zip_code && !zipCodeRegex.test(row.zip_code)
-  );
-  
-  results.push({
-    id: 'regex-pattern',
-    name: 'Regex Pattern Validation',
-    status: invalidZipCodes.length > 0 ? 'warning' : 'pass',
-    severity: 'medium',
-    description: invalidZipCodes.length > 0 ?
-      `${invalidZipCodes.length} records have invalid ZIP code formats` :
-      'All pattern-based fields match their expected formats',
-    technical_details: [
-      "Purpose: Ensures fields match specified format patterns",
-      "Implementation: Regular expression validation for formatted fields",
-      invalidZipCodes.length > 0 ?
-        `Found ${invalidZipCodes.length} records with improperly formatted ZIP codes` :
-        "All pattern-based fields match their expected formats"
-    ]
-  });
-  
-  // Whitespace Detection
-  const excessWhitespaceFields = ['name', 'company', 'address', 'city'];
-  const recordsWithExcessWhitespace = data.filter(row => 
-    excessWhitespaceFields.some(field => {
-      if (!row[field] || typeof row[field] !== 'string') return false;
-      return row[field] !== row[field].trim();
-    })
-  );
-  
-  results.push({
-    id: 'whitespace',
-    name: 'Whitespace Detection',
-    status: recordsWithExcessWhitespace.length > 0 ? 'warning' : 'pass',
-    severity: 'low',
-    description: recordsWithExcessWhitespace.length > 0 ?
-      `${recordsWithExcessWhitespace.length} records have fields with leading or trailing whitespace` :
-      'No excess whitespace detected in text fields',
-    technical_details: [
-      "Purpose: Identifies fields that need whitespace trimming",
-      "Implementation: String comparison before and after trim operation",
-      recordsWithExcessWhitespace.length > 0 ?
-        `Found ${recordsWithExcessWhitespace.length} records with excess whitespace` :
-        "No fields with leading or trailing whitespace detected"
-    ]
-  });
-  
-  // Cross-field validation
-  const crossFieldIssues = data.filter(row => {
-    // Example: end date should be after start date
-    if (row.start_date && row.end_date) {
-      const start = new Date(row.start_date);
-      const end = new Date(row.end_date);
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        return end < start;
-      }
-    }
-    return false;
-  });
-  
-  results.push({
-    id: 'cross-field',
-    name: 'Cross-Field Validation',
-    status: crossFieldIssues.length > 0 ? 'fail' : 'pass',
-    severity: 'high',
-    description: crossFieldIssues.length > 0 ?
-      `${crossFieldIssues.length} records have inconsistencies between related fields` :
-      'All cross-field validations pass',
-    technical_details: [
-      "Purpose: Ensures logical relationships between fields are maintained",
-      "Implementation: Comparative logic between related fields",
-      crossFieldIssues.length > 0 ?
-        `Found ${crossFieldIssues.length} records with end dates before start dates` :
-        "All related fields have consistent relationships"
-    ]
-  });
-  
-  // Duplicate Row Detection
-  const duplicateKeys = new Map();
-  const keyFields = ['email', 'phone']; // Fields that should be unique
-  
-  data.forEach((row, index) => {
-    const key = keyFields
-      .map(field => row[field] ? row[field].toString().toLowerCase() : '')
-      .filter(val => val)
-      .join('|');
-    
-    if (key && key.length > 0) {
-      if (duplicateKeys.has(key)) {
-        duplicateKeys.set(key, [...duplicateKeys.get(key), index]);
-      } else {
-        duplicateKeys.set(key, [index]);
-      }
-    }
-  });
-  
-  const duplicateRecords = Array.from(duplicateKeys.values())
-    .filter(indexes => indexes.length > 1);
-  
-  results.push({
-    id: 'duplicate-row',
-    name: 'Duplicate Row Detection',
-    status: duplicateRecords.length > 0 ? 'warning' : 'pass',
-    severity: 'medium',
-    description: duplicateRecords.length > 0 ?
-      `Found ${duplicateRecords.length} sets of duplicate or similar records` :
-      'No duplicate records detected',
-    technical_details: [
-      "Purpose: Identifies identical or nearly identical records within the file",
-      "Implementation: Key field comparison across records",
-      duplicateRecords.length > 0 ?
-        `Found ${duplicateRecords.length} groups of records that appear to be duplicates` :
-        "No duplicate records detected based on key fields"
-    ]
-  });
-  
-  // Character Limit Check
-  const characterLimits = {
-    'name': 100,
-    'address': 200,
-    'notes': 500
+    severity: 'warning',
+    description: 'Checking if email addresses are in valid format',
+    technical_details: invalidEmails.length > 0 
+      ? [`${invalidEmails.length} rows with invalid email format detected.`, 
+         'Email addresses should follow the standard format: username@domain.com']
+      : 'All email formats are valid',
+    affectedRows: invalidEmails.map((item, idx) => ({
+      rowIndex: data.findIndex(d => d.email === item.email),
+      value: item.email,
+      rowData: item
+    }))
   };
   
-  const tooLongFields = data.filter(row => 
-    Object.entries(characterLimits).some(([field, limit]) => {
-      if (!row[field] || typeof row[field] !== 'string') return false;
-      return row[field].length > limit;
-    })
+  validations.push(emailValidation);
+  
+  // Age Range Validation
+  const outOfRangeAges = data.filter(item => 
+    item.age !== undefined && 
+    (isNaN(Number(item.age)) || Number(item.age) < 0 || Number(item.age) > 120)
   );
   
-  results.push({
-    id: 'character-limit',
-    name: 'Character Limit Check',
-    status: tooLongFields.length > 0 ? 'fail' : 'pass',
-    severity: 'high',
-    description: tooLongFields.length > 0 ?
-      `${tooLongFields.length} records exceed character limits for certain fields` :
-      'All fields are within character limits',
-    technical_details: [
-      "Purpose: Ensures fields don't exceed database column length limits",
-      "Implementation: String length validation against maximum length values",
-      tooLongFields.length > 0 ?
-        `Found ${tooLongFields.length} records with fields exceeding character limits` :
-        "All fields are within defined character limits"
-    ]
+  validations.push({
+    id: 'age-range',
+    name: 'Age Range',
+    status: outOfRangeAges.length > 0 ? 'warning' : 'pass',
+    severity: 'warning',
+    description: 'Checking if age values are within reasonable range (0-120)',
+    technical_details: outOfRangeAges.length > 0 
+      ? [`${outOfRangeAges.length} rows with out-of-range age values detected.`,
+         'Age values should be between 0 and 120.']
+      : 'All ages are within valid range',
+    affectedRows: outOfRangeAges.map((item) => ({
+      rowIndex: data.findIndex(d => d.age === item.age && d.name === item.name),
+      value: item.age.toString(),
+      rowData: item
+    }))
   });
   
-  return results;
+  // State Code Validation
+  const validStateCodes = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
+                         'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
+                         'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
+                         'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
+                         'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+                         'DC', 'PR', 'VI', 'AS', 'GU', 'MP'];
+  
+  const invalidStates = data.filter(item => 
+    item.state && !validStateCodes.includes(item.state.toUpperCase())
+  );
+  
+  validations.push({
+    id: 'state-code',
+    name: 'State Code',
+    status: invalidStates.length > 0 ? 'warning' : 'pass',
+    severity: 'warning',
+    description: 'Checking if state codes are valid US state codes',
+    technical_details: invalidStates.length > 0 
+      ? [`${invalidStates.length} rows with invalid state codes detected.`,
+         'State codes should be valid 2-letter US state or territory codes.']
+      : 'All state codes are valid',
+    affectedRows: invalidStates.map((item) => ({
+      rowIndex: data.findIndex(d => d.state === item.state && d.name === item.name),
+      value: item.state,
+      rowData: item
+    }))
+  });
+  
+  // Date Consistency Validation
+  const inconsistentDates = data.filter(item => {
+    if (!item.start_date || !item.end_date) return false;
+    const start = new Date(item.start_date);
+    const end = new Date(item.end_date);
+    return start > end;
+  });
+  
+  validations.push({
+    id: 'date-consistency',
+    name: 'Date Consistency',
+    status: inconsistentDates.length > 0 ? 'fail' : 'pass',
+    severity: inconsistentDates.length > 0 ? 'high' : undefined,
+    description: 'Checking if start dates come before end dates',
+    technical_details: inconsistentDates.length > 0 
+      ? [`${inconsistentDates.length} rows where end date is before start date.`,
+         'End dates must come after start dates.']
+      : 'All dates are in the correct sequence',
+    affectedRows: inconsistentDates.map((item) => ({
+      rowIndex: data.findIndex(d => d.start_date === item.start_date && d.end_date === item.end_date && d.name === item.name),
+      value: `${item.start_date} - ${item.end_date}`,
+      rowData: item
+    }))
+  });
+  
+  // Return all validations
+  return validations;
+}
+
+// Function to update data with user corrections
+export function updateDataWithCorrections(validationId: string, correctedRows: any[]) {
+  // In a real implementation, this would update your actual dataset
+  
+  // For demo purposes, we'll use the mock data and update it
+  const mockData = [
+    { 
+      name: "John Smith", 
+      email: "john@example.com", 
+      age: 32, 
+      state: "CA", 
+      zip_code: "94103",
+      company: "  Acme Corp  ",
+      start_date: "2022-01-01",
+      end_date: "2023-01-01"
+    },
+    { 
+      name: "Jane Doe", 
+      email: "not-an-email", 
+      age: 28, 
+      state: "TX", 
+      zip_code: "75001",
+      company: "XYZ Inc",
+      start_date: "2022-05-01",
+      end_date: "2022-03-01"
+    },
+    { 
+      name: "Bob Johnson", 
+      email: "bob@example.com", 
+      age: 150, 
+      state: "ZZ", 
+      zip_code: "12345-678", 
+      company: "123 Company",
+      start_date: "2022-01-15",
+      end_date: "2022-06-30"
+    },
+    { 
+      name: "Alice Williams", 
+      email: "alice-at-example.com", 
+      age: 42, 
+      state: "NY", 
+      zip_code: "10001",
+      company: "Tech Solutions",
+      start_date: "2022-02-01",
+      end_date: "2022-12-31"
+    }
+  ];
+
+  // Update the data based on the validation type
+  if (validationId === 'email-format') {
+    correctedRows.forEach(row => {
+      const rowIndex = row.rowIndex;
+      if (rowIndex >= 0 && rowIndex < mockData.length) {
+        mockData[rowIndex].email = row.correctedValue;
+      }
+    });
+  } else if (validationId === 'age-range') {
+    correctedRows.forEach(row => {
+      const rowIndex = row.rowIndex;
+      if (rowIndex >= 0 && rowIndex < mockData.length) {
+        mockData[rowIndex].age = parseInt(row.correctedValue);
+      }
+    });
+  } else if (validationId === 'state-code') {
+    correctedRows.forEach(row => {
+      const rowIndex = row.rowIndex;
+      if (rowIndex >= 0 && rowIndex < mockData.length) {
+        mockData[rowIndex].state = row.correctedValue;
+      }
+    });
+  } else if (validationId === 'date-consistency') {
+    correctedRows.forEach(row => {
+      const rowIndex = row.rowIndex;
+      if (rowIndex >= 0 && rowIndex < mockData.length && row.correctedValue) {
+        const dates = row.correctedValue.split(' - ');
+        if (dates.length === 2) {
+          mockData[rowIndex].start_date = dates[0];
+          mockData[rowIndex].end_date = dates[1];
+        }
+      }
+    });
+  }
+
+  return mockData;
+}
+
+// Function to validate file (imported by ImportUpload.tsx)
+export function validateFile(file: any) {
+  // Simple mock validation for file uploads
+  return [
+    {
+      id: "file-size",
+      name: "File Size Check",
+      status: "pass",
+      description: "Checking if file size is within limits",
+      technical_details: "File is under the maximum size limit of 10MB"
+    },
+    {
+      id: "file-format",
+      name: "File Format Check",
+      status: "pass",
+      description: "Checking if file format is supported",
+      technical_details: "File format (CSV/XLSX) is supported"
+    },
+    {
+      id: "file-encoding",
+      name: "File Encoding Check",
+      status: "pass",
+      description: "Checking if file encoding is correct",
+      technical_details: "File encoding is UTF-8"
+    }
+  ];
+}
+
+// Function to validate column mappings (imported by ColumnMapping.tsx)
+export function validateColumnMappings(mappings: any, requiredFields: string[]) {
+  const validations = [];
+  
+  // Check if required fields are mapped
+  const missingRequiredFields = requiredFields.filter(field => 
+    !Object.values(mappings).includes(field)
+  );
+  
+  validations.push({
+    id: "required-fields",
+    name: "Required Fields",
+    status: missingRequiredFields.length === 0 ? "pass" : "fail",
+    severity: missingRequiredFields.length === 0 ? undefined : "critical",
+    description: "Checking if all required fields are mapped",
+    technical_details: missingRequiredFields.length === 0 
+      ? "All required fields are mapped" 
+      : `Missing required fields: ${missingRequiredFields.join(", ")}`
+  });
+  
+  // Check for duplicate mappings
+  const mappedFields = Object.values(mappings).filter(Boolean);
+  const uniqueMappedFields = new Set(mappedFields);
+  const hasDuplicates = mappedFields.length !== uniqueMappedFields.size;
+  
+  validations.push({
+    id: "duplicate-mappings",
+    name: "Duplicate Mappings",
+    status: !hasDuplicates ? "pass" : "fail",
+    severity: !hasDuplicates ? undefined : "critical",
+    description: "Checking for duplicate field mappings",
+    technical_details: !hasDuplicates 
+      ? "No duplicate mappings found" 
+      : "Multiple source columns are mapped to the same destination field"
+  });
+  
+  // Check for unmapped columns
+  const unmappedColumns = Object.entries(mappings)
+    .filter(([_, value]) => !value)
+    .map(([key, _]) => key);
+  
+  validations.push({
+    id: "unmapped-columns",
+    name: "Unmapped Columns",
+    status: unmappedColumns.length === 0 ? "pass" : "warning",
+    severity: "warning",
+    description: "Checking for unmapped source columns",
+    technical_details: unmappedColumns.length === 0
+      ? "All columns are mapped"
+      : `${unmappedColumns.length} unmapped columns: ${unmappedColumns.join(", ")}`
+  });
+  
+  // Check mapping coverage
+  const mappingCoverage = (mappedFields.length / Object.keys(mappings).length) * 100;
+  let coverageStatus = "pass";
+  let coverageSeverity;
+  
+  if (mappingCoverage < 50) {
+    coverageStatus = "warning";
+    coverageSeverity = "warning";
+  }
+  
+  validations.push({
+    id: "mapping-coverage",
+    name: "Mapping Coverage",
+    status: coverageStatus,
+    severity: coverageSeverity,
+    description: "Checking the percentage of mapped columns",
+    technical_details: `${mappingCoverage.toFixed(1)}% of columns are mapped (${mappedFields.length}/${Object.keys(mappings).length})`
+  });
+  
+  return validations;
 }
