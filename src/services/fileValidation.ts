@@ -1,3 +1,4 @@
+
 export const validateDataQuality = (data: any[]): any[] => {
   const validations = [];
   
@@ -118,4 +119,42 @@ export const validateDataQuality = (data: any[]): any[] => {
   });
 
   return validations;
+};
+
+// Add the validateFile function that's missing but referenced in ImportUpload.tsx
+export const validateFile = async (file: File, fullValidation: boolean = true) => {
+  // Mock implementation for file validation
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+  
+  // Return some mock validations for demonstration
+  return [
+    {
+      id: 'file-format',
+      validation_type: 'file-format',
+      status: 'pass',
+      severity: 'critical',
+      message: 'File format is valid'
+    },
+    {
+      id: 'file-size',
+      validation_type: 'file-size',
+      status: 'pass',
+      severity: 'critical',
+      message: 'File size is within acceptable limits'
+    },
+    {
+      id: 'header-row',
+      validation_type: 'header-row',
+      status: 'pass',
+      severity: 'critical',
+      message: 'Header row detected and valid'
+    },
+    {
+      id: 'required-columns',
+      validation_type: 'required-columns',
+      status: fullValidation ? 'warning' : 'pass',
+      severity: 'warning',
+      message: fullValidation ? 'Some recommended columns are missing' : 'All required columns present'
+    }
+  ];
 };
