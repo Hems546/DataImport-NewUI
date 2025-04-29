@@ -30,10 +30,9 @@ export interface ValidationResult {
 interface ValidationStatusProps {
   results: ValidationResult[];
   title: string;
-  actionButtons?: (result: ValidationResult) => React.ReactNode;
 }
 
-const ValidationStatus = ({ results, title, actionButtons }: ValidationStatusProps) => {
+const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
 
   const getStatusIcon = (status: ValidationResult['status']) => {
@@ -177,9 +176,6 @@ const ValidationStatus = ({ results, title, actionButtons }: ValidationStatusPro
                         {showDuplicateHeaders && renderHeaderUniquenessExample()}
                       </div>
                     )}
-                    
-                    {/* Add custom action buttons */}
-                    {actionButtons && actionButtons(result)}
                   </div>
                 </AccordionContent>
               )}
