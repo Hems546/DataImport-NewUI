@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +12,8 @@ import {
   ClipboardCheck,
   ArrowUpCircle,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Wrench
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQualityIcon from "@/components/icons/DataQuality";
@@ -19,6 +21,7 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
+import ErrorCorrectionDialog, { ErrorRow } from '@/components/ErrorCorrectionDialog';
 import { validateDataQuality } from "@/services/fileValidation";
 import {
   Card,
@@ -33,6 +36,10 @@ export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
+  const [isErrorCorrectionOpen, setIsErrorCorrectionOpen] = useState(false);
+  const [currentValidation, setCurrentValidation] = useState<ValidationStatusResult | null>(null);
+  const [errorRowsToFix, setErrorRowsToFix] = useState<ErrorRow[]>([]);
+  const [mockData, setMockData] = useState<any[]>([]);
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
@@ -41,7 +48,7 @@ export default function DataQualityPage() {
         
         // In a real application, this would come from your state/context
         // For demonstration, we'll use mock data
-        const mockData = [
+        const initialMockData = [
           { 
             name: "John Smith", 
             email: "john@example.com", 
@@ -74,8 +81,10 @@ export default function DataQualityPage() {
           }
         ];
 
+        setMockData(initialMockData);
+
         // Run data quality validation
-        const results = validateDataQuality(mockData);
+        const results = validateDataQuality(initialMockData);
 
         // Ensure all results have the required properties for ValidationStatusResult
         const formattedResults: ValidationStatusResult[] = results.map(result => ({
@@ -121,6 +130,142 @@ export default function DataQualityPage() {
 
     analyzeDataQuality();
   }, [toast]);
+
+  const handleFixValidation = (validation: ValidationStatusResult) => {
+    setCurrentValidation(validation);
+    
+    // Find rows with issues based on validation type
+    let rowsWithErrors: ErrorRow[] = [];
+    
+    // This is a simplified example - in a real app, you would have proper error detection logic
+    switch(validation.id) {
+      case 'email-format':
+        rowsWithErrors = mockData
+          .map((row, index) => {
+            const email = row.email;
+            if (!email || !email.includes('@') || !email.includes('.')) {
+              return {
+                rowIndex: index,
+                rowData: {...row},
+                errorColumns: ['email']
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as ErrorRow[];
+        break;
+
+      case 'age-range':
+        rowsWithErrors = mockData
+          .map((row, index) => {
+            if (row.age < 0 || row.age > 120) {
+              return {
+                rowIndex: index,
+                rowData: {...row},
+                errorColumns: ['age']
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as ErrorRow[];
+        break;
+
+      case 'state-code':
+        rowsWithErrors = mockData
+          .map((row, index) => {
+            const validStates = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
+                                'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
+                                'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
+                                'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
+                                'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+            if (!validStates.includes(row.state)) {
+              return {
+                rowIndex: index,
+                rowData: {...row},
+                errorColumns: ['state']
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as ErrorRow[];
+        break;
+
+      case 'zip-code-format':
+        rowsWithErrors = mockData
+          .map((row, index) => {
+            const zipPattern = /^\d{5}(-\d{4})?$/;
+            if (!zipPattern.test(row.zip_code)) {
+              return {
+                rowIndex: index,
+                rowData: {...row},
+                errorColumns: ['zip_code']
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as ErrorRow[];
+        break;
+
+      case 'date-consistency':
+        rowsWithErrors = mockData
+          .map((row, index) => {
+            const startDate = new Date(row.start_date);
+            const endDate = new Date(row.end_date);
+            
+            if (startDate > endDate) {
+              return {
+                rowIndex: index,
+                rowData: {...row},
+                errorColumns: ['start_date', 'end_date']
+              };
+            }
+            return null;
+          })
+          .filter(Boolean) as ErrorRow[];
+        break;
+
+      default:
+        // For any other validation, include a sample row for demonstration
+        rowsWithErrors = [{
+          rowIndex: 0,
+          rowData: mockData[0],
+          errorColumns: ['name', 'email']
+        }];
+    }
+
+    setErrorRowsToFix(rowsWithErrors);
+    setIsErrorCorrectionOpen(true);
+  };
+
+  const handleSaveCorrections = (correctedRows: ErrorRow[]) => {
+    // Update mock data with corrections
+    const updatedData = [...mockData];
+    
+    correctedRows.forEach(correctedRow => {
+      updatedData[correctedRow.rowIndex] = {
+        ...updatedData[correctedRow.rowIndex],
+        ...correctedRow.rowData
+      };
+    });
+    
+    setMockData(updatedData);
+    
+    // Update validation results - in a real application, you would re-run validation
+    if (currentValidation) {
+      const updatedResults = validationResults.map(result => {
+        if (result.id === currentValidation.id) {
+          return {
+            ...result,
+            status: 'pass',
+            description: 'Manually corrected by user'
+          };
+        }
+        return result;
+      });
+      
+      setValidationResults(updatedResults);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -225,6 +370,19 @@ export default function DataQualityPage() {
               <ValidationStatus 
                 results={validationResults}
                 title="Data Quality Results"
+                actionButtons={result => 
+                  (result.status === 'warning' || result.status === 'fail') && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1 mt-2"
+                      onClick={() => handleFixValidation(result)}
+                    >
+                      <Wrench className="h-3.5 w-3.5" />
+                      Fix Issues
+                    </Button>
+                  )
+                }
               />
             )}
           </div>
@@ -250,6 +408,16 @@ export default function DataQualityPage() {
           </div>
         </div>
       </div>
+
+      {/* Error correction dialog */}
+      <ErrorCorrectionDialog
+        open={isErrorCorrectionOpen}
+        onClose={() => setIsErrorCorrectionOpen(false)}
+        title={currentValidation?.name || "Fix Data Issues"}
+        description={currentValidation?.description || ""}
+        errorRows={errorRowsToFix}
+        onSaveCorrections={handleSaveCorrections}
+      />
     </div>
   );
 }
