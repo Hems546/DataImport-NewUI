@@ -1,3 +1,11 @@
+export interface FileValidationResult {
+  id?: string;
+  validation_type: string;
+  status: 'pass' | 'warning' | 'fail' | 'pending';
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  technical_details?: string | string[];
+}
 
 export const validateDataQuality = (data: any[]): any[] => {
   const validations = [];
@@ -157,4 +165,87 @@ export const validateFile = async (file: File, fullValidation: boolean = true) =
       message: fullValidation ? 'Some recommended columns are missing' : 'All required columns present'
     }
   ];
+};
+
+// Implement the validateColumnMappings function
+export const validateColumnMappings = (
+  sourceColumns: string[], 
+  mappings: { sourceColumn: string; targetField: string }[], 
+  requiredFields: string[]
+): FileValidationResult[] => {
+  const validationResults: FileValidationResult[] = [];
+  
+  // Check for unmapped required fields
+  const mappedFields = mappings.map(mapping => mapping.targetField);
+  const unmappedRequiredFields = requiredFields.filter(field => !mappedFields.includes(field));
+  
+  validationResults.push({
+    id: 'required-fields',
+    validation_type: 'Required Fields',
+    status: unmappedRequiredFields.length > 0 ? 'fail' : 'pass',
+    severity: 'critical',
+    message: unmappedRequiredFields.length > 0 
+      ? `${unmappedRequiredFields.length} required fields are not mapped` 
+      : 'All required fields are mapped',
+    technical_details: unmappedRequiredFields.length > 0
+      ? [`The following required fields need to be mapped: ${unmappedRequiredFields.join(', ')}`]
+      : ['All required fields have been properly mapped']
+  });
+  
+  // Check for duplicate mappings (multiple source columns mapped to the same target field)
+  const fieldMappingCount: Record<string, number> = {};
+  mappings.forEach(mapping => {
+    if (mapping.targetField && mapping.targetField !== 'ignore') {
+      fieldMappingCount[mapping.targetField] = (fieldMappingCount[mapping.targetField] || 0) + 1;
+    }
+  });
+  
+  const duplicateMappings = Object.entries(fieldMappingCount)
+    .filter(([field, count]) => count > 1)
+    .map(([field]) => field);
+  
+  validationResults.push({
+    id: 'duplicate-mappings',
+    validation_type: 'Duplicate Mappings',
+    status: duplicateMappings.length > 0 ? 'warning' : 'pass',
+    severity: 'warning',
+    message: duplicateMappings.length > 0
+      ? `${duplicateMappings.length} fields have multiple source columns mapped to them`
+      : 'No duplicate mappings detected',
+    technical_details: duplicateMappings.length > 0
+      ? [`The following fields have multiple source columns mapped to them: ${duplicateMappings.join(', ')}`]
+      : ['Each target field has at most one source column mapped to it']
+  });
+  
+  // Check for unmapped source columns
+  const unmappedSourceColumns = mappings
+    .filter(mapping => !mapping.targetField || mapping.targetField === 'ignore')
+    .map(mapping => mapping.sourceColumn);
+  
+  validationResults.push({
+    id: 'unmapped-columns',
+    validation_type: 'Unmapped Columns',
+    status: unmappedSourceColumns.length > 0 ? 'warning' : 'pass',
+    severity: 'warning',
+    message: unmappedSourceColumns.length > 0
+      ? `${unmappedSourceColumns.length} source columns are not mapped`
+      : 'All source columns are mapped',
+    technical_details: unmappedSourceColumns.length > 0
+      ? [`The following source columns are not mapped: ${unmappedSourceColumns.join(', ')}`]
+      : ['All source columns have been mapped to target fields']
+  });
+  
+  // Overall mapping coverage
+  const mappingCoveragePercent = Math.round((mappedFields.filter(f => f && f !== 'ignore').length / sourceColumns.length) * 100);
+  
+  validationResults.push({
+    id: 'mapping-coverage',
+    validation_type: 'Mapping Coverage',
+    status: mappingCoveragePercent < 70 ? 'warning' : 'pass',
+    severity: 'info',
+    message: `${mappingCoveragePercent}% of source columns are mapped`,
+    technical_details: [`${mappedFields.filter(f => f && f !== 'ignore').length} out of ${sourceColumns.length} source columns are mapped to target fields`]
+  });
+  
+  return validationResults;
 };
