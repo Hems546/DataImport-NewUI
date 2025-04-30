@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table, AlertTriangle, Pen } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -16,7 +17,6 @@ import {
   TableCell
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import ErrorCorrectionDialog from './ErrorCorrectionDialog';
 
 export interface ValidationResult {
   id: string;
@@ -25,19 +25,15 @@ export interface ValidationResult {
   description?: string;
   severity?: string; // Changed from 'critical' | 'warning' to string to be more flexible
   technical_details?: string | string[];
-  affectedRows?: { rowIndex: number; value: string; rowData?: Record<string, any> }[];
 }
 
 interface ValidationStatusProps {
   results: ValidationResult[];
   title: string;
-  onFixIssues?: (validationId: string, correctedRows: any[]) => void;
 }
 
-const ValidationStatus = ({ results, title, onFixIssues }: ValidationStatusProps) => {
+const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
-  const [errorCorrectionOpen, setErrorCorrectionOpen] = useState(false);
-  const [currentValidation, setCurrentValidation] = useState<ValidationResult | null>(null);
 
   const getStatusIcon = (status: ValidationResult['status']) => {
     switch (status) {
@@ -120,18 +116,6 @@ const ValidationStatus = ({ results, title, onFixIssues }: ValidationStatusProps
     );
   };
 
-  const handleOpenErrorCorrection = (validation: ValidationResult) => {
-    setCurrentValidation(validation);
-    setErrorCorrectionOpen(true);
-  };
-
-  const handleFixIssues = (correctedRows: any[]) => {
-    if (currentValidation && onFixIssues) {
-      onFixIssues(currentValidation.id, correctedRows);
-    }
-    setErrorCorrectionOpen(false);
-  };
-
   const failedChecks = results.filter(result => result.status === 'fail' && result.severity === 'critical');
   const warningChecks = results.filter(result => result.status === 'warning' || (result.status === 'fail' && result.severity === 'warning'));
   const passedChecks = results.filter(result => result.status === 'pass');
@@ -192,24 +176,6 @@ const ValidationStatus = ({ results, title, onFixIssues }: ValidationStatusProps
                         {showDuplicateHeaders && renderHeaderUniquenessExample()}
                       </div>
                     )}
-                    
-                    {/* Add "Fix It" button for email format validation */}
-                    {(result.id === 'email-format' || result.name.includes('Email')) && 
-                     result.affectedRows && 
-                     result.affectedRows.length > 0 && 
-                     onFixIssues && (
-                      <div className="mt-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenErrorCorrection(result)}
-                          className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
-                        >
-                          <Pen className="h-4 w-4" />
-                          Fix Issues
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </AccordionContent>
               )}
@@ -240,16 +206,6 @@ const ValidationStatus = ({ results, title, onFixIssues }: ValidationStatusProps
           <p className="text-gray-500 text-sm">No validation checks available.</p>
         )}
       </div>
-
-      {/* Error Correction Dialog */}
-      {currentValidation && (
-        <ErrorCorrectionDialog
-          open={errorCorrectionOpen}
-          onOpenChange={setErrorCorrectionOpen}
-          validation={currentValidation}
-          onSave={handleFixIssues}
-        />
-      )}
     </div>
   );
 };

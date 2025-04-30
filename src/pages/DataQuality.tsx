@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +18,8 @@ import DataQualityIcon from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validateDataQuality, updateDataWithCorrections } from "@/services/fileValidation";
+import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
+import { validateDataQuality } from "@/services/fileValidation";
 import {
   Card,
   CardContent,
@@ -33,7 +32,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
@@ -72,16 +71,6 @@ export default function DataQualityPage() {
             company: "123 Company",
             start_date: "2022-01-15",
             end_date: "2022-06-30"
-          },
-          { 
-            name: "Alice Williams", 
-            email: "alice-at-example.com", // incorrect email format
-            age: 42, 
-            state: "NY", 
-            zip_code: "10001",
-            company: "Tech Solutions",
-            start_date: "2022-02-01",
-            end_date: "2022-12-31"
           }
         ];
 
@@ -89,10 +78,9 @@ export default function DataQualityPage() {
         const results = validateDataQuality(mockData);
 
         // Ensure all results have the required properties for ValidationStatusResult
-        const formattedResults: ValidationResult[] = results.map(result => ({
+        const formattedResults: ValidationStatusResult[] = results.map(result => ({
           ...result,
-          name: result.name || result.id || '',
-          status: result.status as 'pass' | 'fail' | 'warning' | 'pending'
+          name: result.name || result.id || ''
         }));
 
         setValidationResults(formattedResults);
@@ -133,38 +121,6 @@ export default function DataQualityPage() {
 
     analyzeDataQuality();
   }, [toast]);
-
-  const handleFixIssues = (validationId: string, correctedRows: any[]) => {
-    try {
-      // In a real implementation, this would update the data in your state/context/API
-      const updatedData = updateDataWithCorrections(validationId, correctedRows);
-      
-      // Re-run validation with the corrected data
-      const results = validateDataQuality(updatedData);
-      
-      // Format results for the UI
-      const formattedResults = results.map(result => ({
-        ...result,
-        name: result.name || result.id || '',
-        status: result.status as 'pass' | 'fail' | 'warning' | 'pending'
-      }));
-      
-      setValidationResults(formattedResults);
-      
-      toast({
-        title: "Issues fixed successfully",
-        description: `${correctedRows.length} rows have been updated.`,
-        variant: "default"
-      });
-    } catch (error) {
-      console.error('Error fixing issues:', error);
-      toast({
-        title: "Failed to fix issues",
-        description: "An error occurred while updating the data.",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -247,7 +203,6 @@ export default function DataQualityPage() {
                     <li>Fields are being checked for proper formatting, valid values, and logical consistency</li>
                     <li>Critical issues must be resolved before proceeding</li>
                     <li>Warnings can be addressed in the normalization step</li>
-                    <li>Click the "Fix Issues" button on email format errors to correct them directly</li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -270,7 +225,6 @@ export default function DataQualityPage() {
               <ValidationStatus 
                 results={validationResults}
                 title="Data Quality Results"
-                onFixIssues={handleFixIssues}
               />
             )}
           </div>
