@@ -13,7 +13,7 @@ import StepConnector from "@/components/StepConnector";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
-import FileBox from "@/components/icons/FileBox";  // This import is causing the issue
+import FileBox from "@/components/icons/FileBox";
 import ClipboardCheck from "@/components/icons/ClipboardCheck";
 import ArrowUpCircle from "@/components/icons/ArrowUpCircle";
 import ValidationStatus from "@/components/ValidationStatus";
@@ -156,7 +156,7 @@ export default function ColumnMapping() {
         </div>
 
         <div className="flex justify-between mt-8">
-          <Link to="/import-wizard/file-verification">
+          <Link to="/import-wizard/verification">
             <Button variant="outline">
               <ArrowLeft className="mr-2" />
               Previous
