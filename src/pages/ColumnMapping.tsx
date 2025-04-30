@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDropzone } from 'react-dropzone';
-import { usePapaParse } from 'react-papaparse';
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
@@ -17,7 +16,6 @@ import TransformData from "@/components/icons/TransformData";
 import FileBox from "@/components/icons/FileBox";
 import ClipboardCheck from "@/components/icons/ClipboardCheck";
 import ArrowUpCircle from "@/components/icons/ArrowUpCircle";
-import FileUp from "@/components/icons/FileUp";
 import ValidationStatus from "@/components/ValidationStatus";
 
 import { ValidationCategory } from "@/constants/validations";
@@ -113,17 +111,17 @@ export default function ColumnMapping() {
 
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <ProgressStep step={2} label="Column Mapping" icon={MapColumns} />
+            <ProgressStep step={2} label="Column Mapping" icon={<MapColumns />} />
             <StepConnector />
-            <ProgressStep step={3} label="Data Quality" icon={DataQuality} />
+            <ProgressStep step={3} label="Data Quality" icon={<DataQuality />} />
             <StepConnector />
-            <ProgressStep step={4} label="Transform Data" icon={TransformData} />
+            <ProgressStep step={4} label="Transform Data" icon={<TransformData />} />
             <StepConnector />
-            <ProgressStep step={5} label="Deduplication" icon={FileBox} />
+            <ProgressStep step={5} label="Deduplication" icon={<FileBox />} />
             <StepConnector />
-            <ProgressStep step={6} label="Final Review" icon={ClipboardCheck} />
+            <ProgressStep step={6} label="Final Review" icon={<ClipboardCheck />} />
             <StepConnector />
-            <ProgressStep step={7} label="Import / Push" icon={ArrowUpCircle} />
+            <ProgressStep step={7} label="Import / Push" icon={<ArrowUpCircle />} />
           </div>
         </div>
 

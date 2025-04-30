@@ -33,20 +33,50 @@ export async function runValidationsForStage(
 
   // Execute appropriate validation functions based on the stage
   switch(stage) {
-    case ValidationCategory.FILE_UPLOAD:
+    case ValidationCategory.FILE_UPLOAD: {
       // File upload validations use the validateFile function
-      return await validateFile(data, false);
+      const results = await validateFile(data, false);
+      // Convert to expected return type
+      return results.map(r => ({
+        id: r.id,
+        name: r.validation_type,
+        status: r.status,
+        severity: r.severity,
+        description: r.message,
+        technical_details: r.technical_details
+      }));
+    }
       
-    case ValidationCategory.VERIFY_FILE:
+    case ValidationCategory.VERIFY_FILE: {
       // File verification uses the same validateFile function but focuses on structure
-      return await validateFile(data, true);
+      const results = await validateFile(data, true);
+      // Convert to expected return type
+      return results.map(r => ({
+        id: r.id,
+        name: r.validation_type,
+        status: r.status,
+        severity: r.severity,
+        description: r.message,
+        technical_details: r.technical_details
+      }));
+    }
       
-    case ValidationCategory.COLUMN_MAPPING:
+    case ValidationCategory.COLUMN_MAPPING: {
       // For column mapping, we assume data contains source columns and mapping config
       if (!data.sourceColumns || !data.mappings) {
         throw new Error('Invalid data for column mapping validation');
       }
-      return validateColumnMappings(data.sourceColumns, data.mappings, data.requiredFields || []);
+      const results = validateColumnMappings(data.sourceColumns, data.mappings, data.requiredFields || []);
+      // Convert to expected return type
+      return results.map(r => ({
+        id: r.id,
+        name: r.validation_type,
+        status: r.status,
+        severity: r.severity,
+        description: r.message,
+        technical_details: r.technical_details
+      }));
+    }
       
     case ValidationCategory.DATA_QUALITY:
       // For data quality, we expect actual data rows

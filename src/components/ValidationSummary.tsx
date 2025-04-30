@@ -1,86 +1,74 @@
 
-import React from 'react';
-import { Check, X, AlertTriangle } from 'lucide-react';
-import { ValidationCategory } from '@/constants/validations';
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 
+interface ValidationResult {
+  id: string;
+  name: string;
+  status: "pending" | "pass" | "fail" | "warning";
+  severity?: string;
+  description?: string;
+  technical_details?: string | string[];
+}
+
 interface ValidationSummaryProps {
-  category: ValidationCategory;
-  results: {
-    id: string;
-    name: string;
-    status: 'pending' | 'pass' | 'fail' | 'warning';
-    severity?: string;
-  }[];
+  category: string;
+  results: ValidationResult[];
 }
 
 const ValidationSummary: React.FC<ValidationSummaryProps> = ({ category, results }) => {
-  const passCount = results.filter(r => r.status === 'pass').length;
-  const failCount = results.filter(r => r.status === 'fail').length;
-  const warningCount = results.filter(r => r.status === 'warning').length;
-  const totalCount = results.length;
-  
-  const hasCriticalErrors = results.some(r => r.status === 'fail' && r.severity === 'critical');
-  
+  if (!results || results.length === 0) {
+    return (
+      <div className="p-4 bg-gray-50 rounded-lg">
+        <p className="text-sm text-gray-500">No validation results available for {category}.</p>
+      </div>
+    );
+  }
+
+  // Count validations by status
+  const statusCount = {
+    pass: results.filter((r) => r.status === "pass").length,
+    fail: results.filter((r) => r.status === "fail").length,
+    warning: results.filter((r) => r.status === "warning").length,
+    pending: results.filter((r) => r.status === "pending").length,
+  };
+
+  // Custom badge variants
+  const getBadgeVariant = (status: string) => {
+    switch (status) {
+      case "fail": return "destructive";
+      case "warning": return "outline"; // Using outline for warnings
+      case "pending": return "secondary";
+      case "pass": return "outline"; // Using outline for pass
+      default: return "default";
+    }
+  };
+
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+    <div className="bg-white rounded-lg">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="font-medium">{category} Validations</h3>
-        
+        <h3 className="text-sm font-medium">{category}</h3>
         <div className="flex gap-2">
-          {hasCriticalErrors ? (
-            <Badge variant="destructive" className="flex items-center gap-1">
-              <X className="h-3 w-3" />
-              <span>Critical Errors</span>
-            </Badge>
-          ) : warningCount > 0 ? (
-            <Badge variant="warning" className="flex items-center gap-1 bg-yellow-100 text-yellow-800">
-              <AlertTriangle className="h-3 w-3" />
-              <span>Warnings</span>
-            </Badge>
-          ) : (
-            <Badge variant="success" className="flex items-center gap-1 bg-green-100 text-green-800">
-              <Check className="h-3 w-3" />
-              <span>Passed</span>
+          {statusCount.pass > 0 && (
+            <Badge variant={getBadgeVariant("pass")} className="bg-green-100 text-green-800 hover:bg-green-200">
+              {statusCount.pass} Passed
             </Badge>
           )}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-2">
-        <div className="flex items-center gap-1 text-sm">
-          <Check className="h-3 w-3 text-green-500" />
-          <span className="text-gray-600">{passCount} passed</span>
-        </div>
-        <div className="flex items-center gap-1 text-sm">
-          <X className="h-3 w-3 text-red-500" />
-          <span className="text-gray-600">{failCount} failed</span>
-        </div>
-        <div className="flex items-center gap-1 text-sm">
-          <AlertTriangle className="h-3 w-3 text-yellow-500" />
-          <span className="text-gray-600">{warningCount} warnings</span>
-        </div>
-      </div>
-      
-      <div className="mt-2">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="h-2 rounded-full flex"
-            style={{ width: '100%' }}
-          >
-            <div
-              className="bg-green-500 h-full rounded-l-full"
-              style={{ width: `${(passCount/totalCount) * 100}%` }}
-            ></div>
-            <div
-              className="bg-yellow-500 h-full"
-              style={{ width: `${(warningCount/totalCount) * 100}%` }}
-            ></div>
-            <div
-              className="bg-red-500 h-full rounded-r-full"
-              style={{ width: `${(failCount/totalCount) * 100}%` }}
-            ></div>
-          </div>
+          {statusCount.warning > 0 && (
+            <Badge variant={getBadgeVariant("warning")} className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+              {statusCount.warning} Warnings
+            </Badge>
+          )}
+          {statusCount.fail > 0 && (
+            <Badge variant="destructive">
+              {statusCount.fail} Failed
+            </Badge>
+          )}
+          {statusCount.pending > 0 && (
+            <Badge variant="secondary">
+              {statusCount.pending} Pending
+            </Badge>
+          )}
         </div>
       </div>
     </div>

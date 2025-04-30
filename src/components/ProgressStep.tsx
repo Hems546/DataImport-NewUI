@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils';
 interface ProgressStepProps {
   icon: React.ReactNode;
   label: string;
+  step?: number;
   isActive?: boolean;
   isComplete?: boolean;
 }
 
-const ProgressStep = ({ icon, label, isActive = false, isComplete = false }: ProgressStepProps) => {
+const ProgressStep = ({ icon, label, step, isActive = false, isComplete = false }: ProgressStepProps) => {
   return (
     <div className="flex flex-col items-center text-center">
       <div 
@@ -22,6 +23,7 @@ const ProgressStep = ({ icon, label, isActive = false, isComplete = false }: Pro
       >
         {icon}
       </div>
+      {step && <span className="text-xs text-gray-500 mb-1">Step {step}</span>}
       <span className={cn(
         "text-sm text-center w-full", 
         isActive ? "text-primary font-medium" : 
