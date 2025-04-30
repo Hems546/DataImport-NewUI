@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
 import { validateDataQuality } from "@/services/fileValidation";
+import Papa from 'papaparse';
 import {
   Card,
   CardContent,
@@ -33,61 +35,103 @@ export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
+  const [parsedData, setParsedData] = useState<any[]>([]);
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
       try {
         setIsAnalyzing(true);
         
-        // In a real application, this would come from your state/context
-        // For demonstration, we'll use mock data
-        const mockData = [
-          { 
-            name: "John Smith", 
-            email: "john@example.com", 
-            age: 32, 
-            state: "CA", 
-            zip_code: "94103",
-            company: "  Acme Corp  ",
-            start_date: "2022-01-01",
-            end_date: "2023-01-01"
-          },
-          { 
-            name: "Jane Doe", 
-            email: "not-an-email", 
-            age: 28, 
-            state: "TX", 
-            zip_code: "75001",
-            company: "XYZ Inc",
-            start_date: "2022-05-01",
-            end_date: "2022-03-01" // intentional error: end before start
-          },
-          { 
-            name: "Bob Johnson", 
-            email: "bob@example.com", 
-            age: 150, // out of range
-            state: "ZZ", // invalid state
-            zip_code: "12345-678", // invalid format
-            company: "123 Company",
-            start_date: "2022-01-15",
-            end_date: "2022-06-30"
-          }
-        ];
+        // Get uploaded file data from localStorage
+        const uploadedFile = localStorage.getItem('uploadedFile');
+        const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
 
-        // Run data quality validation
-        let results = validateDataQuality(mockData);
+        if (!uploadedFile) {
+          toast({
+            title: "No file data found",
+            description: "Please upload a file in the previous step.",
+            variant: "destructive"
+          });
+          setIsAnalyzing(false);
+          return;
+        }
+
+        // Parse the file data
+        let fileData: any[] = [];
+        
+        // Convert base64 data back to a file object
+        const dataType = uploadedFile.split(',')[0].split(':')[1].split(';')[0];
+        const byteString = atob(uploadedFile.split(',')[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([ab], { type: dataType });
+        const file = new File([blob], fileInfo.name || "file.csv", { type: dataType });
+        
+        // Parse the file depending on its type
+        if (fileInfo.extension === '.csv') {
+          await new Promise<void>((resolve) => {
+            Papa.parse(file, {
+              header: true,
+              dynamicTyping: true,
+              complete: (results) => {
+                fileData = results.data.filter(row => 
+                  Object.keys(row).length > 0 && 
+                  !Object.keys(row).every(key => !row[key])
+                );
+                setParsedData(fileData);
+                resolve();
+              },
+              error: (error) => {
+                console.error('Error parsing CSV:', error);
+                toast({
+                  title: "Error parsing file",
+                  description: "The file could not be parsed correctly.",
+                  variant: "destructive"
+                });
+                resolve();
+              }
+            });
+          });
+        } else if (['.xls', '.xlsx'].includes(fileInfo.extension)) {
+          // For Excel files, we'd use a library like SheetJS/xlsx
+          // This is a simplified version showing the concept
+          toast({
+            title: "Excel processing",
+            description: "Excel processing is simplified for this demo.",
+            variant: "warning"
+          });
+          
+          // Use mock data for non-CSV files in this demo
+          fileData = [
+            { name: "John Smith", email: "john@example.com", age: 32 },
+            { name: "Jane Doe", email: "not-an-email", age: 28 }
+          ];
+          setParsedData(fileData);
+        }
+        
+        // Run data quality validation on the actual data
+        let results = validateDataQuality(fileData);
         
         // Add email format validation explicitly
+        const invalidEmails = fileData.filter(row => {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return row.email && typeof row.email === 'string' && !emailRegex.test(row.email);
+        });
+        
         const emailFormatValidation: ValidationStatusResult = {
           id: 'email-format',
           name: 'Email Format Validation',
-          status: 'fail',
+          status: invalidEmails.length > 0 ? 'fail' : 'pass',
           severity: 'warning',
-          technical_details: [
-            'Found 2 records with invalid email formats:',
-            '- Row 2: "not-an-email" is not a valid email address',
-            '- Row 3: "bob@example" is missing a valid domain extension'
-          ]
+          technical_details: invalidEmails.length > 0 ? [
+            `Found ${invalidEmails.length} records with invalid email formats:`,
+            ...invalidEmails.map((row, index) => `- Row ${index + 1}: "${row.email}" is not a valid email address`)
+          ] : ['All email addresses follow valid format']
         };
         
         // Ensure all results have the required properties for ValidationStatusResult
@@ -237,11 +281,18 @@ export default function DataQualityPage() {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
                 <p className="text-gray-500">Analyzing data quality...</p>
               </div>
-            ) : (
+            ) : parsedData.length > 0 ? (
               <ValidationStatus 
                 results={validationResults}
                 title="Data Quality Results"
+                data={parsedData}
               />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
+                <AlertTriangle className="h-10 w-10 text-yellow-500 mb-4" />
+                <p className="text-gray-800 font-medium">No data available for analysis</p>
+                <p className="text-gray-500 mt-2">Please ensure a valid file was uploaded in the previous step</p>
+              </div>
             )}
           </div>
 

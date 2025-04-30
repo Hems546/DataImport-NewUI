@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,12 +30,21 @@ export interface ValidationResult {
 interface ValidationStatusProps {
   results: ValidationResult[];
   title: string;
+  data?: any[]; // Add data prop to receive the actual data
 }
 
-const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
+const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) => {
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
   const [showSpreadsheetMode, setShowSpreadsheetMode] = useState(false);
   const [fixingError, setFixingError] = useState<string | null>(null);
+  const [editedData, setEditedData] = useState<any[]>([]);
+
+  // Set up edited data when fixing an error
+  React.useEffect(() => {
+    if (fixingError && data.length > 0) {
+      setEditedData([...data]);
+    }
+  }, [fixingError, data]);
 
   const getStatusIcon = (status: ValidationResult['status']) => {
     switch (status) {
@@ -72,9 +82,34 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
     setShowSpreadsheetMode(true);
   };
 
+  const handleEmailChange = (index: number, newValue: string) => {
+    if (editedData[index]) {
+      const newData = [...editedData];
+      newData[index] = { ...newData[index], email: newValue };
+      setEditedData(newData);
+    }
+  };
+
+  const handleApplyFixes = () => {
+    // In a real app, we would save the changes to the file data
+    // For now, we'll just close the editor
+    
+    // We could save the edited data back to localStorage
+    if (editedData.length > 0) {
+      localStorage.setItem('editedFileData', JSON.stringify(editedData));
+      toast({
+        title: "Changes applied",
+        description: "Your email corrections have been saved",
+      });
+    }
+    
+    setShowSpreadsheetMode(false);
+    setFixingError(null);
+  };
+
   const renderFixItButton = (result: ValidationResult) => {
     // Only show Fix It button for email format errors
-    if (result.id === 'email-format') {
+    if (result.id === 'email-format' && result.status !== 'pass') {
       return (
         <Button
           variant="outline"
@@ -90,15 +125,15 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
     return null;
   };
 
-  const renderEmailFormatSpreadsheet = () => {
-    // Sample data with email issues
-    const sampleData = [
-      { id: 1, name: "John Smith", email: "john@example.com", status: "Valid" },
-      { id: 2, name: "Jane Doe", email: "not-an-email", status: "Invalid" },
-      { id: 3, name: "Bob Johnson", email: "bob@example", status: "Invalid" },
-      { id: 4, name: "Alice Brown", email: "alice@example.com", status: "Valid" },
-    ];
+  const isEmailValid = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
+  const renderEmailFormatSpreadsheet = () => {
+    // Filter for data with email fields
+    const emailData = editedData.filter(row => 'email' in row);
+    
     return (
       <div className="mt-6 border rounded-lg overflow-hidden bg-white">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
@@ -124,47 +159,55 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
           <UITable>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">ID</TableHead>
+                <TableHead className="w-[50px]">#</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[100px]">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleData.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.id}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>
-                    {row.status === "Invalid" ? (
-                      <input 
-                        type="text" 
-                        defaultValue={row.email} 
-                        className="w-full p-1 border border-red-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple/50"
-                      />
-                    ) : (
-                      row.email
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn(
-                      "px-2 py-1 rounded-full text-xs font-medium",
-                      row.status === "Valid" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                    )}>
-                      {row.status}
-                    </span>
+              {emailData.map((row, index) => {
+                const isValid = isEmailValid(row.email);
+                return (
+                  <TableRow key={index}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{row.name || `Row ${index + 1}`}</TableCell>
+                    <TableCell>
+                      {!isValid ? (
+                        <input 
+                          type="text" 
+                          value={row.email || ''} 
+                          onChange={(e) => handleEmailChange(index, e.target.value)}
+                          className="w-full p-1 border border-red-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple/50"
+                        />
+                      ) : (
+                        row.email
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        isValid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      )}>
+                        {isValid ? "Valid" : "Invalid"}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {emailData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                    No email data available
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </UITable>
           <div className="flex justify-end mt-4">
             <Button 
               size="sm"
-              onClick={() => {
-                setShowSpreadsheetMode(false);
-                setFixingError(null);
-              }}
+              onClick={handleApplyFixes}
             >
               Apply Fixes
             </Button>
