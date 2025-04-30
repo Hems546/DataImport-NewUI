@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import Papa from 'papaparse';
 import { getTechnicalDescription } from '@/constants/validations';

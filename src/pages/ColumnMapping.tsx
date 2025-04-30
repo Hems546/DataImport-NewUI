@@ -1,228 +1,175 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDropzone } from 'react-dropzone';
+import { usePapaParse } from 'react-papaparse';
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { ColumnMappingForm, ColumnMapping as ColumnMappingType } from "@/components/admin/ColumnMappingForm";
-import { 
-  FileCheck,
-  ArrowRight,
-  ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
-  Info
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowRight, ArrowLeft, Upload, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import ProgressStep from "@/components/ProgressStep";
+import StepConnector from "@/components/StepConnector";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult as ValidationStatusResult } from "@/components/ValidationStatus";
-import { validateColumnMappings, FileValidationResult } from "@/services/fileValidation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { systemTemplates } from "@/data/systemTemplates";
+import FileBox from "@/components/icons/FileBox";
+import ClipboardCheck from "@/components/icons/ClipboardCheck";
+import ArrowUpCircle from "@/components/icons/ArrowUpCircle";
+import FileUp from "@/components/icons/FileUp";
+import ValidationStatus from "@/components/ValidationStatus";
+
+import { ValidationCategory } from "@/constants/validations";
+import { runValidationsForStage, allValidationsPass } from "@/services/validationRunner";
 
 export default function ColumnMapping() {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
-  const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [mappingConfig, setMappingConfig] = useState<{ [key: string]: string }>({});
+  const [requiredFields, setRequiredFields] = useState<string[]>(['email', 'name']); // Example required fields
+
+  const [validationResults, setValidationResults] = useState<any[]>([]);
+  const [hasBlockingErrors, setHasBlockingErrors] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   
-  // Mock source columns (would come from context or state in a real application)
-  const sourceColumns = [
-    "First Name", "Last Name", "Email Address", "Company", "Phone Number", 
-    "Job Title", "Department", "Address Line 1", "City", "State/Province", 
-    "Country", "ZIP/Postal"
-  ];
-  
-  // Find the selected template (default to Contacts)
-  const template = "Contacts";
-  const selectedTemplate = systemTemplates.find(t => t.title === template) || systemTemplates[0];
-  
-  // Required fields (in a real app, this would come from the selected template)
-  const requiredTargetFields = selectedTemplate.fields
-    .filter(field => field.required)
-    .map(field => field.name);
-  
-  const handleMappingSave = (mappings: ColumnMappingType[]) => {
-    // Run validation on the mappings
-    const fileValidationResults = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
-    
-    // Convert to ValidationStatusResult format
-    const results: ValidationStatusResult[] = fileValidationResults.map(result => ({
-      id: result.id || result.validation_type,
-      name: result.validation_type, // Use validation_type as name (required)
-      status: result.status,
-      description: result.message,
-      severity: result.severity || 'warning',
-      technical_details: result.technical_details
-    }));
-    
-    setValidationResults(results);
-    
-    // Check if there are any critical failures
-    const hasCriticalErrors = results.some(result => 
-      result.status === 'fail' && result.severity === 'critical'
-    );
-    
-    setHasValidationErrors(hasCriticalErrors);
-    
-    if (hasCriticalErrors) {
-      toast({
-        title: "Validation errors detected",
-        description: "Please fix the critical errors before continuing.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Column mapping saved",
-        description: "Your column mapping has been saved successfully."
-      });
-    }
+  const handleMappingChange = (column: string, targetField: string) => {
+    setMappingConfig(prev => ({ ...prev, [column]: targetField }));
   };
 
+  const handleSubmit = () => {
+    // Save mapping configuration and proceed
+    console.log("Mapping Configuration:", mappingConfig);
+    navigate("/import-wizard/data-quality");
+  };
+  
+  const validateColumnMappings = async () => {
+    setIsValidating(true);
+    
+    try {
+      // Prepare data for validation
+      const validationData = {
+        sourceColumns: columns,
+        mappings: mappingConfig,
+        requiredFields: requiredFields
+      };
+      
+      // Run validations for COLUMN_MAPPING stage
+      const results = await runValidationsForStage(ValidationCategory.COLUMN_MAPPING, validationData);
+      
+      setValidationResults(results);
+      
+      // Check if there are any critical errors that block continuing
+      const hasCriticalErrors = !allValidationsPass(results, 'none');
+      setHasBlockingErrors(hasCriticalErrors);
+      
+      if (hasCriticalErrors) {
+        toast({
+          title: "Mapping issues detected",
+          description: "Please fix these issues before proceeding.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error during column mapping validation:", error);
+      toast({
+        title: "Validation error",
+        description: "An error occurred during mapping validation.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+  
+  // Add validation call when mappings change
+  useEffect(() => {
+    if (columns.length > 0 && Object.keys(mappingConfig).length > 0) {
+      validateColumnMappings();
+    }
+  }, [mappingConfig, columns]);
+  
+  useEffect(() => {
+    // Mock columns for demo purposes
+    setColumns([
+      "customer_id",
+      "first_name",
+      "last_name",
+      "email_address",
+      "phone_number",
+      "address"
+    ]);
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header currentPage="import-wizard" />
+    <>
+      <Header />
+      <div className="container mx-auto mt-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold">Column Mapping</h2>
+          <p className="text-gray-600">Map the columns from your file to the appropriate fields.</p>
+        </div>
 
-      <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Column Mapping</h2>
-            </div>
-          </div>
-
-          {/* Progress Steps */}
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isActive={true}
-            />
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <ProgressStep step={2} label="Column Mapping" icon={MapColumns} />
             <StepConnector />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-            />
+            <ProgressStep step={3} label="Data Quality" icon={DataQuality} />
             <StepConnector />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-            />
+            <ProgressStep step={4} label="Transform Data" icon={TransformData} />
             <StepConnector />
-            <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-            />
+            <ProgressStep step={5} label="Deduplication" icon={FileBox} />
             <StepConnector />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
+            <ProgressStep step={6} label="Final Review" icon={ClipboardCheck} />
             <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
-          </div>
-
-          {/* Instructions Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Map Your Columns</CardTitle>
-              <CardDescription>
-                Match your file columns with our system fields to ensure data is imported correctly
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Choose a mapping strategy:
-                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                    <li><strong>Auto-Map:</strong> Automatically matches columns based on similar names</li>
-                    <li><strong>Manual:</strong> Manually select matches for each column</li>
-                    <li><strong>AI-Assisted:</strong> Uses AI to suggest the best matches</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <p className="font-medium">Tips for successful mapping:</p>
-                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                    <li>Required fields are marked with a red asterisk (*)</li>
-                    <li>Use "Ignore this column" for data you don't want to import</li>
-                    <li>Review auto-mapped fields for accuracy</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-
-          {/* Validation Results Section */}
-          {validationResults.length > 0 && (
-            <div className="mb-6">
-              <ValidationStatus
-                results={validationResults}
-                title="Column Mapping Validation Results"
-              />
-            </div>
-          )}
-
-          {/* Column Mapping Form */}
-          <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <ColumnMappingForm onSave={handleMappingSave} />
-          </div>
-
-          {/* Navigation */}
-          <div className="mt-8 flex justify-between items-center">
-            <div className="flex gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-            </div>
-            <Link to="/import-wizard/data-quality">
-              <Button 
-                className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={hasValidationErrors}
-              >
-                Continue to Data Quality
-                <ArrowRight className="ml-2" />
-              </Button>
-            </Link>
+            <ProgressStep step={7} label="Import / Push" icon={ArrowUpCircle} />
           </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Source Columns</h3>
+            <div className="space-y-4">
+              {columns.map(column => (
+                <div key={column} className="flex items-center justify-between">
+                  <Label htmlFor={column}>{column}</Label>
+                  <Select onValueChange={(value) => handleMappingChange(column, value)}>
+                    <SelectTrigger id={column}>
+                      <SelectValue placeholder="Map to Field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="address">Address</SelectItem>
+                      <SelectItem value="ignore">Ignore this column</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Validation Status</h3>
+            <ValidationStatus results={validationResults} title="Column Mapping Validations" />
+          </div>
+        </div>
+
+        <div className="flex justify-between mt-8">
+          <Link to="/import-wizard/file-verification">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2" />
+              Previous
+            </Button>
+          </Link>
+          <Button onClick={handleSubmit} disabled={hasBlockingErrors || isValidating}>
+            Next
+            <ArrowRight className="ml-2" />
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -5,37 +5,28 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { FileUploader } from "@/components/FileUploader";
 import { FileInfo } from "@/components/FileInfo";
-import { 
-  FileCheck,
-  ArrowRight,
-  ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
-  FileUp,
-  Info
-} from "lucide-react";
+import { FileCheck, ArrowRight, ArrowLeft, FileBox, ClipboardCheck, ArrowUpCircle, FileUp, Info } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { validations, getTechnicalDescription } from '@/constants/validations';
-import { getMockFileValidation } from '@/services/fileValidation';
+import ValidationStatus from '@/components/ValidationStatus';
+import { ValidationCategory } from '@/constants/validations';
+import { runValidationsForStage } from '@/services/validationRunner';
 
 export default function ImportUpload() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [validationResults, setValidationResults] = useState<any[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
 
   const handleFileUpload = (uploadedFile: File) => {
     setFile(uploadedFile);
     toast({
       title: "File uploaded",
-      description: `${uploadedFile.name} has been uploaded successfully.`,
+      description: `${uploadedFile.name} has been uploaded successfully.`
     });
   };
 
@@ -47,45 +38,32 @@ export default function ImportUpload() {
 
   const validateUploadedFile = async () => {
     if (!file) return;
-
     setIsValidating(true);
     
     try {
-      // In a real app, this would call an API or service
-      // For demo purposes, we'll use a mock validation
-      setTimeout(() => {
-        const results = getMockFileValidation(file);
-        
-        // Convert to ValidationResult format
-        const formattedResults: ValidationResult[] = results.map(result => ({
-          id: result.id,
-          name: result.name,
-          status: result.status as 'pass' | 'fail' | 'warning' | 'pending',
-          description: result.description,
-          technical_details: result.technical_details
-        }));
-        
-        setValidationResults(formattedResults);
-        
-        // Check if there are any failures
-        const hasErrors = formattedResults.some(result => result.status === 'fail');
-        setHasValidationErrors(hasErrors);
-        
-        if (hasErrors) {
-          toast({
-            title: "Validation failed",
-            description: "Please fix the errors before continuing.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Validation passed",
-            description: "Your file has passed all validation checks.",
-          });
-        }
-        
-        setIsValidating(false);
-      }, 1500);
+      // Run validations for FILE_UPLOAD stage using our validation runner
+      const results = await runValidationsForStage(ValidationCategory.FILE_UPLOAD, file);
+      
+      setValidationResults(results);
+
+      // Check if there are any failures
+      const hasErrors = results.some(result => result.status === 'fail' && result.severity === 'critical');
+      setHasValidationErrors(hasErrors);
+      
+      if (hasErrors) {
+        toast({
+          title: "Validation failed",
+          description: "Please fix the errors before continuing.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Validation passed",
+          description: "Your file has passed all validation checks."
+        });
+      }
+      
+      setIsValidating(false);
     } catch (error) {
       console.error('Validation error:', error);
       toast({
