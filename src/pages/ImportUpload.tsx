@@ -1,17 +1,19 @@
-import React, { useRef, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { FileUploader } from "@/components/FileUploader";
+import { FileInfo } from "@/components/FileInfo";
 import { 
-  Upload,
   FileCheck,
-  RotateCcw,
   ArrowRight,
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  FileUp,
+  Info
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -20,175 +22,78 @@ import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, getTechnicalDescription } from '@/constants/validations';
-import { validateFile } from '@/services/fileValidation';
+import { getMockFileValidation } from '@/services/fileValidation';
 
 export default function ImportUpload() {
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
-  const navigate = useNavigate();
+  const [file, setFile] = useState<File | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
+
+  const handleFileUpload = (uploadedFile: File) => {
+    setFile(uploadedFile);
+    toast({
+      title: "File uploaded",
+      description: `${uploadedFile.name} has been uploaded successfully.`,
+    });
+  };
 
   useEffect(() => {
     if (file) {
-      const fileUploadChecks = validations
-        .filter(v => v.category === 'File Upload')
-        .map(v => ({
-          id: v.id,
-          name: v.name,
-          description: v.description,
-          status: 'pending' as const,
-          severity: v.severity || '',
-          technical_details: getTechnicalDescription(v.id)
+      validateUploadedFile();
+    }
+  }, [file]);
+
+  const validateUploadedFile = async () => {
+    if (!file) return;
+
+    setIsValidating(true);
+    
+    try {
+      // In a real app, this would call an API or service
+      // For demo purposes, we'll use a mock validation
+      setTimeout(() => {
+        const results = getMockFileValidation(file);
+        
+        // Convert to ValidationResult format
+        const formattedResults: ValidationResult[] = results.map(result => ({
+          id: result.id,
+          name: result.name,
+          status: result.status as 'pass' | 'fail' | 'warning' | 'pending',
+          description: result.description,
+          technical_details: result.technical_details
         }));
-      
-      setFileValidationResults(fileUploadChecks);
-      
-      validateFile(file).then(results => {
-        const uiResults = fileUploadChecks.map(check => {
-          const result = results.find(r => r.id === check.id);
-          if (result) {
-            return {
-              ...check,
-              status: result.status,
-              description: result.message,
-              technical_details: getTechnicalDescription(check.id)
-            };
-          }
-          return check;
-        });
         
-        setFileValidationResults(uiResults);
+        setValidationResults(formattedResults);
         
-        const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
-        if (criticalFailures.length > 0) {
+        // Check if there are any failures
+        const hasErrors = formattedResults.some(result => result.status === 'fail');
+        setHasValidationErrors(hasErrors);
+        
+        if (hasErrors) {
           toast({
-            title: "File validation failed",
-            description: `${criticalFailures.length} critical issues need attention.`,
+            title: "Validation failed",
+            description: "Please fix the errors before continuing.",
             variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Validation passed",
+            description: "Your file has passed all validation checks.",
           });
         }
         
-        localStorage.setItem('uploadValidationResults', JSON.stringify(results));
-      }).catch(error => {
-        console.error("Error validating file:", error);
-        toast({
-          title: "Validation error",
-          description: "There was a problem validating the file",
-          variant: "destructive",
-        });
-      });
-    }
-  }, [file, toast]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      
-      const validTypes = ['.csv', '.xls', '.xlsx'];
-      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
-      
-      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-      
-      if (!validTypes.includes(fileExtension)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a CSV or Excel file.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (selectedFile.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setFile(selectedFile);
+        setIsValidating(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Validation error:', error);
       toast({
-        title: "File selected",
-        description: `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`,
+        title: "Validation error",
+        description: "An error occurred during file validation.",
+        variant: "destructive"
       });
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      
-      const validTypes = ['.csv', '.xls', '.xlsx'];
-      const fileExtension = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
-      
-      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-      
-      if (!validTypes.includes(fileExtension)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a CSV or Excel file.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (droppedFile.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setFile(droppedFile);
-      toast({
-        title: "File uploaded",
-        description: `${droppedFile.name} (${(droppedFile.size / 1024 / 1024).toFixed(2)} MB)`,
-      });
-    }
-  };
-
-  const handleButtonClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleContinue = () => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target && e.target.result) {
-          localStorage.setItem('uploadedFile', e.target.result.toString());
-          
-          const fileInfo = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            extension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
-          };
-          localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
-          
-          navigate('/import-wizard/verification');
-        }
-      };
-      reader.readAsDataURL(file);
+      setIsValidating(false);
     }
   };
 
@@ -199,15 +104,20 @@ export default function ImportUpload() {
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">File Upload</h2>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h2 className="text-2xl font-bold">Import Wizard</h2>
             </div>
           </div>
 
           <div className="flex justify-between items-center mb-12">
             <ProgressStep 
-              icon={<Upload />}
+              icon={<FileUp />}
               label="File Upload"
               isActive={true}
             />
@@ -215,7 +125,7 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<FileCheck />}
               label="File Preflighting"
-              isComplete={false}
+              isActive={file !== null}
             />
             <StepConnector />
             <ProgressStep 
@@ -249,85 +159,71 @@ export default function ImportUpload() {
             />
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-white p-8 rounded-lg border border-gray-200">
-              <h3 className="text-xl font-semibold mb-4">Upload Your Data File</h3>
-              <p className="text-gray-600 mb-8">
-                Upload a CSV or Excel file to begin the import process. Your file should include header rows.
+          <div className="bg-white p-8 rounded-lg border border-gray-200">
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">Upload Your File</h3>
+              <p className="text-gray-500 mb-4">
+                Upload a CSV or Excel file to begin the import process. 
+                We'll help you map the columns and validate the data.
               </p>
-
-              <div 
-                className={`border-2 border-dashed ${isDragging ? 'border-brand-purple bg-purple-50' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className="flex flex-col items-center">
-                  {file ? (
-                    <>
-                      <FileCheck className="h-12 w-12 text-green-500 mb-4" />
-                      <p className="text-gray-600 mb-1">
-                        File selected: <span className="font-medium">{file.name}</span>
-                      </p>
-                      <p className="text-gray-500 text-sm mb-4">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      <Button onClick={() => setFile(null)} variant="outline">
-                        Change File
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-600 mb-1">
-                        Drag & drop your file here, or <span className="text-blue-600">browse</span>
-                      </p>
-                      <p className="text-gray-500 text-sm mb-4">
-                        Supports CSV, XLS, XLSX (max 10MB)
-                      </p>
-                      <Button onClick={handleButtonClick}>Select File</Button>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        className="hidden" 
-                        accept=".csv,.xls,.xlsx"
-                        onChange={handleFileChange}
-                      />
-                    </>
-                  )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                <div className="flex items-start">
+                  <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-3" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">File Requirements</h4>
+                    <ul className="mt-1 text-sm text-blue-700 list-disc list-inside">
+                      <li>CSV, XLS, or XLSX format</li>
+                      <li>Maximum file size: 10MB</li>
+                      <li>First row should contain column headers</li>
+                      <li>UTF-8 encoding recommended</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
               
-              {file && fileValidationResults.length > 0 && (
-                <ValidationStatus 
-                  results={fileValidationResults}
-                  title="File Upload Validations"
-                />
-              )}
+              <FileUploader 
+                onFileUpload={handleFileUpload} 
+                acceptedFileTypes={['.csv', '.xls', '.xlsx']}
+                maxSizeMB={10}
+              />
             </div>
 
-            <div className="mt-8 flex justify-between items-center">
-              <div className="flex gap-4">
-                <Link to="/import-wizard">
-                  <Button variant="outline">
-                    <ArrowLeft className="mr-2" />
-                    Back
-                  </Button>
-                </Link>
-                <Button variant="outline">
-                  <RotateCcw className="mr-2" />
-                  Start Over
-                </Button>
+            {file && (
+              <div className="mt-8">
+                <h3 className="text-lg font-medium mb-4">File Information</h3>
+                <FileInfo file={file} />
+                
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-4">Validation Results</h3>
+                  {isValidating ? (
+                    <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
+                      <p className="text-gray-500">Validating file...</p>
+                    </div>
+                  ) : (
+                    validationResults.length > 0 && (
+                      <ValidationStatus 
+                        results={validationResults}
+                        title="File Validation Results"
+                      />
+                    )
+                  )}
+                </div>
               </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <Link to="/import-wizard/verification">
               <Button 
-                disabled={!file} 
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                onClick={handleContinue}
+                disabled={!file || isValidating || hasValidationErrors}
               >
                 Continue to File Verification
                 <ArrowRight className="ml-2" />
               </Button>
-            </div>
+            </Link>
           </div>
         </div>
       </div>
