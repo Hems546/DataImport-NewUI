@@ -13,7 +13,7 @@ import StepConnector from "@/components/StepConnector";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
-import FileBox from "@/components/icons/FileBox";
+import FileBox from "@/components/icons/FileBox";  // This import is causing the issue
 import ClipboardCheck from "@/components/icons/ClipboardCheck";
 import ArrowUpCircle from "@/components/icons/ArrowUpCircle";
 import ValidationStatus from "@/components/ValidationStatus";
