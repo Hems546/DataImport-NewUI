@@ -19,7 +19,6 @@ export interface DataQualityValidationResult {
   severity: string;
   description?: string;
   technical_details?: string | string[];
-  affectedRows?: any[];
 }
 
 export async function validateFile(file: File, skipBasicChecks = false): Promise<FileValidationResult[]> {
@@ -616,9 +615,8 @@ export function updateDataWithCorrections(validationId: string, correctedRows: a
   return mockData;
 }
 
-// For simple mock validation used by ImportUpload.tsx - kept as a simple function
-// but renamed to avoid conflicts
-export function getMockFileValidation(file: any) {
+// Function to validate file (imported by ImportUpload.tsx)
+export function validateFile(file: any) {
   // Simple mock validation for file uploads
   return [
     {
@@ -645,9 +643,8 @@ export function getMockFileValidation(file: any) {
   ];
 }
 
-// For simple mock validation used by ColumnMapping.tsx - kept as a simple function
-// but renamed to avoid conflicts
-export function getMockColumnMappingValidation(mappings: any, requiredFields: string[]) {
+// Function to validate column mappings (imported by ColumnMapping.tsx)
+export function validateColumnMappings(mappings: any, requiredFields: string[]) {
   const validations = [];
   
   // Check if required fields are mapped

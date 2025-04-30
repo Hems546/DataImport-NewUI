@@ -17,15 +17,11 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
-import { ValidationCategory } from "@/constants/validations";
-import { runValidationsForStage, allValidationsPass } from "@/services/validationRunner";
 
 export default function DataNormalization() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [normalizationResults, setNormalizationResults] = useState<ValidationResult[]>([]);
-  const [validationResults, setValidationResults] = useState<any[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     const analyzeNormalization = async () => {
@@ -120,40 +116,6 @@ export default function DataNormalization() {
 
     analyzeNormalization();
   }, [toast]);
-
-  const runNormalizationValidations = async () => {
-    setIsValidating(true);
-    
-    try {
-      // In a real app, we would get actual data from previous steps
-      // For demo purposes, we'll create mock data
-      const mockData = {
-        rows: [
-          { name: "  John Smith  ", email: "JOHN@EXAMPLE.COM", date: "1/2/2023", phone: "(123) 456-7890" },
-          { name: "Jane Doe", email: "jane.doe@example.com", date: "01/15/2023", phone: "123.456.7890" },
-          { name: "Bob Johnson", email: "bob@example.com", date: "2023-01-30", phone: "123-456-7890" }
-        ]
-      };
-      
-      // Run validations for DATA_NORMALIZATION stage
-      const results = await runValidationsForStage(ValidationCategory.DATA_NORMALIZATION, mockData);
-      
-      setValidationResults(results);
-    } catch (error) {
-      console.error("Error during data normalization:", error);
-      toast({
-        title: "Normalization error",
-        description: "An error occurred during data normalization.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  useEffect(() => {
-    runNormalizationValidations();
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
