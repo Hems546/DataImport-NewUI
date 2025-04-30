@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table, AlertTriangle } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -34,6 +33,8 @@ interface ValidationStatusProps {
 
 const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
+  const [showSpreadsheetMode, setShowSpreadsheetMode] = useState(false);
+  const [fixingError, setFixingError] = useState<string | null>(null);
 
   const getStatusIcon = (status: ValidationResult['status']) => {
     switch (status) {
@@ -64,6 +65,113 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
         {detail}
       </p>
     ));
+  };
+
+  const handleFixError = (errorId: string) => {
+    setFixingError(errorId);
+    setShowSpreadsheetMode(true);
+  };
+
+  const renderFixItButton = (result: ValidationResult) => {
+    // Only show Fix It button for email format errors
+    if (result.id === 'email-format') {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleFixError(result.id)}
+          className="flex items-center gap-2"
+        >
+          <PenLine className="h-4 w-4" />
+          Fix It
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  const renderEmailFormatSpreadsheet = () => {
+    // Sample data with email issues
+    const sampleData = [
+      { id: 1, name: "John Smith", email: "john@example.com", status: "Valid" },
+      { id: 2, name: "Jane Doe", email: "not-an-email", status: "Invalid" },
+      { id: 3, name: "Bob Johnson", email: "bob@example", status: "Invalid" },
+      { id: 4, name: "Alice Brown", email: "alice@example.com", status: "Valid" },
+    ];
+
+    return (
+      <div className="mt-6 border rounded-lg overflow-hidden bg-white">
+        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-gray-600" />
+            <h3 className="font-medium">Email Format Correction</h3>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              setShowSpreadsheetMode(false);
+              setFixingError(null);
+            }}
+          >
+            Close Editor
+          </Button>
+        </div>
+        <div className="p-4">
+          <p className="text-sm text-gray-600 mb-4">
+            Fix the invalid email addresses below. Valid email addresses should contain an @ symbol followed by a domain name.
+          </p>
+          <UITable>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px]">ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sampleData.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.id}</TableCell>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell>
+                    {row.status === "Invalid" ? (
+                      <input 
+                        type="text" 
+                        defaultValue={row.email} 
+                        className="w-full p-1 border border-red-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple/50"
+                      />
+                    ) : (
+                      row.email
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn(
+                      "px-2 py-1 rounded-full text-xs font-medium",
+                      row.status === "Valid" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    )}>
+                      {row.status}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </UITable>
+          <div className="flex justify-end mt-4">
+            <Button 
+              size="sm"
+              onClick={() => {
+                setShowSpreadsheetMode(false);
+                setFixingError(null);
+              }}
+            >
+              Apply Fixes
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderHeaderUniquenessExample = () => {
@@ -161,8 +269,8 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
                   <div className="space-y-3 text-sm text-gray-700">
                     {result.technical_details && renderTechnicalDetails(result.technical_details)}
                     
-                    {result.id === 'header-uniqueness' && (
-                      <div className="mt-4">
+                    <div className="mt-4 flex space-x-2">
+                      {result.id === 'header-uniqueness' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -172,10 +280,11 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
                           <Table className="h-4 w-4" />
                           {showDuplicateHeaders ? 'Hide Issue' : 'View Issue'}
                         </Button>
-                        
-                        {showDuplicateHeaders && renderHeaderUniquenessExample()}
-                      </div>
-                    )}
+                      )}
+                      {renderFixItButton(result)}
+                    </div>
+                    
+                    {result.id === 'header-uniqueness' && showDuplicateHeaders && renderHeaderUniquenessExample()}
                   </div>
                 </AccordionContent>
               )}
@@ -198,13 +307,19 @@ const ValidationStatus = ({ results, title }: ValidationStatusProps) => {
           )}
         </div>
         
-        {failedChecks.length > 0 && renderStatusSection(failedChecks, "Critical Issues")}
-        {warningChecks.length > 0 && renderStatusSection(warningChecks, "Warnings")}
-        {passedChecks.length > 0 && renderStatusSection(passedChecks, "Passed Checks")}
-        
-        {results.length === 0 && (
-          <p className="text-gray-500 text-sm">No validation checks available.</p>
+        {!showSpreadsheetMode && (
+          <>
+            {failedChecks.length > 0 && renderStatusSection(failedChecks, "Critical Issues")}
+            {warningChecks.length > 0 && renderStatusSection(warningChecks, "Warnings")}
+            {passedChecks.length > 0 && renderStatusSection(passedChecks, "Passed Checks")}
+            
+            {results.length === 0 && (
+              <p className="text-gray-500 text-sm">No validation checks available.</p>
+            )}
+          </>
         )}
+
+        {showSpreadsheetMode && fixingError === 'email-format' && renderEmailFormatSpreadsheet()}
       </div>
     </div>
   );

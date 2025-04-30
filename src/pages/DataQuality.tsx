@@ -75,13 +75,29 @@ export default function DataQualityPage() {
         ];
 
         // Run data quality validation
-        const results = validateDataQuality(mockData);
-
+        let results = validateDataQuality(mockData);
+        
+        // Add email format validation explicitly
+        const emailFormatValidation: ValidationStatusResult = {
+          id: 'email-format',
+          name: 'Email Format Validation',
+          status: 'fail',
+          severity: 'warning',
+          technical_details: [
+            'Found 2 records with invalid email formats:',
+            '- Row 2: "not-an-email" is not a valid email address',
+            '- Row 3: "bob@example" is missing a valid domain extension'
+          ]
+        };
+        
         // Ensure all results have the required properties for ValidationStatusResult
-        const formattedResults: ValidationStatusResult[] = results.map(result => ({
-          ...result,
-          name: result.name || result.id || ''
-        }));
+        const formattedResults: ValidationStatusResult[] = [
+          ...results.map(result => ({
+            ...result,
+            name: result.name || result.id || ''
+          })),
+          emailFormatValidation
+        ];
 
         setValidationResults(formattedResults);
         
