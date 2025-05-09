@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +16,7 @@ import {
   TableCell
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ValidationResult {
   id: string;
@@ -34,6 +34,7 @@ interface ValidationStatusProps {
 }
 
 const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) => {
+  const { toast } = useToast();
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
   const [showSpreadsheetMode, setShowSpreadsheetMode] = useState(false);
   const [fixingError, setFixingError] = useState<string | null>(null);
