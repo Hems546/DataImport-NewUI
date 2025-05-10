@@ -9,6 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { useForm } from "react-hook-form";
 import { X, ChevronLeft, Save } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { useToast } from "@/hooks/use-toast";
 
 interface TemplateField {
   name: string;
@@ -31,18 +32,29 @@ interface EditTemplateDialogProps {
 
 export function EditTemplateDialog({ open, onOpenChange, template, onSave }: EditTemplateDialogProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const form = useForm({
     defaultValues: {
       title: template.title,
       description: template.description,
       fields: template.fields,
-      maxRowCount: template.maxRowCount || 100000,
+      maxRowCount: template.maxRowCount?.toString() || "100000", // Convert to string for input
     },
   });
 
   const onSubmit = (data: any) => {
-    onSave(data);
+    // Convert maxRowCount from string to number
+    const updatedData = {
+      ...data,
+      maxRowCount: data.maxRowCount ? parseInt(data.maxRowCount, 10) : 100000
+    };
+    
+    onSave(updatedData);
+    toast({
+      title: "Template updated",
+      description: "Your template changes have been saved successfully."
+    });
     onOpenChange(false);
   };
 
@@ -108,12 +120,9 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
                   <FormLabel>Maximum Row Count</FormLabel>
                   <FormControl>
                     <Input 
-                      type="number" 
-                      min="1" 
-                      max="1000000" 
-                      step="1000" 
+                      type="text" 
                       {...field} 
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(e.target.value)}
                     />
                   </FormControl>
                   <FormDescription>
