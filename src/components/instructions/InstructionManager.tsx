@@ -7,24 +7,20 @@ import { useInstructionMode } from '@/contexts/InstructionContext';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
 
-interface Instruction {
+export interface Instruction {
   id: string;
   position: { x: number; y: number };
   text?: string;
   pointer?: { x: number; y: number; active: boolean };
   pagePath?: string; // Store which page this instruction belongs to
+  active?: boolean; // Whether this instruction is enabled
 }
 
-const STORAGE_KEY = 'instruction-boxes';
+export const STORAGE_KEY = 'instruction-boxes';
 
-const InstructionManager: React.FC = () => {
-  const { instructionModeEnabled, toggleInstructionMode } = useInstructionMode();
-  const { toast } = useToast();
+export const useInstructions = () => {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
-  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
-  const location = useLocation();
-  const currentPath = location.pathname;
-
+  
   // Load instructions from localStorage when component mounts
   useEffect(() => {
     const savedInstructions = localStorage.getItem(STORAGE_KEY);
@@ -36,16 +32,85 @@ const InstructionManager: React.FC = () => {
       }
     }
   }, []);
-
+  
   // Save instructions to localStorage whenever they change
   useEffect(() => {
     if (instructions.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(instructions));
     }
   }, [instructions]);
+  
+  const addInstruction = (pagePath: string) => {
+    const newInstruction = {
+      id: `instruction-${Date.now()}`,
+      position: { x: 100, y: 100 },
+      text: 'Add your instructions here...',
+      pagePath,
+      active: true
+    };
+    
+    setInstructions(prev => [...prev, newInstruction]);
+    return newInstruction;
+  };
+  
+  const updateInstruction = (id: string, updates: Partial<Instruction>) => {
+    setInstructions(prev => 
+      prev.map(instruction => 
+        instruction.id === id 
+          ? { ...instruction, ...updates } 
+          : instruction
+      )
+    );
+  };
+  
+  const removeInstruction = (id: string) => {
+    const updatedInstructions = instructions.filter(instruction => instruction.id !== id);
+    setInstructions(updatedInstructions);
+    
+    // If we removed the last instruction, clear localStorage
+    if (updatedInstructions.length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+  
+  const toggleInstructionActive = (id: string) => {
+    setInstructions(prev => 
+      prev.map(instruction => 
+        instruction.id === id 
+          ? { ...instruction, active: !instruction.active } 
+          : instruction
+      )
+    );
+  };
+  
+  return {
+    instructions,
+    addInstruction,
+    updateInstruction,
+    removeInstruction,
+    toggleInstructionActive
+  };
+};
 
-  // Filter instructions based on current page path
+const InstructionManager: React.FC = () => {
+  const { instructionModeEnabled, toggleInstructionMode } = useInstructionMode();
+  const { toast } = useToast();
+  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
+  const location = useLocation();
+  const currentPath = location.pathname;
+  
+  const { 
+    instructions, 
+    addInstruction, 
+    updateInstruction, 
+    removeInstruction 
+  } = useInstructions();
+
+  // Filter instructions based on current page path and active status
   const visibleInstructions = instructions.filter(instruction => {
+    // If the instruction is not active, don't show it
+    if (instruction.active === false) return false;
+    
     // If no pagePath is specified (for backwards compatibility), show on all pages
     if (!instruction.pagePath) return true;
     
@@ -54,47 +119,11 @@ const InstructionManager: React.FC = () => {
   });
 
   const handleAddInstruction = () => {
-    const newInstruction = {
-      id: `instruction-${Date.now()}`,
-      position: { x: 100, y: 100 },
-      text: 'Add your instructions here...',
-      pagePath: currentPath // Store the current path when adding a new instruction
-    };
-    
-    setInstructions([...instructions, newInstruction]);
+    const newInstruction = addInstruction(currentPath);
     
     toast({
       description: "New instruction box added. Drag to position it."
     });
-  };
-
-  const handleRemoveInstruction = (id: string) => {
-    const updatedInstructions = instructions.filter(instruction => instruction.id !== id);
-    setInstructions(updatedInstructions);
-    
-    // If we removed the last instruction, clear localStorage
-    if (updatedInstructions.length === 0) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    
-    toast({
-      description: "Instruction box removed"
-    });
-
-    // Reset editing state if the box being edited was removed
-    if (editingBoxId === id) {
-      setEditingBoxId(null);
-    }
-  };
-
-  const handleUpdateInstruction = (id: string, updates: Partial<Instruction>) => {
-    setInstructions(prev => 
-      prev.map(instruction => 
-        instruction.id === id 
-          ? { ...instruction, ...updates } 
-          : instruction
-      )
-    );
   };
 
   const handleEditBoxClick = (id: string) => {
@@ -121,7 +150,7 @@ const InstructionManager: React.FC = () => {
             initialPosition={instruction.position}
             initialText={instruction.text}
             initialPointer={instruction.pointer}
-            onRemove={handleRemoveInstruction}
+            onRemove={removeInstruction}
             onUpdate={() => handleEditBoxClick(instruction.id)}
             editMode={false}
           />
@@ -148,8 +177,8 @@ const InstructionManager: React.FC = () => {
           initialPosition={instruction.position}
           initialText={instruction.text}
           initialPointer={instruction.pointer}
-          onRemove={handleRemoveInstruction}
-          onUpdate={handleUpdateInstruction}
+          onRemove={removeInstruction}
+          onUpdate={updateInstruction}
           editMode={true}
         />
       ))}

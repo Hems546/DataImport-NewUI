@@ -9,6 +9,7 @@ import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
 import { systemTemplates } from "@/data/systemTemplates";
 import InstructionModeToggle from "@/components/instructions/InstructionModeToggle";
+import InstructionManagementTable from "@/components/admin/InstructionManagementTable";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
@@ -105,7 +106,7 @@ export default function AdminDashboard() {
               <p className="text-gray-600 mb-6">
                 Enable the instruction mode to add guidance boxes for developers across the application.
               </p>
-              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-lg font-medium mb-2">Instruction Mode</h3>
@@ -129,6 +130,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+              
+              <InstructionManagementTable />
             </>
           )}
         </div>
