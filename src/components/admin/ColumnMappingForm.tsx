@@ -1,13 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRightLeft, Wand2 } from "lucide-react";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,15 +12,12 @@ import {
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { systemTemplates } from "@/data/systemTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
 
 const FormSchema = z.object({
-  mappingStrategy: z.enum(["auto", "manual", "ai"], {
-    required_error: "Please select a mapping strategy.",
-  }),
   columnMappings: z.array(
     z.object({
       sourceColumn: z.string(),
@@ -31,8 +25,6 @@ const FormSchema = z.object({
     })
   ),
 });
-
-type MappingStrategy = "auto" | "manual" | "ai";
 
 export interface ColumnMapping {
   sourceColumn: string;
@@ -46,6 +38,9 @@ interface ColumnMappingFormProps {
 
 export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappingFormProps) {
   const { toast } = useToast();
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [mappedColumns, setMappedColumns] = useState<string[]>([]);
+  const [aiMappedColumns, setAiMappedColumns] = useState<string[]>([]);
   
   // Find the selected template
   const selectedTemplate = systemTemplates.find(t => t.title === template) || systemTemplates[0];
@@ -57,13 +52,9 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
     "Country", "ZIP/Postal"
   ];
 
-  // Track which fields have been auto-mapped
-  const [autoMappedFields, setAutoMappedFields] = useState<string[]>([]);
-
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      mappingStrategy: "auto",
       columnMappings: sourceColumns.map(col => ({
         sourceColumn: col,
         targetField: "" // Auto-mapping will fill this
@@ -71,112 +62,147 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
     },
   });
 
-  // Apply the mapping strategy when it changes
+  // Function to get AI-assisted mappings
+  const getAIMappings = async (unmappedColumns: ColumnMapping[]) => {
+    setIsAiProcessing(true);
+    
+    try {
+      // In a real app, this would call an OpenAI API endpoint
+      // Simulating AI processing with a delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simulate AI mapping for columns that couldn't be automatically mapped
+      const aiSuggestedMappings = unmappedColumns.map(mapping => {
+        const sourceCol = mapping.sourceColumn.toLowerCase();
+        let suggestion = "";
+        
+        // More sophisticated mapping logic with common naming patterns
+        if (sourceCol.includes("first") || sourceCol === "fname") {
+          suggestion = "firstName";
+        } 
+        else if (sourceCol.includes("last") || sourceCol === "lname") {
+          suggestion = "lastName";
+        }
+        else if (sourceCol.includes("email") || sourceCol.includes("e-mail")) {
+          suggestion = "email";
+        }
+        else if (sourceCol.includes("phone") || sourceCol.includes("tel") || sourceCol.includes("mobile")) {
+          suggestion = "phone";
+        }
+        else if (sourceCol.includes("company") || sourceCol.includes("organization") || sourceCol.includes("org")) {
+          suggestion = "company";
+        }
+        else if (sourceCol.includes("job") || sourceCol.includes("title") || sourceCol.includes("position") || sourceCol.includes("role")) {
+          suggestion = "title";
+        }
+        else if (sourceCol.includes("dept") || sourceCol.includes("department")) {
+          suggestion = "department";
+        }
+        else if (sourceCol.includes("address") || sourceCol.includes("street") || sourceCol.includes("line 1")) {
+          suggestion = "address";
+        }
+        else if (sourceCol === "city") {
+          suggestion = "city";
+        }
+        else if (sourceCol.includes("state") || sourceCol.includes("province")) {
+          suggestion = "state";
+        }
+        else if (sourceCol.includes("country") || sourceCol.includes("nation")) {
+          suggestion = "country";
+        }
+        else if (sourceCol.includes("zip") || sourceCol.includes("postal")) {
+          suggestion = "zipCode";
+        }
+        
+        return {
+          ...mapping,
+          targetField: suggestion
+        };
+      });
+      
+      // Track which columns were mapped by AI
+      const aiMapped = aiSuggestedMappings
+        .filter(m => m.targetField !== "")
+        .map(m => m.sourceColumn);
+      
+      setAiMappedColumns(aiMapped);
+      
+      // Update form with AI suggestions
+      const updatedMappings = form.getValues("columnMappings").map(mapping => {
+        // Keep already mapped fields
+        if (mapping.targetField !== "") {
+          return mapping;
+        }
+        
+        // Find and apply AI suggestion
+        const aiSuggestion = aiSuggestedMappings.find(m => m.sourceColumn === mapping.sourceColumn);
+        return {
+          sourceColumn: mapping.sourceColumn,
+          targetField: aiSuggestion?.targetField || ""
+        };
+      });
+      
+      form.setValue("columnMappings", updatedMappings);
+      
+      toast({
+        title: "AI mapping completed",
+        description: `Successfully mapped ${aiMapped.length} additional fields with AI assistance.`
+      });
+      
+    } catch (error) {
+      console.error("Error getting AI mappings:", error);
+      toast({
+        title: "AI mapping failed",
+        description: "There was an error getting AI-assisted mappings. Please map columns manually.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  // Run auto-mapping on initial load
   useEffect(() => {
-    const applyMappingStrategy = async () => {
-      const strategy = form.watch("mappingStrategy");
-      let mappings = [...form.getValues("columnMappings")];
-      
-      // Clear previous mappings if switching strategies
-      if (strategy === "manual") {
-        // In manual mode, we clear all mappings for user to set
-        mappings = sourceColumns.map(sourceCol => ({
+    const applyInitialMapping = () => {
+      // Simple auto-mapping based on exact name matches
+      const mappings = sourceColumns.map(sourceCol => {
+        // Normalize the source column name for comparison
+        const normalizedSourceCol = sourceCol.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+        
+        // Look for exact matches first (case insensitive)
+        const exactMatch = selectedTemplate.fields.find(field => {
+          const normalizedFieldName = field.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+          return normalizedSourceCol === normalizedFieldName;
+        });
+        
+        return {
           sourceColumn: sourceCol,
-          targetField: ""
-        }));
-        setAutoMappedFields([]);
-      } 
-      else if (strategy === "auto") {
-        // Simple auto-mapping based on name similarity
-        mappings = sourceColumns.map(sourceCol => {
-          const normalizedSourceCol = sourceCol.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-          
-          const matchedField = selectedTemplate.fields.find(field => {
-            const normalizedFieldName = field.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-            return normalizedSourceCol === normalizedFieldName || 
-                  normalizedSourceCol.includes(normalizedFieldName) || 
-                  normalizedFieldName.includes(normalizedSourceCol);
-          });
-          
-          return {
-            sourceColumn: sourceCol,
-            targetField: matchedField?.name || ""
-          };
-        });
-        
-        // Track which fields were auto-mapped
-        setAutoMappedFields(mappings.filter(m => m.targetField).map(m => m.sourceColumn));
-        
-        // Show success toast
-        toast({
-          title: "Auto-mapping complete",
-          description: `Mapped ${mappings.filter(m => m.targetField).length} out of ${sourceColumns.length} fields.`
-        });
-      }
-      else if (strategy === "ai") {
-        // Simulate AI processing with a delay
-        toast({
-          title: "AI mapping in progress",
-          description: "Analyzing your data and finding the best matches..."
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // AI mapping would be more sophisticated, here it's just a smarter auto-map
-        mappings = sourceColumns.map(sourceCol => {
-          // AI would use more sophisticated logic, here we simulate with smarter matching
-          const normalizedSource = sourceCol.toLowerCase();
-          
-          // Specific cases for common fields with different naming conventions
-          let bestMatch;
-          
-          if (normalizedSource.includes("first") || normalizedSource.includes("fname")) {
-            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("first"));
-          } 
-          else if (normalizedSource.includes("last") || normalizedSource.includes("lname")) {
-            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("last"));
-          }
-          else if (normalizedSource.includes("email")) {
-            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("email"));
-          }
-          else if (normalizedSource.includes("phone")) {
-            bestMatch = selectedTemplate.fields.find(f => f.name.toLowerCase().includes("phone"));
-          }
-          else if (normalizedSource.includes("zip") || normalizedSource.includes("postal")) {
-            bestMatch = selectedTemplate.fields.find(f => 
-              f.name.toLowerCase().includes("zip") || f.name.toLowerCase().includes("postal"));
-          }
-          else {
-            // Fallback to simple similarity check
-            bestMatch = selectedTemplate.fields.find(field => {
-              const normalizedField = field.name.toLowerCase();
-              return normalizedSource.includes(normalizedField) || 
-                    normalizedField.includes(normalizedSource);
-            });
-          }
-          
-          return {
-            sourceColumn: sourceCol,
-            targetField: bestMatch?.name || ""
-          };
-        });
-        
-        // Track which fields were AI-mapped
-        setAutoMappedFields(mappings.filter(m => m.targetField).map(m => m.sourceColumn));
-        
-        // Show success toast for AI mapping
-        toast({
-          title: "AI mapping complete",
-          description: `Successfully mapped ${mappings.filter(m => m.targetField).length} out of ${sourceColumns.length} fields.`
-        });
-      }
+          targetField: exactMatch?.name || ""
+        };
+      });
       
-      // Update form with new mappings
+      // Track which fields were auto-mapped
+      const autoMapped = mappings.filter(m => m.targetField).map(m => m.sourceColumn);
+      setMappedColumns(autoMapped);
+      
+      // Update form with mapped fields
       form.setValue("columnMappings", mappings);
+      
+      // Show toast notification with mapping results
+      toast({
+        title: "Auto-mapping complete",
+        description: `Mapped ${autoMapped.length} out of ${sourceColumns.length} fields.`
+      });
+      
+      // Get AI suggestions for unmapped fields
+      const unmappedFields = mappings.filter(m => !m.targetField);
+      if (unmappedFields.length > 0) {
+        getAIMappings(unmappedFields);
+      }
     };
     
-    applyMappingStrategy();
-  }, [form.watch("mappingStrategy")]);
+    applyInitialMapping();
+  }, []);
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     console.log("Column mapping submitted:", data);
@@ -202,77 +228,20 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="mappingStrategy"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base">Mapping Strategy</FormLabel>
-              <FormDescription>
-                Choose how to map columns from your file to our system fields
-              </FormDescription>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="grid grid-cols-3 gap-4"
-              >
-                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'auto' ? 'border-primary bg-primary/5' : ''}`}>
-                  <FormLabel className="cursor-pointer font-normal">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className={`rounded-full ${field.value === 'auto' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
-                        <ArrowRightLeft className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="text-center font-medium">Auto-Map</div>
-                      <div className="text-center text-xs text-gray-500">
-                        System automatically matches columns based on names
-                      </div>
-                    </div>
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroupItem value="auto" className="sr-only" />
-                  </FormControl>
-                </FormItem>
-
-                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'manual' ? 'border-primary bg-primary/5' : ''}`}>
-                  <FormLabel className="cursor-pointer font-normal">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className={`rounded-full ${field.value === 'manual' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
-                        <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none">
-                          <path d="M15 5L9 12L15 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                      <div className="text-center font-medium">Manual</div>
-                      <div className="text-center text-xs text-gray-500">
-                        Manually set each column mapping yourself
-                      </div>
-                    </div>
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroupItem value="manual" className="sr-only" />
-                  </FormControl>
-                </FormItem>
-
-                <FormItem className={`flex flex-col items-center space-y-3 rounded-md border p-4 ${field.value === 'ai' ? 'border-primary bg-primary/5' : ''}`}>
-                  <FormLabel className="cursor-pointer font-normal">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className={`rounded-full ${field.value === 'ai' ? 'bg-primary/20' : 'bg-primary/10'} p-2`}>
-                        <Wand2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="text-center font-medium">AI-Assisted</div>
-                      <div className="text-center text-xs text-gray-500">
-                        Use AI to suggest the best possible mappings
-                      </div>
-                    </div>
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroupItem value="ai" className="sr-only" />
-                  </FormControl>
-                </FormItem>
-              </RadioGroup>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-4">
+          <h3 className="text-sm font-medium text-blue-800">Mapping Process</h3>
+          <p className="text-sm text-blue-700 mt-1">
+            We've automatically mapped columns with exact matches and used AI to suggest mappings for others.
+            Please review and adjust any mappings that need correction.
+          </p>
+        </div>
+        
+        {isAiProcessing && (
+          <div className="flex items-center justify-center space-x-2 py-4 bg-gray-50 rounded-md border border-gray-100">
+            <Loader className="h-5 w-5 animate-spin text-primary" />
+            <p>AI is analyzing your columns and suggesting mappings...</p>
+          </div>
+        )}
 
         <div>
           <h3 className="text-lg font-medium mb-4">Column Mappings</h3>
@@ -281,52 +250,72 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
               <div>Source Column</div>
               <div>Target Field</div>
             </div>
-            {sourceColumns.map((column, index) => (
-              <div key={index} className={`grid grid-cols-2 gap-4 items-center p-4 rounded-md ${autoMappedFields.includes(column) ? 'bg-green-50 border border-green-100' : 'bg-gray-50'}`}>
-                <div>
-                  <Input
+            {sourceColumns.map((column, index) => {
+              // Determine the status of this mapping
+              const isAutoMapped = mappedColumns.includes(column);
+              const isAIMapped = aiMappedColumns.includes(column);
+              const mappingStatus = isAutoMapped ? "auto" : isAIMapped ? "ai" : "manual";
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`grid grid-cols-2 gap-4 items-center p-4 rounded-md ${
+                    isAutoMapped ? 'bg-green-50 border border-green-100' : 
+                    isAIMapped ? 'bg-blue-50 border border-blue-100' : 
+                    'bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      value={column}
+                      disabled
+                      className="bg-white"
+                    />
+                    {mappingStatus === "auto" && (
+                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">Auto</span>
+                    )}
+                    {mappingStatus === "ai" && (
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">AI</span>
+                    )}
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name={`columnMappings.${index}.targetField`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className={field.value ? 'bg-white' : ''}>
+                              <SelectValue placeholder="Select field..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {selectedTemplate.fields.map((templateField) => (
+                              <SelectItem 
+                                key={templateField.name} 
+                                value={templateField.name}
+                              >
+                                {templateField.name} {templateField.required && <span className="text-red-500">*</span>}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="ignore">Ignore this column</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <input 
+                    type="hidden" 
+                    {...form.register(`columnMappings.${index}.sourceColumn`)}
                     value={column}
-                    disabled
-                    className="bg-white"
                   />
                 </div>
-                <FormField
-                  control={form.control}
-                  name={`columnMappings.${index}.targetField`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className={field.value ? 'bg-white' : ''}>
-                            <SelectValue placeholder="Select field..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {selectedTemplate.fields.map((templateField) => (
-                            <SelectItem 
-                              key={templateField.name} 
-                              value={templateField.name}
-                            >
-                              {templateField.name} {templateField.required && <span className="text-red-500">*</span>}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="ignore">Ignore this column</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <input 
-                  type="hidden" 
-                  {...form.register(`columnMappings.${index}.sourceColumn`)}
-                  value={column}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -336,13 +325,13 @@ export function ColumnMappingForm({ template = "Contacts", onSave }: ColumnMappi
             type="button" 
             onClick={() => {
               form.reset({
-                mappingStrategy: "manual",
                 columnMappings: sourceColumns.map(col => ({
                   sourceColumn: col,
                   targetField: ""
                 }))
               });
-              setAutoMappedFields([]);
+              setMappedColumns([]);
+              setAiMappedColumns([]);
             }}
           >
             Reset

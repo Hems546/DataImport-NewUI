@@ -194,11 +194,11 @@ export default function ColumnMapping() {
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  Choose a mapping strategy:
+                  <p className="font-medium">About column mapping:</p>
                   <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                    <li><strong>Auto-Map:</strong> Automatically matches columns based on similar names</li>
-                    <li><strong>Manual:</strong> Manually select matches for each column</li>
-                    <li><strong>AI-Assisted:</strong> Uses AI to suggest the best matches</li>
+                    <li><strong>Auto-mapped columns</strong> are highlighted in green</li>
+                    <li><strong>AI-suggested mappings</strong> are highlighted in blue</li>
+                    <li><strong>Manual mapping</strong> is required for any remaining columns</li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -209,7 +209,7 @@ export default function ColumnMapping() {
                   <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
                     <li>Required fields are marked with a red asterisk (*)</li>
                     <li>Use "Ignore this column" for data you don't want to import</li>
-                    <li>Review auto-mapped fields for accuracy</li>
+                    <li>Review AI-suggested mappings for accuracy</li>
                   </ul>
                 </AlertDescription>
               </Alert>
