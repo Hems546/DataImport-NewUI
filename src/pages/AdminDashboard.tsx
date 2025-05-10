@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -61,12 +60,6 @@ export default function AdminDashboard() {
             </Link>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           </div>
-          <Link to="/context">
-            <Button variant="outline" className="flex items-center gap-2">
-              <BookText className="w-5 h-5" />
-              Application Context
-            </Button>
-          </Link>
         </div>
         
         <div className="w-full bg-gray-50 rounded-lg p-4 mb-8">
