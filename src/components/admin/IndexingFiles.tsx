@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MarkdownDisplay from '@/components/markdown/MarkdownDisplay';
 import contextMarkdown from '@/data/Context.MD?raw';
-import readmeMarkdown from '@/README.md?raw';
+import readmeMarkdown from '/README.md?raw';
 
 const IndexingFiles = () => {
   const [activeFile, setActiveFile] = useState<'context' | 'readme'>('context');

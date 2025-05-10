@@ -6,7 +6,7 @@ declare module '*.MD?raw' {
   export default content;
 }
 
-declare module '@/README.md?raw' {
+declare module '/README.md?raw' {
   const content: string;
   export default content;
 }
