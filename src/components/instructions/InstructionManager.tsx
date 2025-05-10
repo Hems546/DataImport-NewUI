@@ -45,9 +45,12 @@ const InstructionManager: React.FC = () => {
   }, [instructions]);
 
   // Filter instructions based on current page path
-  const visibleInstructions = instructions.filter(instruction => 
-    instruction.pagePath === currentPath
-  );
+  const visibleInstructions = instructions.filter(instruction => {
+    // If instruction doesn't have pagePath property, don't show it
+    if (!instruction.pagePath) return false;
+    // Show instructions that match the current path
+    return instruction.pagePath === currentPath;
+  });
 
   const handleAddInstruction = () => {
     const newInstruction = {
