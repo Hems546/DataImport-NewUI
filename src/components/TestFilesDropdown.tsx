@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DownloadCloud, FileWarning } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { ValidationCategory } from '@/constants/validations';
+
+interface TestFilesDropdownProps {
+  onFileGenerated?: (file: File) => void;
+}
 
 const testFiles = [
   { 
@@ -70,7 +73,7 @@ const testFiles = [
   }
 ];
 
-export const TestFilesDropdown = () => {
+export const TestFilesDropdown = ({ onFileGenerated }: TestFilesDropdownProps) => {
   const { toast } = useToast();
 
   const generateTestFile = (test: typeof testFiles[0]) => {
@@ -132,21 +135,33 @@ export const TestFilesDropdown = () => {
         filename = 'test-file.csv';
     }
     
-    // Create and download the file
+    // Create the file
     const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const file = new File([blob], filename, { type: mimeType });
     
-    toast({
-      title: "Test File Generated",
-      description: `${filename} has been downloaded. Upload it to test the ${test.validationId} validation.`
-    });
+    // If callback is provided, pass the file directly to the parent
+    if (onFileGenerated) {
+      onFileGenerated(file);
+      toast({
+        title: "Test File Generated",
+        description: `${filename} has been loaded for testing the ${test.validationId} validation.`
+      });
+    } else {
+      // Otherwise download the file as before
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Test File Generated",
+        description: `${filename} has been downloaded. Upload it to test the ${test.validationId} validation.`
+      });
+    }
   };
 
   return (

@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -87,36 +86,39 @@ export default function ImportUpload() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
-      
-      const validTypes = ['.csv', '.xls', '.xlsx'];
-      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
-      
-      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-      
-      if (!validTypes.includes(fileExtension)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a CSV or Excel file.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (selectedFile.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setFile(selectedFile);
-      toast({
-        title: "File selected",
-        description: `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`,
-      });
+      handleFileSelection(selectedFile);
     }
+  };
+
+  const handleFileSelection = (selectedFile: File) => {
+    const validTypes = ['.csv', '.xls', '.xlsx'];
+    const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+    
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    
+    if (!validTypes.includes(fileExtension)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a CSV or Excel file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (selectedFile.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setFile(selectedFile);
+    toast({
+      title: "File selected",
+      description: `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`,
+    });
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -134,35 +136,7 @@ export default function ImportUpload() {
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      
-      const validTypes = ['.csv', '.xls', '.xlsx'];
-      const fileExtension = droppedFile.name.substring(droppedFile.name.lastIndexOf('.')).toLowerCase();
-      
-      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-      
-      if (!validTypes.includes(fileExtension)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a CSV or Excel file.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (droppedFile.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: "Please select a file smaller than 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setFile(droppedFile);
-      toast({
-        title: "File uploaded",
-        description: `${droppedFile.name} (${(droppedFile.size / 1024 / 1024).toFixed(2)} MB)`,
-      });
+      handleFileSelection(droppedFile);
     }
   };
 
@@ -170,6 +144,10 @@ export default function ImportUpload() {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  const handleTestFileGenerated = (generatedFile: File) => {
+    handleFileSelection(generatedFile);
   };
 
   const handleContinue = () => {
@@ -203,7 +181,7 @@ export default function ImportUpload() {
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">File Upload</h2>
             <div className="flex items-center gap-3">
-              <TestFilesDropdown />
+              <TestFilesDropdown onFileGenerated={handleTestFileGenerated} />
               <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
                 Target: customers
               </div>
