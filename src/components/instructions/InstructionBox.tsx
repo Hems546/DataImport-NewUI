@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, GripVertical, Pencil, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -238,7 +237,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   const handleEnableEditMode = () => {
     if (!editMode && onUpdate) {
       // Tell the parent component to enable edit mode for this instruction
-      onUpdate(id);
+      onUpdate(id, { active: true });
       toast({
         description: "Edit mode enabled",
       });

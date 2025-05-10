@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,8 +88,22 @@ export const useInstructions = () => {
     );
   }, []);
   
+  // Filter instructions to only show on the page they were created for
+  const getVisibleInstructions = useCallback((currentPath: string) => {
+    return instructions.filter(instruction => {
+      // If the instruction is not active, don't show it
+      if (instruction.active === false) return false;
+      
+      // Only show instructions that match the current path
+      // If no pagePath is specified (for backwards compatibility), default to '/'
+      const instructionPath = instruction.pagePath || '/';
+      return instructionPath === currentPath;
+    });
+  }, [instructions]);
+  
   return {
     instructions,
+    getVisibleInstructions,
     addInstruction,
     updateInstruction,
     removeInstruction,
@@ -108,23 +121,15 @@ const InstructionManager: React.FC = () => {
   
   const { 
     instructions, 
+    getVisibleInstructions,
     addInstruction, 
     updateInstruction, 
     removeInstruction,
     loaded
   } = useInstructions();
 
-  // Filter instructions based on current page path and active status
-  const visibleInstructions = instructions.filter(instruction => {
-    // If the instruction is not active, don't show it
-    if (instruction.active === false) return false;
-    
-    // If no pagePath is specified (for backwards compatibility), show on all pages
-    if (!instruction.pagePath) return true;
-    
-    // Show instructions that match the current path
-    return instruction.pagePath === currentPath;
-  });
+  // Get only the instructions for the current page
+  const visibleInstructions = getVisibleInstructions(currentPath);
 
   const handleAddInstruction = () => {
     const newInstruction = addInstruction(currentPath);
