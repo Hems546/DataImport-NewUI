@@ -29,8 +29,8 @@ const App = () => (
       <InstructionProvider>
         <Toaster />
         <Sonner />
-        <InstructionManager />
         <BrowserRouter>
+          <InstructionManager />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/import-wizard" element={<ImportTypeSelection />} />
