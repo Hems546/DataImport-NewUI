@@ -32,9 +32,9 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, className })
           td: ({ node, ...props }) => (
             <td className="border border-gray-300 px-4 py-2" {...props} />
           ),
-          code: ({ node, inline, className, children, ...props }) => {
+          code: ({ className, children, ...props }) => {
             const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
+            return !props.inline && match ? (
               <SyntaxHighlighter
                 style={nord}
                 language={match[1]}
