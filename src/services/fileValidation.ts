@@ -21,7 +21,7 @@ export interface DataQualityValidationResult {
   technical_details?: string | string[];
 }
 
-export async function validateFile(file: File, skipBasicChecks = false): Promise<FileValidationResult[]> {
+export async function validateFile(file: File, skipBasicChecks = false, maxRowCount?: number): Promise<FileValidationResult[]> {
   const results: FileValidationResult[] = [];
   
   if (!skipBasicChecks) {
@@ -179,17 +179,17 @@ export async function validateFile(file: File, skipBasicChecks = false): Promise
             technical_details: getTechnicalDescription('row-length-consistency')
           });
 
-          // Maximum row count check (100,000 rows limit)
-          const maxRows = 100000;
+          // Maximum row count check (use template's maxRowCount if provided, otherwise use default 100,000 rows limit)
+          const templateMaxRows = maxRowCount || 100000;
           const rowCount = parseResults.data.length;
           results.push({
             id: 'max-row-count',
             validation_type: 'max-row-count',
-            status: rowCount > maxRows ? 'fail' : 'pass',
+            status: rowCount > templateMaxRows ? 'fail' : 'pass',
             severity: 'critical',
-            message: rowCount > maxRows 
-              ? `File exceeds maximum row limit of ${maxRows.toLocaleString()} rows`
-              : `Row count (${rowCount.toLocaleString()}) is within limits`,
+            message: rowCount > templateMaxRows 
+              ? `File exceeds maximum row limit of ${templateMaxRows.toLocaleString()} rows for this template`
+              : `Row count (${rowCount.toLocaleString()}) is within template limits (${templateMaxRows.toLocaleString()})`,
             technical_details: getTechnicalDescription('max-row-count')
           });
 

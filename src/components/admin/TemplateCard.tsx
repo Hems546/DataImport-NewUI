@@ -16,10 +16,11 @@ interface TemplateCardProps {
   title: string;
   description: string;
   fields: TemplateField[];
-  onUpdate?: (template: { title: string; description: string; fields: TemplateField[] }) => void;
+  maxRowCount?: number; // Added maxRowCount as an optional prop
+  onUpdate?: (template: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => void;
 }
 
-export default function TemplateCard({ title, description, fields, onUpdate }: TemplateCardProps) {
+export default function TemplateCard({ title, description, fields, maxRowCount, onUpdate }: TemplateCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const requiredFields = fields.filter(field => field.required);
@@ -28,7 +29,7 @@ export default function TemplateCard({ title, description, fields, onUpdate }: T
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = (updatedTemplate: { title: string; description: string; fields: TemplateField[] }) => {
+  const handleSave = (updatedTemplate: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => {
     onUpdate?.(updatedTemplate);
   };
 
@@ -52,6 +53,7 @@ export default function TemplateCard({ title, description, fields, onUpdate }: T
           <div className="flex flex-wrap gap-2 mb-4">
             <Badge variant="secondary">{fields.length} fields</Badge>
             <Badge variant="secondary">{requiredFields.length} required</Badge>
+            {maxRowCount && <Badge variant="outline">Max {maxRowCount.toLocaleString()} rows</Badge>}
           </div>
 
           {fields.length > 0 && (
@@ -99,7 +101,7 @@ export default function TemplateCard({ title, description, fields, onUpdate }: T
       <EditTemplateDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        template={{ title, description, fields }}
+        template={{ title, description, fields, maxRowCount }}
         onSave={handleSave}
       />
     </>

@@ -10,6 +10,7 @@ type SystemTemplate = {
   title: string;
   description: string;
   fields: TemplateField[];
+  maxRowCount?: number; // New property for maximum row count
 };
 
 export const systemTemplates: SystemTemplate[] = [
@@ -31,7 +32,8 @@ export const systemTemplates: SystemTemplate[] = [
       { name: "zipCode", type: "string", required: false, description: "ZIP or postal code" },
       { name: "isActive", type: "boolean", required: false, description: "Contact status" },
       { name: "notes", type: "string", required: false, description: "Additional notes" }
-    ]
+    ],
+    maxRowCount: 10000
   },
   {
     title: "Orders",
@@ -52,7 +54,8 @@ export const systemTemplates: SystemTemplate[] = [
       { name: "notes", type: "string", required: false, description: "Order notes" },
       { name: "status", type: "string", required: false, description: "Order status" },
       { name: "items", type: "string", required: false, description: "Order items (JSON)" }
-    ]
+    ],
+    maxRowCount: 5000
   },
   {
     title: "Subscribers",
@@ -70,7 +73,8 @@ export const systemTemplates: SystemTemplate[] = [
       { name: "tags", type: "string", required: false, description: "Subscriber tags" },
       { name: "optInDate", type: "date", required: false, description: "Opt-in confirmation date" },
       { name: "unsubscribeDate", type: "date", required: false, description: "Unsubscribe date" }
-    ]
+    ],
+    maxRowCount: 20000
   },
   {
     title: "Subscriptions",
@@ -92,11 +96,13 @@ export const systemTemplates: SystemTemplate[] = [
       { name: "discounts", type: "string", required: false, description: "Applied discounts" },
       { name: "features", type: "string", required: false, description: "Included features" },
       { name: "autoRenew", type: "boolean", required: false, description: "Auto-renewal status" }
-    ]
+    ],
+    maxRowCount: 8000
   },
   {
     title: "Custom",
     description: "Create a custom import template",
-    fields: []
+    fields: [],
+    maxRowCount: 100000
   }
 ];

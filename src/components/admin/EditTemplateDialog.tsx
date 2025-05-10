@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { useForm } from "react-hook-form";
 import { X, ChevronLeft } from "lucide-react";
@@ -23,8 +24,9 @@ interface EditTemplateDialogProps {
     title: string;
     description: string;
     fields: TemplateField[];
+    maxRowCount?: number; // Added maxRowCount as an optional property
   };
-  onSave: (template: { title: string; description: string; fields: TemplateField[] }) => void;
+  onSave: (template: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => void;
 }
 
 export function EditTemplateDialog({ open, onOpenChange, template, onSave }: EditTemplateDialogProps) {
@@ -35,6 +37,7 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
       title: template.title,
       description: template.description,
       fields: template.fields,
+      maxRowCount: template.maxRowCount || 100000, // Default to 100,000 if not provided
     },
   });
 
@@ -93,6 +96,29 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
                   <FormControl>
                     <Textarea {...field} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="maxRowCount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maximum Row Count</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      max="1000000" 
+                      step="1000" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Maximum number of rows allowed for this template.
+                  </FormDescription>
                 </FormItem>
               )}
             />

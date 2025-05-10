@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -116,6 +117,7 @@ export default function AdminDashboard() {
                           title={template.title}
                           description={template.description}
                           fields={template.fields}
+                          maxRowCount={template.maxRowCount}
                         />
                       ))}
                     </div>
