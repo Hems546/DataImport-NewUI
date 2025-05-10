@@ -46,6 +46,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   const [showControls, setShowControls] = useState(false);
   
   const boxRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Notify parent component of updates to persist
   useEffect(() => {
@@ -130,6 +131,18 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
     };
   }, [isDrawingPointer, toast]);
   
+  // Focus the textarea and clear placeholder text when editing is enabled
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      
+      // If the text is the default placeholder, clear it
+      if (text === 'Add your instructions here...') {
+        setText('');
+      }
+    }
+  }, [isEditing, text]);
+  
   const handleDragStart = (e: React.MouseEvent) => {
     // Only allow dragging in edit mode
     if (!editMode) return;
@@ -169,6 +182,18 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
+  };
+
+  // Handle focusing on the text area and clearing default text
+  const handleTextAreaFocus = () => {
+    if (!isEditing && editMode) {
+      setIsEditing(true);
+    }
+    
+    // Clear the placeholder text when clicked if it's the default text
+    if (text === 'Add your instructions here...') {
+      setText('');
+    }
   };
 
   return (
@@ -233,13 +258,20 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
       <div className="p-3 bg-white">
         {isEditing && editMode ? (
           <Textarea
+            ref={textareaRef}
             value={text}
             onChange={handleTextChange}
+            onFocus={handleTextAreaFocus}
             className="min-h-[80px] text-sm"
             placeholder="Add your instructions here..."
           />
         ) : (
-          <p className="text-sm whitespace-pre-line">{text}</p>
+          <p 
+            className="text-sm whitespace-pre-line cursor-text" 
+            onClick={handleTextAreaFocus}
+          >
+            {text}
+          </p>
         )}
         
         {editMode && (
