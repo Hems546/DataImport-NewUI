@@ -11,6 +11,13 @@ interface MarkdownDisplayProps {
   className?: string;
 }
 
+interface CodeProps {
+  node?: any;
+  inline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}
+
 const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, className }) => {
   return (
     <div className={`markdown-container ${className || ''}`}>
@@ -32,9 +39,9 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, className })
           td: ({ node, ...props }) => (
             <td className="border border-gray-300 px-4 py-2" {...props} />
           ),
-          code: ({ className, children, ...props }) => {
+          code: ({ node, inline, className, children, ...props }: CodeProps) => {
             const match = /language-(\w+)/.exec(className || '');
-            return !props.inline && match ? (
+            return !inline && match ? (
               <SyntaxHighlighter
                 style={nord}
                 language={match[1]}
