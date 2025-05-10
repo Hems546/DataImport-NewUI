@@ -58,6 +58,7 @@ export default {
 					'light-purple': '#A29BFE',
 					'dark-blue': '#1A1F2C',
 					'fuchsia': '#D946EF', // Added fuchsia color
+					'indigo': '#4f46e5', // Added indigo color
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

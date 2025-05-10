@@ -113,9 +113,9 @@ export const FileHistoryDropdown = ({ className }: FileHistoryDropdownProps) => 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={`text-white hover:text-white hover:bg-white/20 ${className}`}>
+        <Button variant="ghost" className={`text-white hover:text-gray-200 hover:bg-white/20 ${className}`}>
           File History
-          <span className="ml-2 bg-white text-brand-purple rounded-full w-5 h-5 flex items-center justify-center text-xs">
+          <span className="ml-2 bg-white text-indigo-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">
             {mockFileHistory.length}
           </span>
         </Button>
@@ -132,7 +132,7 @@ export const FileHistoryDropdown = ({ className }: FileHistoryDropdownProps) => 
               >
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
-                    <FileBox className="h-5 w-5 text-brand-purple" />
+                    <FileBox className="h-5 w-5 text-indigo-600" />
                     <span className="font-medium truncate max-w-[180px]">{file.fileName}</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-gray-500">
