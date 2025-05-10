@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -8,6 +8,7 @@ import TemplateCard from "@/components/admin/TemplateCard";
 import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
 import { systemTemplates } from "@/data/systemTemplates";
+import InstructionModeToggle from "@/components/instructions/InstructionModeToggle";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
@@ -43,6 +44,14 @@ export default function AdminDashboard() {
               }`}
             >
               <Shield className="w-5 h-5 mr-2" /> Validations
+            </button>
+            <button 
+              onClick={() => setActiveTab('instructions')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'instructions' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
+              }`}
+            >
+              <StickyNote className="w-5 h-5 mr-2" /> Developer Instructions
             </button>
             <button className="flex items-center px-4 py-2 rounded-lg text-gray-600 hover:bg-white/80">
               <Database className="w-5 h-5 mr-2" /> Data Management
@@ -89,6 +98,39 @@ export default function AdminDashboard() {
           )}
           
           {activeTab === 'validations' && <ValidationManager />}
+
+          {activeTab === 'instructions' && (
+            <>
+              <h2 className="text-2xl font-bold mb-4">Developer Instructions</h2>
+              <p className="text-gray-600 mb-6">
+                Enable the instruction mode to add guidance boxes for developers across the application.
+              </p>
+              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex flex-col gap-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Instruction Mode</h3>
+                    <p className="text-gray-600 mb-4">
+                      When enabled, you can add draggable instruction boxes anywhere in the application. 
+                      These boxes can be positioned and configured to provide guidance to developers.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <InstructionModeToggle />
+                    </div>
+                  </div>
+                  <div className="border-t pt-4">
+                    <h3 className="text-lg font-medium mb-2">How to Use</h3>
+                    <ol className="list-decimal pl-5 space-y-2 text-gray-600">
+                      <li>Enable Instruction Mode using the toggle above</li>
+                      <li>Click the "+" button that appears in the bottom-right corner of any page</li>
+                      <li>Drag the instruction box to position it where needed</li>
+                      <li>Edit the text by clicking the pencil icon</li>
+                      <li>Optionally draw a pointer to highlight specific UI elements</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

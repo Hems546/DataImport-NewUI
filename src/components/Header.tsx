@@ -3,7 +3,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FileHistoryDropdown } from './FileHistoryDropdown';
-import InstructionModeToggle from './instructions/InstructionModeToggle';
 
 interface HeaderProps {
   currentPage?: string;
@@ -25,9 +24,7 @@ const Header = ({ currentPage }: HeaderProps) => {
             </Link>
           </div>
 
-          <nav className="flex items-center space-x-4">
-            <InstructionModeToggle />
-            
+          <nav className="flex items-center space-x-4">            
             {currentPage === "import-wizard" && (
               <>
                 <Button variant="ghost" className="text-white hover:text-white hover:bg-white/20">
