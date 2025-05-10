@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +22,7 @@ import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, getTechnicalDescription } from '@/constants/validations';
 import { validateFile } from '@/services/fileValidation';
+import { TestFilesDropdown } from "@/components/TestFilesDropdown";
 
 export default function ImportUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -200,8 +202,11 @@ export default function ImportUpload() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">File Upload</h2>
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              Target: customers
+            <div className="flex items-center gap-3">
+              <TestFilesDropdown />
+              <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                Target: customers
+              </div>
             </div>
           </div>
 
