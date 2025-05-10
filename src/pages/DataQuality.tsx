@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +11,8 @@ import {
   ClipboardCheck,
   ArrowUpCircle,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  FileSpreadsheet
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQualityIcon from "@/components/icons/DataQuality";
@@ -108,8 +108,10 @@ export default function DataQualityPage() {
           
           // Use mock data for non-CSV files in this demo
           fileData = [
-            { name: "John Smith", email: "john@example.com", age: 32 },
-            { name: "Jane Doe", email: "not-an-email", age: 28 }
+            { name: "John Smith", email: "john@example.com", age: 32, phone: "123-456-7890" },
+            { name: "Jane Doe", email: "not-an-email", age: "twenty-eight", phone: "123abc456" },
+            { name: "Bob Johnson", email: "bob@invalid", age: 45, phone: "987-654-3210" },
+            { name: "Sarah Williams", email: "sarah.example.com", age: "thirty", phone: "555@123#" }
           ];
           setParsedData(fileData);
         }
@@ -130,8 +132,44 @@ export default function DataQualityPage() {
           severity: 'warning',
           technical_details: invalidEmails.length > 0 ? [
             `Found ${invalidEmails.length} records with invalid email formats:`,
-            ...invalidEmails.map((row, index) => `- Row ${index + 1}: "${row.email}" is not a valid email address`)
-          ] : ['All email addresses follow valid format']
+            ...invalidEmails.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.email}" is not a valid email address`),
+            invalidEmails.length > 5 ? `- And ${invalidEmails.length - 5} more...` : ''
+          ].filter(Boolean) : ['All email addresses follow valid format']
+        };
+
+        // Add numeric values validation explicitly
+        const invalidNumeric = fileData.filter(row => {
+          return row.age !== undefined && isNaN(parseFloat(row.age));
+        });
+
+        const numericValidation: ValidationStatusResult = {
+          id: 'numeric-values',
+          name: 'Numeric Data Validation',
+          status: invalidNumeric.length > 0 ? 'fail' : 'pass',
+          severity: 'warning',
+          technical_details: invalidNumeric.length > 0 ? [
+            `Found ${invalidNumeric.length} records with non-numeric values in numeric fields:`,
+            ...invalidNumeric.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.age}" in age field is not a valid number`),
+            invalidNumeric.length > 5 ? `- And ${invalidNumeric.length - 5} more...` : ''
+          ].filter(Boolean) : ['All numeric fields contain valid numbers']
+        };
+
+        // Add phone format validation
+        const invalidPhone = fileData.filter(row => {
+          const phoneRegex = /^[\d\+\-\(\)\s]+$/;
+          return row.phone && !phoneRegex.test(String(row.phone));
+        });
+
+        const phoneValidation: ValidationStatusResult = {
+          id: 'phone-format',
+          name: 'Phone Format Validation',
+          status: invalidPhone.length > 0 ? 'fail' : 'pass',
+          severity: 'warning',
+          technical_details: invalidPhone.length > 0 ? [
+            `Found ${invalidPhone.length} records with invalid phone formats:`,
+            ...invalidPhone.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.phone}" is not a valid phone number`),
+            invalidPhone.length > 5 ? `- And ${invalidPhone.length - 5} more...` : ''
+          ].filter(Boolean) : ['All phone numbers follow valid format']
         };
         
         // Ensure all results have the required properties for ValidationStatusResult
@@ -140,7 +178,9 @@ export default function DataQualityPage() {
             ...result,
             name: result.name || result.id || ''
           })),
-          emailFormatValidation
+          emailFormatValidation,
+          numericValidation,
+          phoneValidation
         ];
 
         setValidationResults(formattedResults);
@@ -158,7 +198,7 @@ export default function DataQualityPage() {
         } else if (warnings.length > 0) {
           toast({
             title: "Data quality warnings found",
-            description: `${warnings.length} quality issues can be addressed in normalization.`,
+            description: `${warnings.length} quality issues can be addressed in spreadsheet mode.`,
             variant: "warning"
           });
         } else {
@@ -200,6 +240,7 @@ export default function DataQualityPage() {
             </div>
           </div>
 
+          {/* Progress Steps */}
           <div className="flex justify-between items-center mb-12">
             <ProgressStep 
               icon={<FileCheck />}
@@ -262,7 +303,8 @@ export default function DataQualityPage() {
                   <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
                     <li>Fields are being checked for proper formatting, valid values, and logical consistency</li>
                     <li>Critical issues must be resolved before proceeding</li>
-                    <li>Warnings can be addressed in the normalization step</li>
+                    <li>Warnings can be addressed using the Spreadsheet Mode to fix data issues</li>
+                    <li>Click the <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800"><FileSpreadsheet className="h-3 w-3 mr-1" />Fix Data</span> button to correct issues</li>
                   </ul>
                 </AlertDescription>
               </Alert>

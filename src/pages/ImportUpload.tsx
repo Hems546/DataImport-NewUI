@@ -11,7 +11,9 @@ import {
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  FileSpreadsheet,
+  Eye
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -47,6 +49,14 @@ export default function ImportUpload() {
       setFileValidationResults(fileUploadChecks);
       
       validateFile(file).then(results => {
+        // Generate some sample file data for validation testing
+        const mockFileData = [
+          { name: "John Smith", email: "john@example.com", age: 32, phone: "123-456-7890" },
+          { name: "Jane Doe", email: "not-an-email", age: "twenty-eight", phone: "123abc456" },
+          { name: "Bob Johnson", email: "bob@invalid", age: 45, phone: "987-654-3210" }
+        ];
+        localStorage.setItem('sampleFileData', JSON.stringify(mockFileData));
+        
         const uiResults = fileUploadChecks.map(check => {
           const result = results.find(r => r.id === check.id);
           if (result) {
@@ -172,6 +182,19 @@ export default function ImportUpload() {
     }
   };
 
+  // Prepare sample data for the spreadsheet view
+  const getSampleData = () => {
+    if (file && file.name.includes('invalid-emails')) {
+      return [
+        { name: "John Doe", email: "not-an-email", age: 30 },
+        { name: "Jane Smith", email: "jane@invalid", age: 25 },
+        { name: "Bob Johnson", email: "bob@example", age: 42 }
+      ];
+    }
+    
+    return [];
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header currentPage="import-wizard" />
@@ -285,6 +308,7 @@ export default function ImportUpload() {
                 <ValidationStatus 
                   results={fileValidationResults}
                   title="File Upload Validations"
+                  data={getSampleData()}
                 />
               )}
             </div>

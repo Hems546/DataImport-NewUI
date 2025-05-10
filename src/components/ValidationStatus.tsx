@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -17,6 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface ValidationResult {
   id: string;
@@ -39,6 +42,7 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
   const [showSpreadsheetMode, setShowSpreadsheetMode] = useState(false);
   const [fixingError, setFixingError] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Set up edited data when fixing an error
   React.useEffect(() => {
@@ -78,15 +82,33 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
     ));
   };
 
+  const getErrorData = (errorId: string) => {
+    switch (errorId) {
+      case 'email-format':
+        return editedData.filter(row => 'email' in row && !isEmailValid(row.email || ''));
+      case 'numeric-values':
+        return editedData.filter(row => 'age' in row && !isNumeric(row.age));
+      case 'phone-format':
+        return editedData.filter(row => 'phone' in row && !isValidPhone(row.phone || ''));
+      default:
+        return [];
+    }
+  };
+
   const handleFixError = (errorId: string) => {
     setFixingError(errorId);
     setShowSpreadsheetMode(true);
   };
 
-  const handleEmailChange = (index: number, newValue: string) => {
+  const handleViewData = (errorId: string) => {
+    setFixingError(errorId);
+    setShowSpreadsheetMode(true);
+  };
+
+  const handleFieldChange = (index: number, field: string, newValue: string) => {
     if (editedData[index]) {
       const newData = [...editedData];
-      newData[index] = { ...newData[index], email: newValue };
+      newData[index] = { ...newData[index], [field]: newValue };
       setEditedData(newData);
     }
   };
@@ -100,7 +122,7 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
       localStorage.setItem('editedFileData', JSON.stringify(editedData));
       toast({
         title: "Changes applied",
-        description: "Your email corrections have been saved",
+        description: "Your data corrections have been saved",
       });
     }
     
@@ -108,39 +130,127 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
     setFixingError(null);
   };
 
-  const renderFixItButton = (result: ValidationResult) => {
-    // Only show Fix It button for email format errors
-    if (result.id === 'email-format' && result.status !== 'pass') {
+  const isEmailValid = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isNumeric = (value: any): boolean => {
+    return !isNaN(parseFloat(value)) && isFinite(value);
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    const phoneRegex = /^[\d\+\-\(\)\s]+$/;
+    return phoneRegex.test(phone);
+  };
+
+  const renderSpreadsheetButton = (result: ValidationResult) => {
+    // Only show button for errors that can be viewed in spreadsheet mode
+    const canShowSpreadsheet = ['email-format', 'numeric-values', 'phone-format', 'header-uniqueness'].includes(result.id);
+    
+    if (canShowSpreadsheet && result.status !== 'pass') {
+      // For errors that can be fixed inline
+      if (['email-format', 'numeric-values', 'phone-format'].includes(result.id)) {
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleFixError(result.id)}
+            className="flex items-center gap-2"
+          >
+            <PenLine className="h-4 w-4" />
+            Fix Data
+          </Button>
+        );
+      }
+      // For errors that can only be viewed
       return (
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handleFixError(result.id)}
+          onClick={() => handleViewData(result.id)}
           className="flex items-center gap-2"
         >
-          <PenLine className="h-4 w-4" />
-          Fix It
+          <Eye className="h-4 w-4" />
+          View Data
         </Button>
       );
     }
     return null;
   };
 
-  const isEmailValid = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const renderSpreadsheetMode = () => {
+    if (!fixingError) return null;
+    
+    // Filter relevant data based on the error type
+    const relevantData = getErrorData(fixingError);
+    const isEditable = ['email-format', 'numeric-values', 'phone-format'].includes(fixingError);
+    
+    // Determine what field to edit based on the error
+    let fieldToEdit = '';
+    let fieldType = 'text';
+    let validationFunction: (value: string) => boolean;
+    
+    switch (fixingError) {
+      case 'email-format':
+        fieldToEdit = 'email';
+        validationFunction = isEmailValid;
+        break;
+      case 'numeric-values':
+        fieldToEdit = 'age';
+        fieldType = 'number';
+        validationFunction = isNumeric;
+        break;
+      case 'phone-format':
+        fieldToEdit = 'phone';
+        validationFunction = isValidPhone;
+        break;
+      default:
+        fieldToEdit = '';
+        validationFunction = () => true;
+    }
 
-  const renderEmailFormatSpreadsheet = () => {
-    // Filter for data with email fields
-    const emailData = editedData.filter(row => 'email' in row);
+    // Filter by search term if provided
+    let filteredData = relevantData;
+    if (searchTerm) {
+      filteredData = relevantData.filter(row => {
+        return Object.values(row).some(val => 
+          val && String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
+    }
+    
+    let errorTitle = '';
+    let errorDescription = '';
+    
+    switch (fixingError) {
+      case 'email-format':
+        errorTitle = 'Email Format Correction';
+        errorDescription = 'Fix the invalid email addresses below. Valid email addresses should contain an @ symbol followed by a domain name.';
+        break;
+      case 'numeric-values':
+        errorTitle = 'Numeric Values Correction';
+        errorDescription = 'Fix the invalid numeric values below. Only numbers are allowed in these fields.';
+        break;
+      case 'phone-format':
+        errorTitle = 'Phone Format Correction';
+        errorDescription = 'Fix the invalid phone numbers below. Phone numbers should only contain digits, spaces, and characters like +()-';
+        break;
+      case 'header-uniqueness':
+        errorTitle = 'Duplicate Headers';
+        errorDescription = 'This file contains duplicate column headers, which can cause data mapping issues.';
+        break;
+      default:
+        errorTitle = 'Data View';
+        errorDescription = 'Examine the problematic data below:';
+    }
     
     return (
       <div className="mt-6 border rounded-lg overflow-hidden bg-white">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-gray-600" />
-            <h3 className="font-medium">Email Format Correction</h3>
+            <h3 className="font-medium">{errorTitle}</h3>
           </div>
           <Button 
             variant="outline" 
@@ -150,74 +260,100 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
               setFixingError(null);
             }}
           >
-            Close Editor
+            Close Spreadsheet
           </Button>
         </div>
         <div className="p-4">
           <p className="text-sm text-gray-600 mb-4">
-            Fix the invalid email addresses below. Valid email addresses should contain an @ symbol followed by a domain name.
+            {errorDescription}
           </p>
-          <UITable>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">#</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="w-[100px]">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {emailData.map((row, index) => {
-                const isValid = isEmailValid(row.email);
-                return (
-                  <TableRow key={index}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>{row.name || `Row ${index + 1}`}</TableCell>
-                    <TableCell>
-                      {!isValid ? (
-                        <input 
-                          type="text" 
-                          value={row.email || ''} 
-                          onChange={(e) => handleEmailChange(index, e.target.value)}
-                          className="w-full p-1 border border-red-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-purple/50"
-                        />
-                      ) : (
-                        row.email
+          
+          <div className="mb-4">
+            <Input
+              type="text"
+              placeholder="Search data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+          
+          <div className="border rounded overflow-auto max-h-96">
+            <UITable>
+              <TableHeader className="sticky top-0 bg-white">
+                <TableRow>
+                  <TableHead className="w-[50px]">#</TableHead>
+                  {relevantData.length > 0 && Object.keys(relevantData[0]).map((header, i) => (
+                    <TableHead key={i} className={header === fieldToEdit ? 'bg-blue-50' : ''}>
+                      {header}
+                      {header === fieldToEdit && isEditable && (
+                        <span className="text-xs text-blue-600 block">Editable</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "px-2 py-1 rounded-full text-xs font-medium",
-                        isValid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      )}>
-                        {isValid ? "Valid" : "Invalid"}
-                      </span>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredData.map((row, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    <TableCell>{rowIndex + 1}</TableCell>
+                    {Object.entries(row).map(([key, value], cellIndex) => (
+                      <TableCell 
+                        key={`${rowIndex}-${cellIndex}`}
+                        className={key === fieldToEdit ? 'bg-blue-50' : ''}
+                      >
+                        {isEditable && key === fieldToEdit ? (
+                          <Input
+                            type={fieldType}
+                            value={String(value) || ''}
+                            onChange={(e) => handleFieldChange(
+                              relevantData.findIndex(r => r === row), 
+                              key, 
+                              e.target.value
+                            )}
+                            className={cn(
+                              "w-full",
+                              !validationFunction(String(value)) ? "border-red-300" : "border-green-300"
+                            )}
+                          />
+                        ) : (
+                          <span className={cn(
+                            key === fieldToEdit && !validationFunction(String(value)) && "text-red-600"
+                          )}>
+                            {value !== null && value !== undefined ? String(value) : ''}
+                          </span>
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {filteredData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={relevantData.length > 0 ? Object.keys(relevantData[0]).length + 1 : 2} className="text-center py-4 text-gray-500">
+                      {searchTerm ? "No matching data found" : "No data available"}
                     </TableCell>
                   </TableRow>
-                );
-              })}
-              {emailData.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                    No email data available
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </UITable>
-          <div className="flex justify-end mt-4">
-            <Button 
-              size="sm"
-              onClick={handleApplyFixes}
-            >
-              Apply Fixes
-            </Button>
+                )}
+              </TableBody>
+            </UITable>
           </div>
+          
+          {isEditable && filteredData.length > 0 && (
+            <div className="flex justify-end mt-4">
+              <Button 
+                size="sm"
+                onClick={handleApplyFixes}
+                className="bg-brand-purple hover:bg-brand-purple/90"
+              >
+                Apply Fixes
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
   };
-
+  
   const renderHeaderUniquenessExample = () => {
     const headers = ['Customer ID', 'Name', 'Email', 'Email', 'Phone', 'Address'];
     const sampleData = [
@@ -325,7 +461,7 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
                           {showDuplicateHeaders ? 'Hide Issue' : 'View Issue'}
                         </Button>
                       )}
-                      {renderFixItButton(result)}
+                      {renderSpreadsheetButton(result)}
                     </div>
                     
                     {result.id === 'header-uniqueness' && showDuplicateHeaders && renderHeaderUniquenessExample()}
@@ -363,7 +499,7 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
           </>
         )}
 
-        {showSpreadsheetMode && fixingError === 'email-format' && renderEmailFormatSpreadsheet()}
+        {showSpreadsheetMode && renderSpreadsheetMode()}
       </div>
     </div>
   );
