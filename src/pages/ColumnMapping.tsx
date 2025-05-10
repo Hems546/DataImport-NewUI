@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,7 @@ export default function ColumnMapping() {
   const { toast } = useToast();
   const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [mockData, setMockData] = useState<any[]>([]);
   
   // Mock source columns (would come from context or state in a real application)
   const sourceColumns = [
@@ -51,13 +53,41 @@ export default function ColumnMapping() {
     .filter(field => field.required)
     .map(field => field.name);
   
+  useEffect(() => {
+    // Generate some mock data for the spreadsheet view
+    const generateMockData = () => {
+      return [
+        { 
+          "First Name": "John", 
+          "Last Name": "Doe", 
+          "Email Address": "john@example.com", 
+          "Company": "ACME Inc" 
+        },
+        { 
+          "First Name": "Jane", 
+          "Last Name": "Smith", 
+          "Email Address": "jane@example.com", 
+          "Company": "Globex Corp" 
+        },
+        { 
+          "First Name": "Bob", 
+          "Last Name": "Johnson", 
+          "Email Address": "bob@example.com", 
+          "Company": "Widget Co" 
+        }
+      ];
+    };
+    
+    setMockData(generateMockData());
+  }, []);
+
   const handleMappingSave = (mappings: ColumnMappingType[]) => {
     // Run validation on the mappings
     const fileValidationResults = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
     
     // Convert to ValidationStatusResult format
     const results: ValidationStatusResult[] = fileValidationResults.map(result => ({
-      id: result.id || result.validation_type,
+      id: result.id || result.validation_type === "Required Field Missing" ? "required-columns" : result.validation_type,
       name: result.validation_type, // Use validation_type as name (required)
       status: result.status,
       description: result.message,
@@ -192,6 +222,7 @@ export default function ColumnMapping() {
               <ValidationStatus
                 results={validationResults}
                 title="Column Mapping Validation Results"
+                data={mockData}
               />
             </div>
           )}

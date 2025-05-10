@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine, Eye } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine, Eye, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -90,6 +90,9 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
         return editedData.filter(row => 'age' in row && !isNumeric(row.age));
       case 'phone-format':
         return editedData.filter(row => 'phone' in row && !isValidPhone(row.phone || ''));
+      case 'required-columns':
+        // For required columns, return all data so it can be viewed
+        return editedData;
       default:
         return [];
     }
@@ -146,7 +149,13 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
 
   const renderSpreadsheetButton = (result: ValidationResult) => {
     // Only show button for errors that can be viewed in spreadsheet mode
-    const canShowSpreadsheet = ['email-format', 'numeric-values', 'phone-format', 'header-uniqueness'].includes(result.id);
+    const canShowSpreadsheet = [
+      'email-format', 
+      'numeric-values', 
+      'phone-format', 
+      'header-uniqueness', 
+      'required-columns'
+    ].includes(result.id);
     
     if (canShowSpreadsheet && result.status !== 'pass') {
       // For errors that can be fixed inline
@@ -189,7 +198,7 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
     // Determine what field to edit based on the error
     let fieldToEdit = '';
     let fieldType = 'text';
-    let validationFunction: (value: string) => boolean;
+    let validationFunction: (value: string) => boolean = () => true;
     
     switch (fixingError) {
       case 'email-format':
@@ -239,6 +248,10 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
       case 'header-uniqueness':
         errorTitle = 'Duplicate Headers';
         errorDescription = 'This file contains duplicate column headers, which can cause data mapping issues.';
+        break;
+      case 'required-columns':
+        errorTitle = 'Missing Required Columns';
+        errorDescription = 'The file is missing required columns. Review the data structure below:';
         break;
       default:
         errorTitle = 'Data View';
