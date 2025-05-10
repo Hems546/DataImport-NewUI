@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FileHistoryDropdown } from './FileHistoryDropdown';
+import InstructionModeToggle from './instructions/InstructionModeToggle';
 
 interface HeaderProps {
   currentPage?: string;
@@ -10,7 +11,7 @@ interface HeaderProps {
 
 const Header = ({ currentPage }: HeaderProps) => {
   return (
-    <header className="bg-gradient-to-r from-brand-dark-blue to-brand-purple text-white p-4">
+    <header className="bg-gradient-to-r from-fuchsia-600 via-purple-600 to-brand-purple text-white p-4">
       <div className="container mx-auto">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -43,6 +44,9 @@ const Header = ({ currentPage }: HeaderProps) => {
                 Admin
               </Button>
             </Link>
+            {currentPage === "admin" && (
+              <InstructionModeToggle />
+            )}
           </nav>
         </div>
       </div>

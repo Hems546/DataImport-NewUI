@@ -57,6 +57,7 @@ export default {
 					purple: '#6C5CE7',
 					'light-purple': '#A29BFE',
 					'dark-blue': '#1A1F2C',
+					'fuchsia': '#D946EF', // Added fuchsia color
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
