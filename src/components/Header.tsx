@@ -48,7 +48,9 @@ const Header = ({ currentPage }: HeaderProps) => {
               </Button>
             </Link>
             {(currentPage === "admin" || currentPage === "context") && (
-              <InstructionModeToggle />
+              <div className="ml-2">
+                <InstructionModeToggle />
+              </div>
             )}
           </nav>
         </div>

@@ -113,7 +113,7 @@ export const useInstructions = () => {
 };
 
 const InstructionManager: React.FC = () => {
-  const { instructionModeEnabled, toggleInstructionMode } = useInstructionMode();
+  const { instructionModeEnabled, instructionsVisible } = useInstructionMode();
   const { toast } = useToast();
   const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
   const location = useLocation();
@@ -142,10 +142,12 @@ const InstructionManager: React.FC = () => {
   const handleEditBoxClick = (id: string) => {
     // If instruction mode is not enabled, activate it
     if (!instructionModeEnabled) {
-      toggleInstructionMode();
+      // Don't toggle instruction mode here, just notify user they need to enable it
       toast({
-        description: "Instruction mode enabled for editing"
+        description: "Enable instruction mode to edit instructions",
+        variant: "default"
       });
+      return;
     }
     
     // Set the box as being edited
@@ -157,36 +159,24 @@ const InstructionManager: React.FC = () => {
     return null;
   }
 
-  // If not in edit mode, render boxes with edit icon that can be clicked
-  if (!instructionModeEnabled) {
-    return (
-      <>
-        {visibleInstructions.map(instruction => (
-          <InstructionBox
-            key={instruction.id}
-            id={instruction.id}
-            initialPosition={instruction.position}
-            initialText={instruction.text}
-            initialPointer={instruction.pointer}
-            onRemove={removeInstruction}
-            onUpdate={() => handleEditBoxClick(instruction.id)}
-            editMode={false}
-          />
-        ))}
-      </>
-    );
+  // If instructions should not be visible, don't render anything
+  if (!instructionsVisible) {
+    return null;
   }
 
+  // Show instructions but in different modes depending on instructionModeEnabled
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
-        <Button 
-          onClick={handleAddInstruction}
-          className="rounded-full w-12 h-12 p-0 bg-brand-purple hover:bg-brand-purple/90 shadow-lg"
-        >
-          <PlusCircle size={24} />
-        </Button>
-      </div>
+      {instructionModeEnabled && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+          <Button 
+            onClick={handleAddInstruction}
+            className="rounded-full w-12 h-12 p-0 bg-brand-purple hover:bg-brand-purple/90 shadow-lg"
+          >
+            <PlusCircle size={24} />
+          </Button>
+        </div>
+      )}
       
       {visibleInstructions.map(instruction => (
         <InstructionBox
@@ -196,8 +186,8 @@ const InstructionManager: React.FC = () => {
           initialText={instruction.text}
           initialPointer={instruction.pointer}
           onRemove={removeInstruction}
-          onUpdate={updateInstruction}
-          editMode={true}
+          onUpdate={instructionModeEnabled ? updateInstruction : handleEditBoxClick}
+          editMode={instructionModeEnabled}
         />
       ))}
     </>

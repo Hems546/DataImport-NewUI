@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -12,11 +13,13 @@ import InstructionManagementTable from "@/components/admin/InstructionManagement
 import { generateCodeBundle } from "@/utils/codeExporter";
 import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
+import { useInstructionMode } from "@/contexts/InstructionContext";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
   const [templates, setTemplates] = useState([...systemTemplates]);
   const { toast } = useToast();
+  const { instructionsVisible, toggleInstructionsVisibility } = useInstructionMode();
 
   const handleUpdateTemplate = (index: number, updatedTemplate: any) => {
     const newTemplates = [...templates];
@@ -155,18 +158,39 @@ export default function AdminDashboard() {
                       When enabled, you can add draggable instruction boxes anywhere in the application. 
                       These boxes can be positioned and configured to provide guidance to developers.
                     </p>
-                    <div className="flex items-center gap-3">
-                      <InstructionModeToggle />
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <InstructionModeToggle />
+                      </div>
+                      <div className="flex items-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={toggleInstructionsVisibility}
+                          className="flex items-center gap-2"
+                        >
+                          {instructionsVisible ? (
+                            <>
+                              <EyeOff size={16} /> Hide All Instructions
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={16} /> Show All Instructions
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="border-t pt-4">
                     <h3 className="text-lg font-medium mb-2">How to Use</h3>
                     <ol className="list-decimal pl-5 space-y-2 text-gray-600">
-                      <li>Enable Instruction Mode using the toggle above</li>
+                      <li>Enable Instruction Edit Mode using the toggle above</li>
                       <li>Click the "+" button that appears in the bottom-right corner of any page</li>
                       <li>Drag the instruction box to position it where needed</li>
                       <li>Edit the text by clicking the pencil icon</li>
                       <li>Optionally draw a pointer to highlight specific UI elements</li>
+                      <li>Use the Show/Hide toggle to control instruction visibility without disabling edit mode</li>
                     </ol>
                   </div>
                   <div className="border-t pt-4">
