@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2 } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -38,14 +38,22 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       <Header currentPage="admin" />
       <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex items-center mb-8">
-          <Link to="/">
-            <Button variant="outline" className="mr-4">
-              <ChevronLeft className="w-5 h-5 mr-2" />
-              Back to Welcome
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <Link to="/">
+              <Button variant="outline" className="mr-4">
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Back to Welcome
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          </div>
+          <Link to="/context">
+            <Button variant="outline" className="flex items-center gap-2">
+              <BookText className="w-5 h-5" />
+              Application Context
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         </div>
         
         <div className="w-full bg-gray-50 rounded-lg p-4 mb-8">

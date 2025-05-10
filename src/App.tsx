@@ -20,6 +20,7 @@ import ImportPush from "./pages/ImportPush";
 import AdminDashboard from "./pages/AdminDashboard";
 import FileHistoryDetails from "./pages/FileHistoryDetails"; 
 import FileHistory from "./pages/FileHistory";
+import ContextDocument from "./pages/ContextDocument";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/import-wizard/review" element={<FinalReview />} />
             <Route path="/import-wizard/import" element={<ImportPush />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/context" element={<ContextDocument />} />
             <Route path="/file-history" element={<FileHistory />} />
             <Route path="/file-history/:fileId" element={<FileHistoryDetails />} />
             <Route path="*" element={<NotFound />} />
