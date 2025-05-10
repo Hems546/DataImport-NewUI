@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { useForm } from "react-hook-form";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft, Save } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 interface TemplateField {
@@ -24,7 +24,7 @@ interface EditTemplateDialogProps {
     title: string;
     description: string;
     fields: TemplateField[];
-    maxRowCount?: number; // Added maxRowCount as an optional property
+    maxRowCount?: number;
   };
   onSave: (template: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => void;
 }
@@ -37,7 +37,7 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
       title: template.title,
       description: template.description,
       fields: template.fields,
-      maxRowCount: template.maxRowCount || 100000, // Default to 100,000 if not provided
+      maxRowCount: template.maxRowCount || 100000,
     },
   });
 
@@ -67,7 +67,7 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Template</DialogTitle>
         </DialogHeader>
@@ -131,83 +131,85 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
                 </Button>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Field Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Required</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {form.watch('fields').map((field: TemplateField, index: number) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.name`}
-                          render={({ field }) => (
-                            <Input {...field} className="w-full" />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.type`}
-                          render={({ field }) => (
-                            <select
-                              className="w-full h-10 px-3 border rounded-md"
-                              {...field}
-                            >
-                              <option value="string">String</option>
-                              <option value="number">Number</option>
-                              <option value="date">Date</option>
-                              <option value="email">Email</option>
-                              <option value="phone">Phone</option>
-                              <option value="boolean">Boolean</option>
-                            </select>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.required`}
-                          render={({ field }) => (
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={field.onChange}
-                              className="h-4 w-4"
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`fields.${index}.description`}
-                          render={({ field }) => (
-                            <Input {...field} className="w-full" />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <button
-                          type="button"
-                          className="text-gray-500 hover:text-gray-700"
-                          onClick={() => removeField(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </TableCell>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Field Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Required</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {form.watch('fields').map((field: TemplateField, index: number) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`fields.${index}.name`}
+                            render={({ field }) => (
+                              <Input {...field} className="w-full" />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`fields.${index}.type`}
+                            render={({ field }) => (
+                              <select
+                                className="w-full h-10 px-3 border rounded-md"
+                                {...field}
+                              >
+                                <option value="string">String</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="email">Email</option>
+                                <option value="phone">Phone</option>
+                                <option value="boolean">Boolean</option>
+                              </select>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`fields.${index}.required`}
+                            render={({ field }) => (
+                              <input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={field.onChange}
+                                className="h-4 w-4"
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`fields.${index}.description`}
+                            render={({ field }) => (
+                              <Input {...field} className="w-full" />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="text-gray-500 hover:text-gray-700"
+                            onClick={() => removeField(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
 
             <DialogFooter className="flex justify-between items-center">
@@ -215,15 +217,19 @@ export function EditTemplateDialog({ open, onOpenChange, template, onSave }: Edi
                 type="button" 
                 variant="outline" 
                 onClick={handleBack}
+                className="gap-2"
               >
-                <ChevronLeft className="mr-2 h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" />
                 Back
               </Button>
               <div className="flex space-x-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" className="gap-2">
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </Button>
               </div>
             </DialogFooter>
           </form>

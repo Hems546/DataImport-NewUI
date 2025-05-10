@@ -16,7 +16,19 @@ import IndexingFiles from "@/components/admin/IndexingFiles";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
+  const [templates, setTemplates] = useState([...systemTemplates]);
   const { toast } = useToast();
+
+  const handleUpdateTemplate = (index: number, updatedTemplate: any) => {
+    const newTemplates = [...templates];
+    newTemplates[index] = updatedTemplate;
+    setTemplates(newTemplates);
+    
+    toast({
+      title: "Template Updated",
+      description: `${updatedTemplate.title} template has been updated successfully.`,
+    });
+  };
 
   const handleExportCode = async () => {
     try {
@@ -111,13 +123,14 @@ export default function AdminDashboard() {
                   <div className="mt-6">
                     <h3 className="text-xl font-bold mb-6">System-defined Templates</h3>
                     <div className="grid grid-cols-1 gap-4">
-                      {systemTemplates.map((template) => (
+                      {templates.map((template, index) => (
                         <TemplateCard
                           key={template.title}
                           title={template.title}
                           description={template.description}
                           fields={template.fields}
                           maxRowCount={template.maxRowCount}
+                          onUpdate={(updatedTemplate) => handleUpdateTemplate(index, updatedTemplate)}
                         />
                       ))}
                     </div>

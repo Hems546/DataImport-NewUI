@@ -16,7 +16,7 @@ interface TemplateCardProps {
   title: string;
   description: string;
   fields: TemplateField[];
-  maxRowCount?: number; // Added maxRowCount as an optional prop
+  maxRowCount?: number;
   onUpdate?: (template: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => void;
 }
 
@@ -31,6 +31,7 @@ export default function TemplateCard({ title, description, fields, maxRowCount, 
 
   const handleSave = (updatedTemplate: { title: string; description: string; fields: TemplateField[]; maxRowCount?: number }) => {
     onUpdate?.(updatedTemplate);
+    setIsEditDialogOpen(false); // Close the dialog when saved
   };
 
   return (
