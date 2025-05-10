@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
-import { FileText, Table, CheckCircle } from 'lucide-react';
+import { FileText, Table, CheckCircle, History } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -21,9 +21,11 @@ const Index = () => {
               <FileText className="mr-2" /> Start New Import
             </Button>
           </Link>
-          <Button variant="outline" className="ml-4 px-6 py-3 text-lg">
-            View Import History
-          </Button>
+          <Link to="/file-history">
+            <Button variant="outline" className="ml-4 px-6 py-3 text-lg">
+              <History className="mr-2" /> View Import History
+            </Button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-3 gap-8 mt-12">
