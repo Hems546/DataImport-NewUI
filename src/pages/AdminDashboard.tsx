@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -10,9 +10,29 @@ import Header from "@/components/Header";
 import { systemTemplates } from "@/data/systemTemplates";
 import InstructionModeToggle from "@/components/instructions/InstructionModeToggle";
 import InstructionManagementTable from "@/components/admin/InstructionManagementTable";
+import { generateCodeBundle } from "@/utils/codeExporter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
+  const { toast } = useToast();
+
+  const handleExportCode = async () => {
+    try {
+      await generateCodeBundle();
+      toast({
+        title: "Export Successful",
+        description: "The instruction tool code has been exported successfully.",
+      });
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast({
+        title: "Export Failed",
+        description: "There was an error exporting the instruction tool code.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -127,6 +147,21 @@ export default function AdminDashboard() {
                       <li>Edit the text by clicking the pencil icon</li>
                       <li>Optionally draw a pointer to highlight specific UI elements</li>
                     </ol>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium">Export Tool</h3>
+                      <Button 
+                        onClick={handleExportCode}
+                        className="gap-2"
+                        variant="outline"
+                      >
+                        <FileCode2 size={16} /> Export Code
+                      </Button>
+                    </div>
+                    <p className="text-gray-600 mt-2">
+                      Export the code for this instruction tool to use in another project.
+                    </p>
                   </div>
                 </div>
               </div>
