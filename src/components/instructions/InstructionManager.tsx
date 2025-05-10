@@ -19,6 +19,7 @@ const InstructionManager: React.FC = () => {
   const { instructionModeEnabled, toggleInstructionMode } = useInstructionMode();
   const { toast } = useToast();
   const [instructions, setInstructions] = useState<Instruction[]>([]);
+  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
 
   // Load instructions from localStorage when component mounts
   useEffect(() => {
@@ -65,6 +66,11 @@ const InstructionManager: React.FC = () => {
     toast({
       description: "Instruction box removed"
     });
+
+    // Reset editing state if the box being edited was removed
+    if (editingBoxId === id) {
+      setEditingBoxId(null);
+    }
   };
 
   const handleUpdateInstruction = (id: string, updates: Partial<Instruction>) => {
@@ -77,8 +83,21 @@ const InstructionManager: React.FC = () => {
     );
   };
 
+  const handleEditBoxClick = (id: string) => {
+    // If instruction mode is not enabled, activate it
+    if (!instructionModeEnabled) {
+      toggleInstructionMode();
+      toast({
+        description: "Instruction mode enabled for editing"
+      });
+    }
+    
+    // Set the box as being edited
+    setEditingBoxId(id);
+  };
+
+  // If not in edit mode, render boxes with edit icon that can be clicked
   if (!instructionModeEnabled) {
-    // Only render boxes without controls when not in edit mode
     return (
       <>
         {instructions.map(instruction => (
@@ -89,7 +108,7 @@ const InstructionManager: React.FC = () => {
             initialText={instruction.text}
             initialPointer={instruction.pointer}
             onRemove={handleRemoveInstruction}
-            onUpdate={handleUpdateInstruction}
+            onUpdate={() => handleEditBoxClick(instruction.id)}
             editMode={false}
           />
         ))}

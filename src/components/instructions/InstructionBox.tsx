@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, GripVertical, Pencil } from 'lucide-react';
+import { X, GripVertical, Pencil, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +43,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [pointer, setPointer] = useState<PointerPosition>(initialPointer);
   const [isDrawingPointer, setIsDrawingPointer] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   
   const boxRef = useRef<HTMLDivElement>(null);
   
@@ -113,8 +114,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
         
         setIsDrawingPointer(false);
         toast({
-          title: "Pointer created",
-          description: "You can now see your instruction pointer"
+          description: "Pointer created"
         });
       }
     };
@@ -179,6 +179,8 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
         left: position.x,
         top: position.y
       }}
+      onMouseEnter={() => setShowControls(true)}
+      onMouseLeave={() => setShowControls(false)}
     >
       <div 
         className={`flex items-center justify-between p-2 bg-purple-100 ${editMode ? 'cursor-move' : ''}`}
@@ -207,6 +209,24 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
               <X size={14} />
             </Button>
           </div>
+        )}
+        
+        {!editMode && showControls && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => {
+              // Ask the InstructionManager to toggle edit mode
+              if (onUpdate) {
+                toast({
+                  description: "Edit mode enabled",
+                });
+              }
+            }}
+          >
+            <Edit size={14} />
+          </Button>
         )}
       </div>
       
