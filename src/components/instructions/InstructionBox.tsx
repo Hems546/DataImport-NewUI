@@ -195,7 +195,9 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
-    if (isEditing) {
+    if (isEditing && onUpdate) {
+      // Save changes when exiting edit mode
+      onUpdate(id, { text });
       toast({
         description: "Instructions saved"
       });
@@ -229,6 +231,17 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
     // Clear the placeholder text when clicked if it's the default text
     if (text === 'Add your instructions here...') {
       setText('');
+    }
+  };
+
+  // Handle clicking on the edit button when in view mode
+  const handleEnableEditMode = () => {
+    if (!editMode && onUpdate) {
+      // Tell the parent component to enable edit mode for this instruction
+      onUpdate(id);
+      toast({
+        description: "Edit mode enabled",
+      });
     }
   };
 
@@ -277,14 +290,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
             variant="ghost" 
             size="sm"
             className="h-6 w-6 p-0"
-            onClick={() => {
-              // Ask the InstructionManager to toggle edit mode
-              if (onUpdate) {
-                toast({
-                  description: "Edit mode enabled",
-                });
-              }
-            }}
+            onClick={handleEnableEditMode}
           >
             <Edit size={14} />
           </Button>
