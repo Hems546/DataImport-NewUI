@@ -80,8 +80,21 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
       }
     };
     
-    const handlePointerMouseUp = () => {
+    const handlePointerMouseUp = (e: MouseEvent) => {
       if (isDrawingPointer) {
+        // Ensure the pointer position is captured on mouse up
+        if (boxRef.current) {
+          const boxRect = boxRef.current.getBoundingClientRect();
+          const boxCenterX = boxRect.left + boxRect.width / 2;
+          const boxCenterY = boxRect.top + boxRect.height / 2;
+          
+          setPointer({
+            x: e.clientX - boxCenterX,
+            y: e.clientY - boxCenterY,
+            active: true,
+          });
+        }
+        
         setIsDrawingPointer(false);
         toast({
           title: "Pointer created",
@@ -124,12 +137,15 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   const handleDrawPointer = () => {
     setIsDrawingPointer(true);
     toast({
-      description: "Click and drag to draw a pointer"
+      description: "Click anywhere on screen and drag to create a pointer"
     });
   };
 
   const handleRemovePointer = () => {
     setPointer({ x: 0, y: 0, active: false });
+    toast({
+      description: "Pointer removed"
+    });
   };
 
   return (
@@ -206,37 +222,38 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
       
       {/* Pointer line */}
       {pointer.active && (
-        <svg
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style={{
-            width: '100vw',
-            height: '100vh',
-            transform: 'translateX(-50%) translateY(-50%)',
-            zIndex: -1
-          }}
-        >
-          <defs>
-            <marker
-              id={`arrowhead-${id}`}
-              markerWidth="10"
-              markerHeight="7"
-              refX="0"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#9b87f5" />
-            </marker>
-          </defs>
-          <line
-            x1="50%"
-            y1="50%"
-            x2={`calc(50% + ${pointer.x}px)`}
-            y2={`calc(50% + ${pointer.y}px)`}
-            stroke="#9b87f5"
-            strokeWidth="2"
-            markerEnd={`url(#arrowhead-${id})`}
-          />
-        </svg>
+        <div className="fixed top-0 left-0 w-full h-full pointer-events-none" style={{zIndex: -1}}>
+          <svg
+            width="100%"
+            height="100%"
+            style={{
+              position: 'absolute',
+              overflow: 'visible'
+            }}
+          >
+            <defs>
+              <marker
+                id={`arrowhead-${id}`}
+                markerWidth="10"
+                markerHeight="7"
+                refX="9"
+                refY="3.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3.5, 0 7" fill="#9b87f5" />
+              </marker>
+            </defs>
+            <line
+              x1={position.x + boxRef.current?.clientWidth / 2 || 0}
+              y1={position.y + boxRef.current?.clientHeight / 2 || 0}
+              x2={position.x + boxRef.current?.clientWidth / 2 + pointer.x || 0}
+              y2={position.y + boxRef.current?.clientHeight / 2 + pointer.y || 0}
+              stroke="#9b87f5"
+              strokeWidth="2"
+              markerEnd={`url(#arrowhead-${id})`}
+            />
+          </svg>
+        </div>
       )}
     </div>
   );
