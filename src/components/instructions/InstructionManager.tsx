@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import InstructionBox from './InstructionBox';
@@ -20,6 +20,7 @@ export const STORAGE_KEY = 'instruction-boxes';
 
 export const useInstructions = () => {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
+  const [loaded, setLoaded] = useState(false);
   
   // Load instructions from localStorage when component mounts
   useEffect(() => {
@@ -31,16 +32,18 @@ export const useInstructions = () => {
         console.error('Failed to parse saved instructions', err);
       }
     }
+    setLoaded(true);
   }, []);
   
   // Save instructions to localStorage whenever they change
+  // But only after initial load to prevent unnecessary operations
   useEffect(() => {
-    if (instructions.length > 0) {
+    if (loaded) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(instructions));
     }
-  }, [instructions]);
+  }, [instructions, loaded]);
   
-  const addInstruction = (pagePath: string) => {
+  const addInstruction = useCallback((pagePath: string) => {
     const newInstruction = {
       id: `instruction-${Date.now()}`,
       position: { x: 100, y: 100 },
@@ -51,9 +54,9 @@ export const useInstructions = () => {
     
     setInstructions(prev => [...prev, newInstruction]);
     return newInstruction;
-  };
+  }, []);
   
-  const updateInstruction = (id: string, updates: Partial<Instruction>) => {
+  const updateInstruction = useCallback((id: string, updates: Partial<Instruction>) => {
     setInstructions(prev => 
       prev.map(instruction => 
         instruction.id === id 
@@ -61,19 +64,22 @@ export const useInstructions = () => {
           : instruction
       )
     );
-  };
+  }, []);
   
-  const removeInstruction = (id: string) => {
-    const updatedInstructions = instructions.filter(instruction => instruction.id !== id);
-    setInstructions(updatedInstructions);
-    
-    // If we removed the last instruction, clear localStorage
-    if (updatedInstructions.length === 0) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  };
+  const removeInstruction = useCallback((id: string) => {
+    setInstructions(prev => {
+      const updatedInstructions = prev.filter(instruction => instruction.id !== id);
+      
+      // If we removed the last instruction, clear localStorage
+      if (updatedInstructions.length === 0) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      
+      return updatedInstructions;
+    });
+  }, []);
   
-  const toggleInstructionActive = (id: string) => {
+  const toggleInstructionActive = useCallback((id: string) => {
     setInstructions(prev => 
       prev.map(instruction => 
         instruction.id === id 
@@ -81,14 +87,15 @@ export const useInstructions = () => {
           : instruction
       )
     );
-  };
+  }, []);
   
   return {
     instructions,
     addInstruction,
     updateInstruction,
     removeInstruction,
-    toggleInstructionActive
+    toggleInstructionActive,
+    loaded
   };
 };
 
@@ -103,7 +110,8 @@ const InstructionManager: React.FC = () => {
     instructions, 
     addInstruction, 
     updateInstruction, 
-    removeInstruction 
+    removeInstruction,
+    loaded
   } = useInstructions();
 
   // Filter instructions based on current page path and active status
@@ -138,6 +146,11 @@ const InstructionManager: React.FC = () => {
     // Set the box as being edited
     setEditingBoxId(id);
   };
+
+  // Don't render until instructions are loaded from localStorage
+  if (!loaded) {
+    return null;
+  }
 
   // If not in edit mode, render boxes with edit icon that can be clicked
   if (!instructionModeEnabled) {

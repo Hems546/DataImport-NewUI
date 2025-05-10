@@ -4,6 +4,7 @@ import { X, GripVertical, Pencil, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Instruction } from './InstructionManager';
 
 interface Position {
   x: number;
@@ -22,7 +23,7 @@ interface InstructionBoxProps {
   initialText?: string;
   initialPointer?: PointerPosition;
   onRemove: (id: string) => void;
-  onUpdate?: (id: string, updates: any) => void;
+  onUpdate?: (id: string, updates: Partial<Instruction>) => void;
   editMode?: boolean;
 }
 
@@ -45,12 +46,45 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   const [isDrawingPointer, setIsDrawingPointer] = useState(false);
   const [showControls, setShowControls] = useState(false);
   
+  // Track if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+  // Track previous state values to prevent unnecessary updates
+  const prevStateRef = useRef({ position, text, pointer });
+  
   const boxRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  // Notify parent component of updates to persist
+  // Cleanup on unmount
   useEffect(() => {
-    if (onUpdate) {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  
+  // Notify parent component of updates to persist, but only when values actually change
+  useEffect(() => {
+    // Skip the initial render
+    if (!onUpdate) return;
+    
+    const prevState = prevStateRef.current;
+    
+    // Only update if something actually changed
+    const positionChanged = 
+      position.x !== prevState.position.x || 
+      position.y !== prevState.position.y;
+      
+    const textChanged = text !== prevState.text;
+    
+    const pointerChanged = 
+      pointer.x !== prevState.pointer.x || 
+      pointer.y !== prevState.pointer.y || 
+      pointer.active !== prevState.pointer.active;
+    
+    if (positionChanged || textChanged || pointerChanged) {
+      // Update the reference to current values
+      prevStateRef.current = { position, text, pointer };
+      
+      // Call the update function
       onUpdate(id, { position, text, pointer });
     }
   }, [id, position, text, pointer, onUpdate]);
@@ -58,7 +92,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   // Handle dragging
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
+      if (isDragging && isMounted.current) {
         const newPosition = {
           x: e.clientX - dragOffset.x,
           y: e.clientY - dragOffset.y,
@@ -68,7 +102,9 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
     };
     
     const handleMouseUp = () => {
-      setIsDragging(false);
+      if (isMounted.current) {
+        setIsDragging(false);
+      }
     };
     
     if (isDragging) {
@@ -85,7 +121,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   // Set up pointer drawing
   useEffect(() => {
     const handlePointerMouseMove = (e: MouseEvent) => {
-      if (isDrawingPointer && boxRef.current) {
+      if (isDrawingPointer && boxRef.current && isMounted.current) {
         const boxRect = boxRef.current.getBoundingClientRect();
         const boxCenterX = boxRect.left + boxRect.width / 2;
         const boxCenterY = boxRect.top + boxRect.height / 2;
@@ -99,7 +135,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
     };
     
     const handlePointerMouseUp = (e: MouseEvent) => {
-      if (isDrawingPointer) {
+      if (isDrawingPointer && isMounted.current) {
         // Ensure the pointer position is captured on mouse up
         if (boxRef.current) {
           const boxRect = boxRef.current.getBoundingClientRect();
