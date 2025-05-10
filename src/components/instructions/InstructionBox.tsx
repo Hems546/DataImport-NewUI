@@ -19,33 +19,49 @@ interface PointerPosition {
 interface InstructionBoxProps {
   id: string;
   initialPosition?: Position;
+  initialText?: string;
+  initialPointer?: PointerPosition;
   onRemove: (id: string) => void;
+  onUpdate?: (id: string, updates: any) => void;
+  editMode?: boolean;
 }
 
 const InstructionBox: React.FC<InstructionBoxProps> = ({
   id,
   initialPosition = { x: 100, y: 100 },
+  initialText = 'Add your instructions here...',
+  initialPointer = { x: 0, y: 0, active: false },
   onRemove,
+  onUpdate,
+  editMode = true,
 }) => {
   const { toast } = useToast();
   const [position, setPosition] = useState<Position>(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [text, setText] = useState('Add your instructions here...');
+  const [text, setText] = useState(initialText);
   const [isEditing, setIsEditing] = useState(false);
-  const [pointer, setPointer] = useState<PointerPosition>({ x: 0, y: 0, active: false });
+  const [pointer, setPointer] = useState<PointerPosition>(initialPointer);
   const [isDrawingPointer, setIsDrawingPointer] = useState(false);
   
   const boxRef = useRef<HTMLDivElement>(null);
+  
+  // Notify parent component of updates to persist
+  useEffect(() => {
+    if (onUpdate) {
+      onUpdate(id, { position, text, pointer });
+    }
+  }, [id, position, text, pointer, onUpdate]);
   
   // Handle dragging
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        setPosition({
+        const newPosition = {
           x: e.clientX - dragOffset.x,
           y: e.clientY - dragOffset.y,
-        });
+        };
+        setPosition(newPosition);
       }
     };
     
@@ -115,6 +131,9 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
   }, [isDrawingPointer, toast]);
   
   const handleDragStart = (e: React.MouseEvent) => {
+    // Only allow dragging in edit mode
+    if (!editMode) return;
+    
     if (boxRef.current) {
       const boxRect = boxRef.current.getBoundingClientRect();
       setDragOffset({
@@ -148,6 +167,10 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
     });
   };
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+  };
+
   return (
     <div
       ref={boxRef}
@@ -158,38 +181,40 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
       }}
     >
       <div 
-        className="flex items-center justify-between p-2 bg-purple-100 cursor-move"
+        className={`flex items-center justify-between p-2 bg-purple-100 ${editMode ? 'cursor-move' : ''}`}
         onMouseDown={handleDragStart}
       >
         <div className="flex items-center">
-          <GripVertical size={16} className="text-gray-600 mr-2" />
+          {editMode && <GripVertical size={16} className="text-gray-600 mr-2" />}
           <span className="text-sm font-medium text-gray-800">Instructions</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={handleEditToggle}
-          >
-            <Pencil size={14} />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-            onClick={() => onRemove(id)}
-          >
-            <X size={14} />
-          </Button>
-        </div>
+        {editMode && (
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={handleEditToggle}
+            >
+              <Pencil size={14} />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+              onClick={() => onRemove(id)}
+            >
+              <X size={14} />
+            </Button>
+          </div>
+        )}
       </div>
       
       <div className="p-3 bg-white">
-        {isEditing ? (
+        {isEditing && editMode ? (
           <Textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             className="min-h-[80px] text-sm"
             placeholder="Add your instructions here..."
           />
@@ -197,27 +222,29 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
           <p className="text-sm whitespace-pre-line">{text}</p>
         )}
         
-        <div className="mt-2 flex justify-between">
-          {pointer.active ? (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="text-xs h-7"
-              onClick={handleRemovePointer}
-            >
-              Remove Pointer
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="text-xs h-7"
-              onClick={handleDrawPointer}
-            >
-              Draw Pointer
-            </Button>
-          )}
-        </div>
+        {editMode && (
+          <div className="mt-2 flex justify-between">
+            {pointer.active ? (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-xs h-7"
+                onClick={handleRemovePointer}
+              >
+                Remove Pointer
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-xs h-7"
+                onClick={handleDrawPointer}
+              >
+                Draw Pointer
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Pointer line */}
