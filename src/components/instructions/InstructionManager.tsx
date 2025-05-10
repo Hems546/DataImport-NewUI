@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import InstructionBox from './InstructionBox';
 import { useInstructionMode } from '@/contexts/InstructionContext';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'react-router-dom';
 
 interface Instruction {
   id: string;
   position: { x: number; y: number };
   text?: string;
   pointer?: { x: number; y: number; active: boolean };
+  pagePath?: string; // Store which page this instruction belongs to
 }
 
 const STORAGE_KEY = 'instruction-boxes';
@@ -20,6 +22,8 @@ const InstructionManager: React.FC = () => {
   const { toast } = useToast();
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   // Load instructions from localStorage when component mounts
   useEffect(() => {
@@ -40,11 +44,17 @@ const InstructionManager: React.FC = () => {
     }
   }, [instructions]);
 
+  // Filter instructions based on current page path
+  const visibleInstructions = instructions.filter(instruction => 
+    instruction.pagePath === currentPath
+  );
+
   const handleAddInstruction = () => {
     const newInstruction = {
       id: `instruction-${Date.now()}`,
       position: { x: 100, y: 100 },
-      text: 'Add your instructions here...'
+      text: 'Add your instructions here...',
+      pagePath: currentPath // Store the current path when adding a new instruction
     };
     
     setInstructions([...instructions, newInstruction]);
@@ -100,7 +110,7 @@ const InstructionManager: React.FC = () => {
   if (!instructionModeEnabled) {
     return (
       <>
-        {instructions.map(instruction => (
+        {visibleInstructions.map(instruction => (
           <InstructionBox
             key={instruction.id}
             id={instruction.id}
@@ -127,7 +137,7 @@ const InstructionManager: React.FC = () => {
         </Button>
       </div>
       
-      {instructions.map(instruction => (
+      {visibleInstructions.map(instruction => (
         <InstructionBox
           key={instruction.id}
           id={instruction.id}
