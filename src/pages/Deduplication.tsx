@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import NormalizationEditor, { NormalizationIssue } from "@/components/NormalizationEditor";
 import { 
   FileCheck,
   ArrowRight,
@@ -10,7 +11,9 @@ import {
   FileBox,
   ClipboardCheck,
   ArrowUpCircle,
-  RotateCcw
+  RotateCcw,
+  Search,
+  UserRoundX
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -32,13 +35,26 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+interface DuplicateRecord {
+  id: number;
+  email: string;
+  name: string;
+  phone: string;
+  company: string;
+  [key: string]: any;
+}
 
 export default function Deduplication() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [deduplicationResults, setDeduplicationResults] = useState<ValidationResult[]>([]);
-  const [duplicateRecords, setDuplicateRecords] = useState<any[]>([]);
+  const [duplicateRecords, setDuplicateRecords] = useState<DuplicateRecord[][]>([]);
   const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFixer, setShowFixer] = useState(false);
+  const [normalizationIssues, setNormalizationIssues] = useState<NormalizationIssue[]>([]);
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
@@ -66,6 +82,34 @@ export default function Deduplication() {
         ];
         
         setDuplicateRecords(sampleDuplicates);
+
+        // Convert duplicate records to normalization issues format for the editor
+        const issues: NormalizationIssue[] = [];
+        let issueId = 0;
+        
+        sampleDuplicates.forEach((group, groupIndex) => {
+          // Use the first record as the base
+          const baseRecord = group[0];
+          
+          // For each other record in the group, create normalization issues for differing fields
+          group.slice(1).forEach((record) => {
+            Object.keys(record).forEach(key => {
+              if (key !== 'id' && baseRecord[key] !== record[key]) {
+                issues.push({
+                  id: `issue-${issueId++}`,
+                  rowIndex: record.id,
+                  fieldName: key,
+                  originalValue: record[key],
+                  suggestedValue: baseRecord[key],
+                  type: key === 'email' ? 'email' : key === 'phone' ? 'phone' : key === 'name' ? 'name' : 'other',
+                  groupId: `group-${groupIndex}`
+                });
+              }
+            });
+          });
+        });
+        
+        setNormalizationIssues(issues);
         
         // Simulated deduplication checks - in production these would come from your backend
         const results: ValidationResult[] = [
@@ -78,7 +122,8 @@ export default function Deduplication() {
             technical_details: [
               'Found 12 exact duplicate records based on email address',
               'Recommend removing 8 duplicate entries',
-              'Action required: Review and confirm duplicate removal'
+              'Action required: Review and confirm duplicate removal',
+              '<button-action id="exact-duplicates" action="view">Fix Duplicates</button-action>'
             ]
           },
           {
@@ -186,17 +231,56 @@ export default function Deduplication() {
     setSelectedDuplicateGroup(groupIndex === selectedDuplicateGroup ? null : groupIndex);
   };
   
+  const handleAction = (id: string, action: string) => {
+    if (id === 'exact-duplicates' && action === 'view') {
+      setShowFixer(true);
+    }
+  };
+  
+  const handleSaveNormalization = (updatedIssues: NormalizationIssue[]) => {
+    setNormalizationIssues(updatedIssues);
+    
+    // In a real application, you would apply these changes to your data model
+    // For now, we'll just close the editor
+    toast({
+      title: "Duplicate resolutions applied",
+      description: "Your changes have been saved successfully."
+    });
+    
+    setShowFixer(false);
+  };
+  
+  // Filter duplicate groups based on search term if provided
+  const filteredDuplicateGroups = searchTerm 
+    ? duplicateRecords.filter(group => 
+        group.some(record => 
+          Object.values(record).some(value => 
+            String(value).toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        )
+      )
+    : duplicateRecords;
+  
   const renderDuplicateRecordsTable = () => {
     if (duplicateRecords.length === 0) return null;
     
     return (
       <Card className="mt-6">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Duplicate Record Groups</CardTitle>
+          <div className="flex items-center space-x-2">
+            <Search className="text-gray-400" size={18} />
+            <Input
+              placeholder="Search duplicates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {duplicateRecords.map((group, groupIndex) => (
+            {filteredDuplicateGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="border rounded-lg overflow-hidden">
                 <div 
                   className="p-3 bg-gray-50 border-b flex justify-between items-center cursor-pointer"
@@ -242,7 +326,8 @@ export default function Deduplication() {
                           <TableCell>{record.company}</TableCell>
                           <TableCell>
                             {index !== 0 && (
-                              <Button size="sm" variant="ghost">
+                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
+                                <UserRoundX className="h-4 w-4 mr-1" />
                                 Discard
                               </Button>
                             )}
@@ -257,7 +342,13 @@ export default function Deduplication() {
             
             <div className="flex justify-end space-x-2 mt-4">
               <Button variant="outline">Discard All Duplicates</Button>
-              <Button variant="default">Apply Selected Resolutions</Button>
+              <Button 
+                variant="default"
+                className="bg-brand-purple hover:bg-brand-purple/90"
+                onClick={() => setShowFixer(true)}
+              >
+                Fix Duplicate Issues
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -344,12 +435,35 @@ export default function Deduplication() {
               </div>
             ) : (
               <>
-                <ValidationStatus 
-                  results={deduplicationResults}
-                  title="Deduplication Results"
-                />
-                
-                {renderDuplicateRecordsTable()}
+                {showFixer ? (
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Duplicate Record Resolution</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowFixer(false)}
+                      >
+                        Back to Summary
+                      </Button>
+                    </div>
+                    <NormalizationEditor 
+                      issues={normalizationIssues}
+                      onSave={handleSaveNormalization}
+                      issueType="duplicate"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <ValidationStatus 
+                      results={deduplicationResults}
+                      title="Deduplication Results"
+                      onAction={handleAction}
+                    />
+                    
+                    {renderDuplicateRecordsTable()}
+                  </>
+                )}
               </>
             )}
           </div>
