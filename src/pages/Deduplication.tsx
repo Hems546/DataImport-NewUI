@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +41,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormField, FormItem } from "@/components/ui/form";
 
 interface DuplicateRecord {
   id: number;
@@ -71,7 +72,7 @@ export default function Deduplication() {
   const [activeFixGroupId, setActiveFixGroupId] = useState<string | null>(null);
   const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
   
-  // New state for the side-by-side comparison view
+  // State for the side-by-side comparison view
   const [currentDuplicatePairIndex, setCurrentDuplicatePairIndex] = useState<number>(0);
   const [showSideBySideView, setShowSideBySideView] = useState<boolean>(false);
   const [mergeOptions, setMergeOptions] = useState<Record<string, MergeFieldOption[]>>({});
@@ -342,7 +343,7 @@ export default function Deduplication() {
     if (selectedOption) {
       setEditableValues(prev => ({
         ...prev,
-        [field]: selectedOption.value
+        [field]: String(selectedOption.value)
       }));
     }
     
@@ -481,7 +482,7 @@ export default function Deduplication() {
           <div className="space-y-1">
             <CardTitle className="text-lg">Duplicate Resolution</CardTitle>
             <p className="text-sm text-gray-500">
-              Comparing record pairs {getCurrentPairNumber()} of {calculateTotalDuplicatePairs()} total
+              Comparing duplicate pairs {getCurrentPairNumber()} of {calculateTotalDuplicatePairs()} total
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => setShowSideBySideView(false)}>
@@ -499,8 +500,8 @@ export default function Deduplication() {
                 </span>
               ) : (
                 <span>
-                  Please review the differences between these records and select the correct value for each field,
-                  or edit the values directly.
+                  Please review the differences and select the value to keep for each field,
+                  or edit directly to create a custom value.
                 </span>
               )}
             </p>
@@ -513,7 +514,7 @@ export default function Deduplication() {
                   <TableHead className="w-[150px]">Field</TableHead>
                   <TableHead className="w-[250px]">Record 1 (#{record1.id})</TableHead>
                   <TableHead className="w-[250px]">Record 2 (#{record2.id})</TableHead>
-                  <TableHead>Recommended Merge</TableHead>
+                  <TableHead>Recommended Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -530,7 +531,9 @@ export default function Deduplication() {
                             onClick={() => handleFieldOptionChange(field, 'record1')}
                           />
                         </RadioGroup>
-                        {record1[field]}
+                        <span className={record1[field] === editableValues[field] ? "font-medium" : ""}>
+                          {record1[field]}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -543,7 +546,9 @@ export default function Deduplication() {
                             onClick={() => handleFieldOptionChange(field, 'record2')}
                           />
                         </RadioGroup>
-                        {record2[field]}
+                        <span className={record2[field] === editableValues[field] ? "font-medium" : ""}>
+                          {record2[field]}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -721,6 +726,7 @@ export default function Deduplication() {
             </div>
           </div>
 
+          {/* Progress steps */}
           <div className="flex justify-between items-center mb-12">
             <ProgressStep 
               icon={<FileCheck />}
@@ -816,7 +822,112 @@ export default function Deduplication() {
                       onAction={handleAction}
                     />
                     
-                    {renderDuplicateRecordsTable()}
+                    {duplicateRecords.length > 0 && (
+                      <Card className="mt-6">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                          <CardTitle>Duplicate Record Groups</CardTitle>
+                          <div className="flex items-center space-x-2">
+                            <Search className="text-gray-400" size={18} />
+                            <Input
+                              placeholder="Search duplicates..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="w-64"
+                            />
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {filteredDuplicateGroups.map((group, groupIndex) => (
+                              <div key={groupIndex} className="border rounded-lg overflow-hidden">
+                                <div 
+                                  className="p-3 bg-gray-50 border-b flex justify-between items-center"
+                                >
+                                  <div 
+                                    className="flex-1 cursor-pointer" 
+                                    onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
+                                  >
+                                    <span className="font-medium">Group {groupIndex + 1}</span>
+                                    <span className="text-sm text-gray-500 ml-2">
+                                      ({group.length} potential matches)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
+                                    >
+                                      {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleViewDuplicates(groupIndex)}
+                                    >
+                                      Compare & Merge
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {selectedDuplicateGroup === groupIndex && !showSideBySideView && (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="w-[50px]">Select</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Phone</TableHead>
+                                        <TableHead>Company</TableHead>
+                                        <TableHead className="w-[100px]">Actions</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {group.map((record, index) => (
+                                        <TableRow key={record.id} className={index === 0 ? "bg-blue-50" : ""}>
+                                          <TableCell>
+                                            <input 
+                                              type="radio" 
+                                              name={`group-${groupIndex}`} 
+                                              defaultChecked={index === 0} 
+                                              className="h-4 w-4"
+                                            />
+                                          </TableCell>
+                                          <TableCell>{record.email}</TableCell>
+                                          <TableCell>{record.name}</TableCell>
+                                          <TableCell>{record.phone}</TableCell>
+                                          <TableCell>{record.company}</TableCell>
+                                          <TableCell>
+                                            {index !== 0 && (
+                                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
+                                                <UserRoundX className="h-4 w-4 mr-1" />
+                                                Discard
+                                              </Button>
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                )}
+                              </div>
+                            ))}
+                            
+                            {!showSideBySideView && (
+                              <div className="flex justify-end space-x-2 mt-4">
+                                <Button variant="outline">Discard All Duplicates</Button>
+                                <Button 
+                                  variant="default"
+                                  className="bg-brand-purple hover:bg-brand-purple/90"
+                                >
+                                  Apply Changes
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </>
                 )}
               </>
