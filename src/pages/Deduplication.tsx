@@ -274,15 +274,15 @@ export default function Deduplication() {
             field === 'company' && value2.length > value1.length ? value2 : value1;
           
           newMergeOptions[field] = [
-            { field, value: value1, source: 'record1', selected: value1 === recommended },
-            { field, value: value2, source: 'record2', selected: value2 === recommended && value1 !== value2 },
+            { field, value: value1, source: 'record1' as const, selected: value1 === recommended },
+            { field, value: value2, source: 'record2' as const, selected: value2 === recommended && value1 !== value2 },
             // Only add recommendation if different from both
             ...(value1 !== recommended && value2 !== recommended ? 
-                [{ field, value: recommended, source: 'recommendation', selected: true }] : [])
+                [{ field, value: recommended, source: 'recommendation' as const, selected: true }] : [])
           ];
           
           // Set the initial editable value to the recommended option
-          newEditableValues[field] = recommended;
+          newEditableValues[field] = String(recommended);
         });
         
         setMergeOptions(newMergeOptions);
