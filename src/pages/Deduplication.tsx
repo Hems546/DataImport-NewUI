@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem } from "@/components/ui/form";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DuplicateRecord {
   id: number;
@@ -538,89 +538,91 @@ export default function Deduplication() {
         </CardHeader>
         
         <CardContent className="p-0">
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[70px]">Master</TableHead>
-                  <TableHead className="w-[70px]">Delete</TableHead>
-                  <TableHead className="w-[90px]">Record ID</TableHead>
-                  {fields.map(field => (
-                    <TableHead key={field} className="capitalize">
-                      {field}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {group.map(record => {
-                  const isMaster = masterRecordId === record.id;
-                  const isSelected = selectedDuplicates.has(record.id);
-                  
-                  return (
-                    <TableRow 
-                      key={record.id}
-                      className={isMaster ? "bg-blue-50" : (isSelected ? "bg-red-50" : "")}
-                    >
-                      <TableCell>
-                        <RadioGroup value={String(masterRecordId)}>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem 
-                              value={String(record.id)} 
-                              id={`master-${record.id}`}
-                              checked={isMaster}
-                              onClick={() => handleMasterRecordChange(record.id)}
-                            />
-                          </div>
-                        </RadioGroup>
-                      </TableCell>
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          disabled={isMaster} // Can't delete the master record
-                          onCheckedChange={() => {
-                            if (!isMaster) handleDuplicateSelectionToggle(record.id);
-                          }}
+          <ScrollArea className="max-h-[600px]">
+            <div className="min-w-[1000px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[70px]">Master</TableHead>
+                    <TableHead className="w-[70px]">Delete</TableHead>
+                    <TableHead className="w-[90px]">Record ID</TableHead>
+                    {fields.map(field => (
+                      <TableHead key={field} className="capitalize">
+                        {field}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.map(record => {
+                    const isMaster = masterRecordId === record.id;
+                    const isSelected = selectedDuplicates.has(record.id);
+                    
+                    return (
+                      <TableRow 
+                        key={record.id}
+                        className={isMaster ? "bg-blue-50" : (isSelected ? "bg-red-50" : "")}
+                      >
+                        <TableCell>
+                          <RadioGroup value={String(masterRecordId)}>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem 
+                                value={String(record.id)} 
+                                id={`master-${record.id}`}
+                                checked={isMaster}
+                                onClick={() => handleMasterRecordChange(record.id)}
+                              />
+                            </div>
+                          </RadioGroup>
+                        </TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={isMaster} // Can't delete the master record
+                            onCheckedChange={() => {
+                              if (!isMaster) handleDuplicateSelectionToggle(record.id);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>#{record.id}</TableCell>
+                        {fields.map(field => (
+                          <TableCell 
+                            key={`${record.id}-${field}`}
+                            className="cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleFieldValueSelect(field, record.id)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-1 overflow-hidden text-ellipsis">
+                                {record[field]}
+                              </div>
+                              {editableValues[field] === String(record[field]) && (
+                                <div className="text-green-500">
+                                  <Check size={16} />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow className="bg-gray-50 font-medium">
+                    <TableCell colSpan={3}>
+                      Final Values
+                    </TableCell>
+                    {fields.map(field => (
+                      <TableCell key={`final-${field}`}>
+                        <Input
+                          value={editableValues[field] || ''}
+                          onChange={e => handleEditableValueChange(field, e.target.value)}
                         />
                       </TableCell>
-                      <TableCell>#{record.id}</TableCell>
-                      {fields.map(field => (
-                        <TableCell 
-                          key={`${record.id}-${field}`}
-                          className="cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleFieldValueSelect(field, record.id)}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-1 overflow-hidden text-ellipsis">
-                              {record[field]}
-                            </div>
-                            {editableValues[field] === String(record[field]) && (
-                              <div className="text-green-500">
-                                <Check size={16} />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-                <TableRow className="bg-gray-50 font-medium">
-                  <TableCell colSpan={3}>
-                    Final Values
-                  </TableCell>
-                  {fields.map(field => (
-                    <TableCell key={`final-${field}`}>
-                      <Input
-                        value={editableValues[field] || ''}
-                        onChange={e => handleEditableValueChange(field, e.target.value)}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+                    ))}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </ScrollArea>
         </CardContent>
         
         <CardFooter className="flex justify-between border-t p-4">
@@ -642,8 +644,8 @@ export default function Deduplication() {
     <div className="min-h-screen flex flex-col">
       <Header currentPage="import-wizard" />
 
-      <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+        <div className="mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
               <Link to="/import-wizard/normalization">
@@ -775,69 +777,75 @@ export default function Deduplication() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-4">
-                          {filteredDuplicateGroups.map((group, groupIndex) => (
-                            <div key={groupIndex} className="border rounded-lg overflow-hidden">
-                              <div 
-                                className="p-3 bg-gray-50 border-b flex justify-between items-center"
-                              >
+                        <ScrollArea>
+                          <div className="space-y-4">
+                            {filteredDuplicateGroups.map((group, groupIndex) => (
+                              <div key={groupIndex} className="border rounded-lg overflow-hidden">
                                 <div 
-                                  className="flex-1 cursor-pointer" 
-                                  onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
+                                  className="p-3 bg-gray-50 border-b flex justify-between items-center"
                                 >
-                                  <span className="font-medium">Group {groupIndex + 1}</span>
-                                  <span className="text-sm text-gray-500 ml-2">
-                                    ({group.length} potential matches)
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
+                                  <div 
+                                    className="flex-1 cursor-pointer" 
                                     onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
                                   >
-                                    {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedDuplicateGroup(groupIndex);
-                                      setShowFixDuplicatesView(true);
-                                    }}
-                                  >
-                                    Fix Duplicates
-                                  </Button>
+                                    <span className="font-medium">Group {groupIndex + 1}</span>
+                                    <span className="text-sm text-gray-500 ml-2">
+                                      ({group.length} potential matches)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
+                                    >
+                                      {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedDuplicateGroup(groupIndex);
+                                        setShowFixDuplicatesView(true);
+                                      }}
+                                    >
+                                      Fix Duplicates
+                                    </Button>
+                                  </div>
                                 </div>
+                                
+                                {selectedDuplicateGroup === groupIndex && !showFixDuplicatesView && (
+                                  <ScrollArea className="max-h-[400px]">
+                                    <div className="min-w-[800px]">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow>
+                                            <TableHead>ID</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Phone</TableHead>
+                                            <TableHead>Company</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {group.map((record) => (
+                                            <TableRow key={record.id}>
+                                              <TableCell>#{record.id}</TableCell>
+                                              <TableCell>{record.email}</TableCell>
+                                              <TableCell>{record.name}</TableCell>
+                                              <TableCell>{record.phone}</TableCell>
+                                              <TableCell>{record.company}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </ScrollArea>
+                                )}
                               </div>
-                              
-                              {selectedDuplicateGroup === groupIndex && !showFixDuplicatesView && (
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>ID</TableHead>
-                                      <TableHead>Email</TableHead>
-                                      <TableHead>Name</TableHead>
-                                      <TableHead>Phone</TableHead>
-                                      <TableHead>Company</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {group.map((record) => (
-                                      <TableRow key={record.id}>
-                                        <TableCell>#{record.id}</TableCell>
-                                        <TableCell>{record.email}</TableCell>
-                                        <TableCell>{record.name}</TableCell>
-                                        <TableCell>{record.phone}</TableCell>
-                                        <TableCell>{record.company}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
                       </CardContent>
                     </Card>
                   </>
