@@ -28,8 +28,13 @@ export const useInstructions = () => {
       const savedInstructions = localStorage.getItem(STORAGE_KEY);
       if (savedInstructions) {
         const parsedInstructions = JSON.parse(savedInstructions);
-        setInstructions(parsedInstructions);
-        console.log('Loaded instructions from localStorage:', parsedInstructions);
+        if (Array.isArray(parsedInstructions)) {
+          setInstructions(parsedInstructions);
+          console.log('Loaded instructions from localStorage:', parsedInstructions);
+        } else {
+          console.error('Saved instructions is not an array:', parsedInstructions);
+          setInstructions([]);
+        }
       } else {
         console.log('No saved instructions found in localStorage');
       }
@@ -43,7 +48,7 @@ export const useInstructions = () => {
   // Save instructions to localStorage whenever they change
   // But only after initial load to prevent unnecessary operations
   useEffect(() => {
-    if (loaded && instructions.length > 0) {
+    if (loaded) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(instructions));
         console.log('Saved instructions to localStorage:', instructions);
@@ -99,7 +104,7 @@ export const useInstructions = () => {
       // Only show instructions that match the current path
       // If no pagePath is specified (for backwards compatibility), default to '/'
       const instructionPath = instruction.pagePath || '/';
-      return instructionPath === currentPath;
+      return instructionPath === currentPath || instructionPath === "All Pages";
     });
   }, [instructions]);
   

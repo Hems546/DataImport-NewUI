@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 type InstructionContextType = {
   instructionModeEnabled: boolean;
@@ -8,11 +8,30 @@ type InstructionContextType = {
   toggleInstructionsVisibility: () => void;
 };
 
+const INSTRUCTION_MODE_KEY = 'instruction-mode-enabled';
+const INSTRUCTIONS_VISIBLE_KEY = 'instructions-visible';
+
 const InstructionContext = createContext<InstructionContextType | undefined>(undefined);
 
 export function InstructionProvider({ children }: { children: ReactNode }) {
-  const [instructionModeEnabled, setInstructionModeEnabled] = useState(false);
-  const [instructionsVisible, setInstructionsVisible] = useState(true);
+  const [instructionModeEnabled, setInstructionModeEnabled] = useState(() => {
+    const saved = localStorage.getItem(INSTRUCTION_MODE_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+  
+  const [instructionsVisible, setInstructionsVisible] = useState(() => {
+    const saved = localStorage.getItem(INSTRUCTIONS_VISIBLE_KEY);
+    return saved ? JSON.parse(saved) : true;
+  });
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    localStorage.setItem(INSTRUCTION_MODE_KEY, JSON.stringify(instructionModeEnabled));
+  }, [instructionModeEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(INSTRUCTIONS_VISIBLE_KEY, JSON.stringify(instructionsVisible));
+  }, [instructionsVisible]);
 
   const toggleInstructionMode = () => {
     setInstructionModeEnabled(prev => !prev);

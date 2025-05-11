@@ -8,9 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Instruction, useInstructions, STORAGE_KEY } from "../instructions/InstructionManager";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useInstructionMode } from "@/contexts/InstructionContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const InstructionManagementTable: React.FC = () => {
   const { instructions, updateInstruction, removeInstruction } = useInstructions();
+  const { toggleInstructionsVisibility } = useInstructionMode();
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [instructionToDelete, setInstructionToDelete] = useState<string | null>(null);
@@ -67,12 +70,21 @@ const InstructionManagementTable: React.FC = () => {
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Instructions</h2>
-        <Button variant="destructive" onClick={() => {
-          setInstructionToDelete(null);
-          setDeleteDialogOpen(true);
-        }} size="sm">
-          Clear All
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="destructive" onClick={() => {
+                setInstructionToDelete(null);
+                setDeleteDialogOpen(true);
+              }} size="sm">
+                Clear All
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>This will permanently delete all instruction boxes</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
       {Object.keys(instructionsByPage).length === 0 ? (
