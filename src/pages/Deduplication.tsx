@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +14,10 @@ import {
   ArrowUpCircle,
   RotateCcw,
   Search,
-  UserRoundX
+  UserRoundX,
+  CheckCircle,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -33,9 +37,11 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface DuplicateRecord {
   id: number;
@@ -44,6 +50,13 @@ interface DuplicateRecord {
   phone: string;
   company: string;
   [key: string]: any;
+}
+
+interface MergeFieldOption {
+  field: string;
+  value: any;
+  source: 'record1' | 'record2' | 'recommendation';
+  selected: boolean;
 }
 
 export default function Deduplication() {
@@ -57,6 +70,12 @@ export default function Deduplication() {
   const [normalizationIssues, setNormalizationIssues] = useState<NormalizationIssue[]>([]);
   const [activeFixGroupId, setActiveFixGroupId] = useState<string | null>(null);
   const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
+  
+  // New state for the side-by-side comparison view
+  const [currentDuplicatePairIndex, setCurrentDuplicatePairIndex] = useState<number>(0);
+  const [showSideBySideView, setShowSideBySideView] = useState<boolean>(false);
+  const [mergeOptions, setMergeOptions] = useState<Record<string, MergeFieldOption[]>>({});
+  const [editableValues, setEditableValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
@@ -229,11 +248,55 @@ export default function Deduplication() {
     analyzeDeduplication();
   }, [toast]);
   
+  // Prepare merge options when a duplicate pair is selected
+  useEffect(() => {
+    if (showSideBySideView && selectedDuplicateGroup !== null) {
+      const group = duplicateRecords[selectedDuplicateGroup];
+      if (group && currentDuplicatePairIndex < group.length - 1) {
+        const record1 = group[0];
+        const record2 = group[currentDuplicatePairIndex + 1];
+        
+        const newMergeOptions: Record<string, MergeFieldOption[]> = {};
+        const newEditableValues: Record<string, string> = {};
+        
+        // Create merge options for each field
+        Object.keys(record1).forEach(field => {
+          if (field === 'id') return; // Skip ID field
+          
+          const value1 = record1[field];
+          const value2 = record2[field];
+          
+          // Determine which value to recommend (could implement more sophisticated logic)
+          const recommended = value1 === value2 ? 
+            value1 : 
+            // Simple recommended logic - prefer longer values for company names, 
+            // more complete names, assume phone and emails are equal quality if different
+            field === 'company' && value2.length > value1.length ? value2 : value1;
+          
+          newMergeOptions[field] = [
+            { field, value: value1, source: 'record1', selected: value1 === recommended },
+            { field, value: value2, source: 'record2', selected: value2 === recommended && value1 !== value2 },
+            // Only add recommendation if different from both
+            ...(value1 !== recommended && value2 !== recommended ? 
+                [{ field, value: recommended, source: 'recommendation', selected: true }] : [])
+          ];
+          
+          // Set the initial editable value to the recommended option
+          newEditableValues[field] = recommended;
+        });
+        
+        setMergeOptions(newMergeOptions);
+        setEditableValues(newEditableValues);
+      }
+    }
+  }, [showSideBySideView, selectedDuplicateGroup, currentDuplicatePairIndex, duplicateRecords]);
+  
   const handleViewDuplicates = (groupIndex: number) => {
-    setSelectedDuplicateGroup(groupIndex === selectedDuplicateGroup ? null : groupIndex);
+    setSelectedDuplicateGroup(groupIndex);
+    setCurrentDuplicatePairIndex(0);
+    setShowSideBySideView(true);
   };
   
-  // Update the action handler to support showing only relevant duplicates
   const handleAction = (id: string, action: string, groupId?: string) => {
     if (action === 'view' || action === 'fix') {
       setSelectedWarningId(id);
@@ -263,6 +326,116 @@ export default function Deduplication() {
     setSelectedWarningId(null);
   };
   
+  const handleFieldOptionChange = (field: string, source: 'record1' | 'record2' | 'recommendation') => {
+    if (!mergeOptions[field]) return;
+
+    const updatedMergeOptions = { ...mergeOptions };
+    
+    // Update the selected status for each option
+    updatedMergeOptions[field] = updatedMergeOptions[field].map(option => ({
+      ...option,
+      selected: option.source === source
+    }));
+    
+    // Update the editable value
+    const selectedOption = updatedMergeOptions[field].find(option => option.selected);
+    if (selectedOption) {
+      setEditableValues(prev => ({
+        ...prev,
+        [field]: selectedOption.value
+      }));
+    }
+    
+    setMergeOptions(updatedMergeOptions);
+  };
+  
+  const handleEditableValueChange = (field: string, value: string) => {
+    setEditableValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Also update merge options to deselect all since we're using a custom value
+    const updatedMergeOptions = { ...mergeOptions };
+    if (updatedMergeOptions[field]) {
+      updatedMergeOptions[field] = updatedMergeOptions[field].map(option => ({
+        ...option,
+        selected: false
+      }));
+      setMergeOptions(updatedMergeOptions);
+    }
+  };
+  
+  const handleNextDuplicatePair = () => {
+    if (selectedDuplicateGroup === null) return;
+    
+    const group = duplicateRecords[selectedDuplicateGroup];
+    if (currentDuplicatePairIndex < group.length - 2) {
+      setCurrentDuplicatePairIndex(currentDuplicatePairIndex + 1);
+    } else {
+      // If we're at the last pair in this group, potentially move to next group
+      if (selectedDuplicateGroup < duplicateRecords.length - 1) {
+        setSelectedDuplicateGroup(selectedDuplicateGroup + 1);
+        setCurrentDuplicatePairIndex(0);
+      } else {
+        // We're at the end
+        toast({
+          title: "Review complete",
+          description: "You've reviewed all duplicate records."
+        });
+      }
+    }
+  };
+  
+  const handlePreviousDuplicatePair = () => {
+    if (selectedDuplicateGroup === null) return;
+    
+    if (currentDuplicatePairIndex > 0) {
+      setCurrentDuplicatePairIndex(currentDuplicatePairIndex - 1);
+    } else {
+      // If we're at the first pair in this group, potentially move to previous group
+      if (selectedDuplicateGroup > 0) {
+        const previousGroup = duplicateRecords[selectedDuplicateGroup - 1];
+        setSelectedDuplicateGroup(selectedDuplicateGroup - 1);
+        // Set to the last pair in the previous group
+        setCurrentDuplicatePairIndex(previousGroup.length - 2);
+      }
+    }
+  };
+  
+  const handleApplyMerge = () => {
+    if (selectedDuplicateGroup === null) return;
+    
+    // In a real application, you would apply these changes to your data model
+    // For demonstration, we'll just show a toast and move to the next pair
+    toast({
+      title: "Records merged",
+      description: "The selected record has been merged successfully."
+    });
+    
+    handleNextDuplicatePair();
+  };
+  
+  const calculateTotalDuplicatePairs = () => {
+    return duplicateRecords.reduce((total, group) => {
+      // Each group has (n-1) pairs where n is the number of records in the group
+      return total + (group.length - 1);
+    }, 0);
+  };
+  
+  const getCurrentPairNumber = () => {
+    if (selectedDuplicateGroup === null) return 0;
+    
+    // Count pairs in previous groups
+    let pairsInPreviousGroups = 0;
+    for (let i = 0; i < selectedDuplicateGroup; i++) {
+      pairsInPreviousGroups += duplicateRecords[i].length - 1;
+    }
+    
+    // Add the current pair index
+    return pairsInPreviousGroups + currentDuplicatePairIndex + 1;
+  };
+  
   // Filter duplicate groups based on search term if provided
   const filteredDuplicateGroups = searchTerm 
     ? duplicateRecords.filter(group => 
@@ -286,10 +459,137 @@ export default function Deduplication() {
     // Further filter by warning type if needed in the future
     if (selectedWarningId) {
       // In a real app, you might filter by warning type
-      // For now we'll just return the group-filtered issues
     }
     
     return filteredIssues;
+  };
+  
+  const renderSideBySideComparison = () => {
+    if (selectedDuplicateGroup === null) return null;
+    
+    const group = duplicateRecords[selectedDuplicateGroup];
+    if (!group || currentDuplicatePairIndex >= group.length - 1) return null;
+    
+    const record1 = group[0];
+    const record2 = group[currentDuplicatePairIndex + 1];
+    const allFields = Object.keys(record1).filter(field => field !== 'id');
+    const isPerfectMatch = allFields.every(field => record1[field] === record2[field]);
+    
+    return (
+      <Card className="mt-6">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-lg">Duplicate Resolution</CardTitle>
+            <p className="text-sm text-gray-500">
+              Comparing record pairs {getCurrentPairNumber()} of {calculateTotalDuplicatePairs()} total
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowSideBySideView(false)}>
+            Back to Summary
+          </Button>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="bg-blue-50 p-3 mb-4 rounded-md">
+            <p className="text-sm">
+              {isPerfectMatch ? (
+                <span className="flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  These records are perfect matches. You can safely merge them.
+                </span>
+              ) : (
+                <span>
+                  Please review the differences between these records and select the correct value for each field,
+                  or edit the values directly.
+                </span>
+              )}
+            </p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">Field</TableHead>
+                  <TableHead className="w-[250px]">Record 1 (#{record1.id})</TableHead>
+                  <TableHead className="w-[250px]">Record 2 (#{record2.id})</TableHead>
+                  <TableHead>Recommended Merge</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allFields.map(field => (
+                  <TableRow key={field} className={record1[field] !== record2[field] ? "bg-yellow-50" : ""}>
+                    <TableCell className="font-medium capitalize">{field}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <RadioGroup value={mergeOptions[field]?.find(o => o.selected)?.source || ''}>
+                          <RadioGroupItem 
+                            value="record1"
+                            id={`${field}-record1`}
+                            checked={mergeOptions[field]?.find(o => o.source === 'record1')?.selected}
+                            onClick={() => handleFieldOptionChange(field, 'record1')}
+                          />
+                        </RadioGroup>
+                        {record1[field]}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <RadioGroup value={mergeOptions[field]?.find(o => o.selected)?.source || ''}>
+                          <RadioGroupItem 
+                            value="record2"
+                            id={`${field}-record2`}
+                            checked={mergeOptions[field]?.find(o => o.source === 'record2')?.selected}
+                            onClick={() => handleFieldOptionChange(field, 'record2')}
+                          />
+                        </RadioGroup>
+                        {record2[field]}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={editableValues[field] || ''}
+                        onChange={e => handleEditableValueChange(field, e.target.value)}
+                        className={record1[field] !== record2[field] ? "border-yellow-300" : ""}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+        
+        <CardFooter className="flex justify-between">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handlePreviousDuplicatePair}
+              disabled={selectedDuplicateGroup === 0 && currentDuplicatePairIndex === 0}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleNextDuplicatePair}
+            >
+              Skip
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              className="bg-brand-purple hover:bg-brand-purple/90"
+              onClick={handleApplyMerge}
+            >
+              Apply Merge
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+    );
   };
   
   const renderDuplicateRecordsTable = () => {
@@ -318,7 +618,7 @@ export default function Deduplication() {
                 >
                   <div 
                     className="flex-1 cursor-pointer" 
-                    onClick={() => handleViewDuplicates(groupIndex)}
+                    onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
                   >
                     <span className="font-medium">Group {groupIndex + 1}</span>
                     <span className="text-sm text-gray-500 ml-2">
@@ -329,14 +629,21 @@ export default function Deduplication() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleViewDuplicates(groupIndex)}
+                      onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
                     >
                       {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDuplicates(groupIndex)}
+                    >
+                      Compare & Merge
                     </Button>
                   </div>
                 </div>
                 
-                {selectedDuplicateGroup === groupIndex && (
+                {selectedDuplicateGroup === groupIndex && !showSideBySideView && (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -379,15 +686,17 @@ export default function Deduplication() {
               </div>
             ))}
             
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button variant="outline">Discard All Duplicates</Button>
-              <Button 
-                variant="default"
-                className="bg-brand-purple hover:bg-brand-purple/90"
-              >
-                Apply Changes
-              </Button>
-            </div>
+            {!showSideBySideView && (
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button variant="outline">Discard All Duplicates</Button>
+                <Button 
+                  variant="default"
+                  className="bg-brand-purple hover:bg-brand-purple/90"
+                >
+                  Apply Changes
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -497,6 +806,8 @@ export default function Deduplication() {
                       issueType="duplicate"
                     />
                   </div>
+                ) : showSideBySideView && selectedDuplicateGroup !== null ? (
+                  renderSideBySideComparison()
                 ) : (
                   <>
                     <ValidationStatus 
