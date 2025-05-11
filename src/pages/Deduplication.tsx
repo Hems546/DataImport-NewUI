@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +17,9 @@ import {
   UserRoundX,
   CheckCircle,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Check,
+  Trash2
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -72,11 +75,13 @@ export default function Deduplication() {
   const [activeFixGroupId, setActiveFixGroupId] = useState<string | null>(null);
   const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
   
-  // State for the side-by-side comparison view
+  // State for the duplicate resolution view
   const [currentDuplicatePairIndex, setCurrentDuplicatePairIndex] = useState<number>(0);
-  const [showSideBySideView, setShowSideBySideView] = useState<boolean>(false);
+  const [showFixDuplicatesView, setShowFixDuplicatesView] = useState<boolean>(false);
   const [mergeOptions, setMergeOptions] = useState<Record<string, MergeFieldOption[]>>({});
   const [editableValues, setEditableValues] = useState<Record<string, string>>({});
+  const [selectedDuplicates, setSelectedDuplicates] = useState<Set<number>>(new Set());
+  const [masterRecordId, setMasterRecordId] = useState<number | null>(null);
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
@@ -249,66 +254,203 @@ export default function Deduplication() {
     analyzeDeduplication();
   }, [toast]);
   
-  // Prepare merge options when a duplicate pair is selected
+  // Initialize merge options when entering fix duplicates view
   useEffect(() => {
-    if (showSideBySideView && selectedDuplicateGroup !== null) {
+    if (showFixDuplicatesView && selectedDuplicateGroup !== null) {
       const group = duplicateRecords[selectedDuplicateGroup];
-      if (group && currentDuplicatePairIndex < group.length - 1) {
-        const record1 = group[0];
-        const record2 = group[currentDuplicatePairIndex + 1];
-        
-        const newMergeOptions: Record<string, MergeFieldOption[]> = {};
-        const newEditableValues: Record<string, string> = {};
-        
-        // Create merge options for each field
-        Object.keys(record1).forEach(field => {
-          if (field === 'id') return; // Skip ID field
-          
-          const value1 = record1[field];
-          const value2 = record2[field];
-          
-          // Determine which value to recommend (could implement more sophisticated logic)
-          const recommended = value1 === value2 ? 
-            value1 : 
-            // Simple recommended logic - prefer longer values for company names, 
-            // more complete names, assume phone and emails are equal quality if different
-            field === 'company' && value2.length > value1.length ? value2 : value1;
-          
-          newMergeOptions[field] = [
-            { field, value: value1, source: 'record1' as const, selected: value1 === recommended },
-            { field, value: value2, source: 'record2' as const, selected: value2 === recommended && value1 !== value2 },
-            // Only add recommendation if different from both
-            ...(value1 !== recommended && value2 !== recommended ? 
-                [{ field, value: recommended, source: 'recommendation' as const, selected: true }] : [])
-          ];
-          
-          // Set the initial editable value to the recommended option
-          newEditableValues[field] = String(recommended);
-        });
-        
-        setMergeOptions(newMergeOptions);
-        setEditableValues(newEditableValues);
+      if (group) {
+        initializeMergeOptionsForGroup(group);
       }
     }
-  }, [showSideBySideView, selectedDuplicateGroup, currentDuplicatePairIndex, duplicateRecords]);
+  }, [showFixDuplicatesView, selectedDuplicateGroup, duplicateRecords]);
   
-  const handleViewDuplicates = (groupIndex: number) => {
-    setSelectedDuplicateGroup(groupIndex);
-    setCurrentDuplicatePairIndex(0);
-    setShowSideBySideView(true);
+  const initializeMergeOptionsForGroup = (group: DuplicateRecord[]) => {
+    // Initialize the master record as the first record in the group
+    setMasterRecordId(group[0].id);
+    
+    // Get all field names from the records (excluding 'id')
+    const allFields = new Set<string>();
+    group.forEach(record => {
+      Object.keys(record).forEach(field => {
+        if (field !== 'id') allFields.add(field);
+      });
+    });
+    
+    // Initialize merge options for each field
+    const newMergeOptions: Record<string, MergeFieldOption[]> = {};
+    const newEditableValues: Record<string, string> = {};
+    
+    allFields.forEach(field => {
+      newMergeOptions[field] = [];
+      
+      // Add options from each record
+      group.forEach(record => {
+        if (field in record) {
+          newMergeOptions[field].push({
+            field,
+            value: record[field],
+            source: record.id === group[0].id ? 'record1' : 'record2', // simplified, in reality you'd need more sophisticated logic
+            selected: record.id === group[0].id // select master record values by default
+          });
+        }
+      });
+      
+      // Set the editable value to the selected option's value
+      const selectedOption = newMergeOptions[field].find(option => option.selected);
+      if (selectedOption) {
+        newEditableValues[field] = String(selectedOption.value);
+      }
+    });
+    
+    setMergeOptions(newMergeOptions);
+    setEditableValues(newEditableValues);
+    
+    // Initialize selected duplicates (all except the master record)
+    const selected = new Set<number>();
+    group.forEach(record => {
+      if (record.id !== group[0].id) {
+        selected.add(record.id);
+      }
+    });
+    setSelectedDuplicates(selected);
+  };
+  
+  const handleMasterRecordChange = (recordId: number) => {
+    if (selectedDuplicateGroup === null) return;
+    
+    const group = duplicateRecords[selectedDuplicateGroup];
+    const masterRecord = group.find(r => r.id === recordId);
+    if (!masterRecord) return;
+    
+    setMasterRecordId(recordId);
+    
+    // Update merge options to select values from the new master record
+    const newMergeOptions: Record<string, MergeFieldOption[]> = { ...mergeOptions };
+    const newEditableValues: Record<string, string> = { ...editableValues };
+    
+    Object.keys(newMergeOptions).forEach(field => {
+      // Find the option corresponding to the new master record
+      const masterOption = newMergeOptions[field].find(
+        option => option.value === masterRecord[field]
+      );
+      
+      if (masterOption) {
+        // Update selected status for all options in this field
+        newMergeOptions[field].forEach(option => {
+          option.selected = option === masterOption;
+        });
+        
+        // Update editable value
+        newEditableValues[field] = String(masterOption.value);
+      }
+    });
+    
+    setMergeOptions(newMergeOptions);
+    setEditableValues(newEditableValues);
+    
+    // Update selected duplicates to include all records except the new master
+    const newSelected = new Set<number>();
+    group.forEach(record => {
+      if (record.id !== recordId) {
+        newSelected.add(record.id);
+      }
+    });
+    setSelectedDuplicates(newSelected);
+  };
+  
+  const handleFieldValueSelect = (field: string, recordId: number) => {
+    if (selectedDuplicateGroup === null) return;
+    
+    const group = duplicateRecords[selectedDuplicateGroup];
+    const record = group.find(r => r.id === recordId);
+    if (!record) return;
+    
+    // Update merge options to select the value from this record for this field
+    const newMergeOptions = { ...mergeOptions };
+    
+    if (newMergeOptions[field]) {
+      newMergeOptions[field].forEach(option => {
+        option.selected = option.value === record[field];
+      });
+      
+      // Update the editable value
+      setEditableValues(prev => ({
+        ...prev,
+        [field]: String(record[field])
+      }));
+      
+      setMergeOptions(newMergeOptions);
+    }
+  };
+  
+  const handleEditableValueChange = (field: string, value: string) => {
+    setEditableValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Deselect all options since we're using a custom value
+    const newMergeOptions = { ...mergeOptions };
+    if (newMergeOptions[field]) {
+      newMergeOptions[field].forEach(option => {
+        option.selected = false;
+      });
+      setMergeOptions(newMergeOptions);
+    }
+  };
+  
+  const handleDuplicateSelectionToggle = (recordId: number) => {
+    const newSelected = new Set(selectedDuplicates);
+    
+    if (newSelected.has(recordId)) {
+      newSelected.delete(recordId);
+    } else {
+      newSelected.add(recordId);
+    }
+    
+    setSelectedDuplicates(newSelected);
+  };
+  
+  const handleApplyMerge = () => {
+    if (selectedDuplicateGroup === null || masterRecordId === null) return;
+    
+    // In a real application, you would apply these changes to your data model
+    // For demonstration, we'll just show a toast
+    toast({
+      title: "Duplicates merged",
+      description: `${selectedDuplicates.size} duplicate records have been merged into record #${masterRecordId}.`,
+    });
+    
+    // Close the fix duplicates view and reset state
+    setShowFixDuplicatesView(false);
+    setSelectedDuplicateGroup(null);
+    setMasterRecordId(null);
+    setSelectedDuplicates(new Set());
+  };
+  
+  const handleFixDuplicates = () => {
+    setShowFixDuplicatesView(true);
+    // Select the first group by default if none is selected
+    if (selectedDuplicateGroup === null && duplicateRecords.length > 0) {
+      setSelectedDuplicateGroup(0);
+    }
   };
   
   const handleAction = (id: string, action: string, groupId?: string) => {
     if (action === 'view' || action === 'fix') {
-      setSelectedWarningId(id);
-      
-      // If groupId is provided, filter issues to only that group
-      if (groupId) {
-        setActiveFixGroupId(groupId);
+      if (id === 'exact-duplicates') {
+        handleFixDuplicates();
       } else {
-        setActiveFixGroupId(null); // Show all issues
+        setSelectedWarningId(id);
+        
+        // If groupId is provided, filter issues to only that group
+        if (groupId) {
+          setActiveFixGroupId(groupId);
+        } else {
+          setActiveFixGroupId(null); // Show all issues
+        }
+        setShowFixer(true);
       }
-      setShowFixer(true);
     }
   };
   
@@ -325,116 +467,6 @@ export default function Deduplication() {
     setShowFixer(false);
     setActiveFixGroupId(null);
     setSelectedWarningId(null);
-  };
-  
-  const handleFieldOptionChange = (field: string, source: 'record1' | 'record2' | 'recommendation') => {
-    if (!mergeOptions[field]) return;
-
-    const updatedMergeOptions = { ...mergeOptions };
-    
-    // Update the selected status for each option
-    updatedMergeOptions[field] = updatedMergeOptions[field].map(option => ({
-      ...option,
-      selected: option.source === source
-    }));
-    
-    // Update the editable value
-    const selectedOption = updatedMergeOptions[field].find(option => option.selected);
-    if (selectedOption) {
-      setEditableValues(prev => ({
-        ...prev,
-        [field]: String(selectedOption.value)
-      }));
-    }
-    
-    setMergeOptions(updatedMergeOptions);
-  };
-  
-  const handleEditableValueChange = (field: string, value: string) => {
-    setEditableValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Also update merge options to deselect all since we're using a custom value
-    const updatedMergeOptions = { ...mergeOptions };
-    if (updatedMergeOptions[field]) {
-      updatedMergeOptions[field] = updatedMergeOptions[field].map(option => ({
-        ...option,
-        selected: false
-      }));
-      setMergeOptions(updatedMergeOptions);
-    }
-  };
-  
-  const handleNextDuplicatePair = () => {
-    if (selectedDuplicateGroup === null) return;
-    
-    const group = duplicateRecords[selectedDuplicateGroup];
-    if (currentDuplicatePairIndex < group.length - 2) {
-      setCurrentDuplicatePairIndex(currentDuplicatePairIndex + 1);
-    } else {
-      // If we're at the last pair in this group, potentially move to next group
-      if (selectedDuplicateGroup < duplicateRecords.length - 1) {
-        setSelectedDuplicateGroup(selectedDuplicateGroup + 1);
-        setCurrentDuplicatePairIndex(0);
-      } else {
-        // We're at the end
-        toast({
-          title: "Review complete",
-          description: "You've reviewed all duplicate records."
-        });
-      }
-    }
-  };
-  
-  const handlePreviousDuplicatePair = () => {
-    if (selectedDuplicateGroup === null) return;
-    
-    if (currentDuplicatePairIndex > 0) {
-      setCurrentDuplicatePairIndex(currentDuplicatePairIndex - 1);
-    } else {
-      // If we're at the first pair in this group, potentially move to previous group
-      if (selectedDuplicateGroup > 0) {
-        const previousGroup = duplicateRecords[selectedDuplicateGroup - 1];
-        setSelectedDuplicateGroup(selectedDuplicateGroup - 1);
-        // Set to the last pair in the previous group
-        setCurrentDuplicatePairIndex(previousGroup.length - 2);
-      }
-    }
-  };
-  
-  const handleApplyMerge = () => {
-    if (selectedDuplicateGroup === null) return;
-    
-    // In a real application, you would apply these changes to your data model
-    // For demonstration, we'll just show a toast and move to the next pair
-    toast({
-      title: "Records merged",
-      description: "The selected record has been merged successfully."
-    });
-    
-    handleNextDuplicatePair();
-  };
-  
-  const calculateTotalDuplicatePairs = () => {
-    return duplicateRecords.reduce((total, group) => {
-      // Each group has (n-1) pairs where n is the number of records in the group
-      return total + (group.length - 1);
-    }, 0);
-  };
-  
-  const getCurrentPairNumber = () => {
-    if (selectedDuplicateGroup === null) return 0;
-    
-    // Count pairs in previous groups
-    let pairsInPreviousGroups = 0;
-    for (let i = 0; i < selectedDuplicateGroup; i++) {
-      pairsInPreviousGroups += duplicateRecords[i].length - 1;
-    }
-    
-    // Add the current pair index
-    return pairsInPreviousGroups + currentDuplicatePairIndex + 1;
   };
   
   // Filter duplicate groups based on search term if provided
@@ -464,246 +496,144 @@ export default function Deduplication() {
     
     return filteredIssues;
   };
-  
-  const renderSideBySideComparison = () => {
+
+  // Render the fix duplicates view
+  const renderFixDuplicatesView = () => {
     if (selectedDuplicateGroup === null) return null;
     
     const group = duplicateRecords[selectedDuplicateGroup];
-    if (!group || currentDuplicatePairIndex >= group.length - 1) return null;
+    if (!group || group.length === 0) return null;
     
-    const record1 = group[0];
-    const record2 = group[currentDuplicatePairIndex + 1];
-    const allFields = Object.keys(record1).filter(field => field !== 'id');
-    const isPerfectMatch = allFields.every(field => record1[field] === record2[field]);
+    // Get all field names (excluding 'id')
+    const fields = Object.keys(group[0]).filter(field => field !== 'id');
     
     return (
       <Card className="mt-6">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between border-b">
           <div className="space-y-1">
-            <CardTitle className="text-lg">Duplicate Resolution</CardTitle>
+            <CardTitle className="text-lg">Fix Duplicates</CardTitle>
             <p className="text-sm text-gray-500">
-              Comparing duplicate pairs {getCurrentPairNumber()} of {calculateTotalDuplicatePairs()} total
+              Select a master record and choose which values to keep for each field
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowSideBySideView(false)}>
-            Back to Summary
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setShowFixDuplicatesView(false);
+                setSelectedDuplicateGroup(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-brand-purple hover:bg-brand-purple/90"
+              size="sm"
+              onClick={handleApplyMerge}
+            >
+              Apply Merge ({selectedDuplicates.size})
+            </Button>
+          </div>
         </CardHeader>
         
-        <CardContent>
-          <div className="bg-blue-50 p-3 mb-4 rounded-md">
-            <p className="text-sm">
-              {isPerfectMatch ? (
-                <span className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  These records are perfect matches. You can safely merge them.
-                </span>
-              ) : (
-                <span>
-                  Please review the differences and select the value to keep for each field,
-                  or edit directly to create a custom value.
-                </span>
-              )}
-            </p>
-          </div>
-          
-          <div className="overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[150px]">Field</TableHead>
-                  <TableHead className="w-[250px]">Record 1 (#{record1.id})</TableHead>
-                  <TableHead className="w-[250px]">Record 2 (#{record2.id})</TableHead>
-                  <TableHead>Recommended Value</TableHead>
+                  <TableHead className="w-[70px]">Master</TableHead>
+                  <TableHead className="w-[70px]">Delete</TableHead>
+                  <TableHead className="w-[90px]">Record ID</TableHead>
+                  {fields.map(field => (
+                    <TableHead key={field} className="capitalize">
+                      {field}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allFields.map(field => (
-                  <TableRow key={field} className={record1[field] !== record2[field] ? "bg-yellow-50" : ""}>
-                    <TableCell className="font-medium capitalize">{field}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <RadioGroup value={mergeOptions[field]?.find(o => o.selected)?.source || ''}>
-                          <RadioGroupItem 
-                            value="record1"
-                            id={`${field}-record1`}
-                            checked={mergeOptions[field]?.find(o => o.source === 'record1')?.selected}
-                            onClick={() => handleFieldOptionChange(field, 'record1')}
-                          />
+                {group.map(record => {
+                  const isMaster = masterRecordId === record.id;
+                  const isSelected = selectedDuplicates.has(record.id);
+                  
+                  return (
+                    <TableRow 
+                      key={record.id}
+                      className={isMaster ? "bg-blue-50" : (isSelected ? "bg-red-50" : "")}
+                    >
+                      <TableCell>
+                        <RadioGroup value={String(masterRecordId)}>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem 
+                              value={String(record.id)} 
+                              id={`master-${record.id}`}
+                              checked={isMaster}
+                              onClick={() => handleMasterRecordChange(record.id)}
+                            />
+                          </div>
                         </RadioGroup>
-                        <span className={record1[field] === editableValues[field] ? "font-medium" : ""}>
-                          {record1[field]}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <RadioGroup value={mergeOptions[field]?.find(o => o.selected)?.source || ''}>
-                          <RadioGroupItem 
-                            value="record2"
-                            id={`${field}-record2`}
-                            checked={mergeOptions[field]?.find(o => o.source === 'record2')?.selected}
-                            onClick={() => handleFieldOptionChange(field, 'record2')}
-                          />
-                        </RadioGroup>
-                        <span className={record2[field] === editableValues[field] ? "font-medium" : ""}>
-                          {record2[field]}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          disabled={isMaster} // Can't delete the master record
+                          onCheckedChange={() => {
+                            if (!isMaster) handleDuplicateSelectionToggle(record.id);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>#{record.id}</TableCell>
+                      {fields.map(field => (
+                        <TableCell 
+                          key={`${record.id}-${field}`}
+                          className="cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleFieldValueSelect(field, record.id)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="flex-1 overflow-hidden text-ellipsis">
+                              {record[field]}
+                            </div>
+                            {editableValues[field] === String(record[field]) && (
+                              <div className="text-green-500">
+                                <Check size={16} />
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-gray-50 font-medium">
+                  <TableCell colSpan={3}>
+                    Final Values
+                  </TableCell>
+                  {fields.map(field => (
+                    <TableCell key={`final-${field}`}>
                       <Input
                         value={editableValues[field] || ''}
                         onChange={e => handleEditableValueChange(field, e.target.value)}
-                        className={record1[field] !== record2[field] ? "border-yellow-300" : ""}
                       />
                     </TableCell>
-                  </TableRow>
-                ))}
+                  ))}
+                </TableRow>
               </TableBody>
             </Table>
           </div>
         </CardContent>
         
-        <CardFooter className="flex justify-between">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handlePreviousDuplicatePair}
-              disabled={selectedDuplicateGroup === 0 && currentDuplicatePairIndex === 0}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleNextDuplicatePair}
-            >
-              Skip
-            </Button>
+        <CardFooter className="flex justify-between border-t p-4">
+          <div className="text-sm text-muted-foreground">
+            {selectedDuplicates.size} records selected for deletion
           </div>
-          
-          <div className="flex gap-2">
-            <Button
-              className="bg-brand-purple hover:bg-brand-purple/90"
-              onClick={handleApplyMerge}
-            >
-              Apply Merge
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
+          <Button 
+            className="bg-brand-purple hover:bg-brand-purple/90"
+            onClick={handleApplyMerge}
+          >
+            Apply Merge
+          </Button>
         </CardFooter>
-      </Card>
-    );
-  };
-  
-  const renderDuplicateRecordsTable = () => {
-    if (duplicateRecords.length === 0) return null;
-    
-    return (
-      <Card className="mt-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Duplicate Record Groups</CardTitle>
-          <div className="flex items-center space-x-2">
-            <Search className="text-gray-400" size={18} />
-            <Input
-              placeholder="Search duplicates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredDuplicateGroups.map((group, groupIndex) => (
-              <div key={groupIndex} className="border rounded-lg overflow-hidden">
-                <div 
-                  className="p-3 bg-gray-50 border-b flex justify-between items-center"
-                >
-                  <div 
-                    className="flex-1 cursor-pointer" 
-                    onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
-                  >
-                    <span className="font-medium">Group {groupIndex + 1}</span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ({group.length} potential matches)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
-                    >
-                      {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDuplicates(groupIndex)}
-                    >
-                      Compare & Merge
-                    </Button>
-                  </div>
-                </div>
-                
-                {selectedDuplicateGroup === groupIndex && !showSideBySideView && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">Select</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Company</TableHead>
-                        <TableHead className="w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {group.map((record, index) => (
-                        <TableRow key={record.id} className={index === 0 ? "bg-blue-50" : ""}>
-                          <TableCell>
-                            <input 
-                              type="radio" 
-                              name={`group-${groupIndex}`} 
-                              defaultChecked={index === 0} 
-                              className="h-4 w-4"
-                            />
-                          </TableCell>
-                          <TableCell>{record.email}</TableCell>
-                          <TableCell>{record.name}</TableCell>
-                          <TableCell>{record.phone}</TableCell>
-                          <TableCell>{record.company}</TableCell>
-                          <TableCell>
-                            {index !== 0 && (
-                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
-                                <UserRoundX className="h-4 w-4 mr-1" />
-                                Discard
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            ))}
-            
-            {!showSideBySideView && (
-              <div className="flex justify-end space-x-2 mt-4">
-                <Button variant="outline">Discard All Duplicates</Button>
-                <Button 
-                  variant="default"
-                  className="bg-brand-purple hover:bg-brand-purple/90"
-                >
-                  Apply Changes
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
       </Card>
     );
   };
@@ -812,8 +742,8 @@ export default function Deduplication() {
                       issueType="duplicate"
                     />
                   </div>
-                ) : showSideBySideView && selectedDuplicateGroup !== null ? (
-                  renderSideBySideComparison()
+                ) : showFixDuplicatesView ? (
+                  renderFixDuplicatesView()
                 ) : (
                   <>
                     <ValidationStatus 
@@ -822,112 +752,94 @@ export default function Deduplication() {
                       onAction={handleAction}
                     />
                     
-                    {duplicateRecords.length > 0 && (
-                      <Card className="mt-6">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                          <CardTitle>Duplicate Record Groups</CardTitle>
-                          <div className="flex items-center space-x-2">
-                            <Search className="text-gray-400" size={18} />
-                            <Input
-                              placeholder="Search duplicates..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="w-64"
-                            />
+                    <Card className="mt-6">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Duplicate Record Groups</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleFixDuplicates}
+                            >
+                              Fix All Duplicates
+                            </Button>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            {filteredDuplicateGroups.map((group, groupIndex) => (
-                              <div key={groupIndex} className="border rounded-lg overflow-hidden">
+                          <Search className="text-gray-400" size={18} />
+                          <Input
+                            placeholder="Search duplicates..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-64"
+                          />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {filteredDuplicateGroups.map((group, groupIndex) => (
+                            <div key={groupIndex} className="border rounded-lg overflow-hidden">
+                              <div 
+                                className="p-3 bg-gray-50 border-b flex justify-between items-center"
+                              >
                                 <div 
-                                  className="p-3 bg-gray-50 border-b flex justify-between items-center"
+                                  className="flex-1 cursor-pointer" 
+                                  onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
                                 >
-                                  <div 
-                                    className="flex-1 cursor-pointer" 
+                                  <span className="font-medium">Group {groupIndex + 1}</span>
+                                  <span className="text-sm text-gray-500 ml-2">
+                                    ({group.length} potential matches)
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
                                     onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
                                   >
-                                    <span className="font-medium">Group {groupIndex + 1}</span>
-                                    <span className="text-sm text-gray-500 ml-2">
-                                      ({group.length} potential matches)
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => setSelectedDuplicateGroup(selectedDuplicateGroup === groupIndex ? null : groupIndex)}
-                                    >
-                                      {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleViewDuplicates(groupIndex)}
-                                    >
-                                      Compare & Merge
-                                    </Button>
-                                  </div>
+                                    {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedDuplicateGroup(groupIndex);
+                                      setShowFixDuplicatesView(true);
+                                    }}
+                                  >
+                                    Fix Duplicates
+                                  </Button>
                                 </div>
-                                
-                                {selectedDuplicateGroup === groupIndex && !showSideBySideView && (
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="w-[50px]">Select</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Company</TableHead>
-                                        <TableHead className="w-[100px]">Actions</TableHead>
+                              </div>
+                              
+                              {selectedDuplicateGroup === groupIndex && !showFixDuplicatesView && (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>ID</TableHead>
+                                      <TableHead>Email</TableHead>
+                                      <TableHead>Name</TableHead>
+                                      <TableHead>Phone</TableHead>
+                                      <TableHead>Company</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {group.map((record) => (
+                                      <TableRow key={record.id}>
+                                        <TableCell>#{record.id}</TableCell>
+                                        <TableCell>{record.email}</TableCell>
+                                        <TableCell>{record.name}</TableCell>
+                                        <TableCell>{record.phone}</TableCell>
+                                        <TableCell>{record.company}</TableCell>
                                       </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {group.map((record, index) => (
-                                        <TableRow key={record.id} className={index === 0 ? "bg-blue-50" : ""}>
-                                          <TableCell>
-                                            <input 
-                                              type="radio" 
-                                              name={`group-${groupIndex}`} 
-                                              defaultChecked={index === 0} 
-                                              className="h-4 w-4"
-                                            />
-                                          </TableCell>
-                                          <TableCell>{record.email}</TableCell>
-                                          <TableCell>{record.name}</TableCell>
-                                          <TableCell>{record.phone}</TableCell>
-                                          <TableCell>{record.company}</TableCell>
-                                          <TableCell>
-                                            {index !== 0 && (
-                                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
-                                                <UserRoundX className="h-4 w-4 mr-1" />
-                                                Discard
-                                              </Button>
-                                            )}
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                )}
-                              </div>
-                            ))}
-                            
-                            {!showSideBySideView && (
-                              <div className="flex justify-end space-x-2 mt-4">
-                                <Button variant="outline">Discard All Duplicates</Button>
-                                <Button 
-                                  variant="default"
-                                  className="bg-brand-purple hover:bg-brand-purple/90"
-                                >
-                                  Apply Changes
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </>
                 )}
               </>
