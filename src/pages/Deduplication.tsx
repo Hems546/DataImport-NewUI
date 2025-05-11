@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +56,7 @@ export default function Deduplication() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFixer, setShowFixer] = useState(false);
   const [normalizationIssues, setNormalizationIssues] = useState<NormalizationIssue[]>([]);
+  const [activeFixGroupId, setActiveFixGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
@@ -231,8 +233,15 @@ export default function Deduplication() {
     setSelectedDuplicateGroup(groupIndex === selectedDuplicateGroup ? null : groupIndex);
   };
   
-  const handleAction = (id: string, action: string) => {
-    if (id === 'exact-duplicates' && action === 'view') {
+  // Update the action handler to support group-specific fixes
+  const handleAction = (id: string, action: string, groupId?: string) => {
+    if (action === 'view' || action === 'fix') {
+      // If groupId is provided, filter issues to only that group
+      if (groupId) {
+        setActiveFixGroupId(groupId);
+      } else {
+        setActiveFixGroupId(null); // Show all issues
+      }
       setShowFixer(true);
     }
   };
@@ -248,6 +257,7 @@ export default function Deduplication() {
     });
     
     setShowFixer(false);
+    setActiveFixGroupId(null);
   };
   
   // Filter duplicate groups based on search term if provided
@@ -260,6 +270,12 @@ export default function Deduplication() {
         )
       )
     : duplicateRecords;
+  
+  // Get filtered normalization issues based on active fix group
+  const getFilteredNormalizationIssues = () => {
+    if (!activeFixGroupId) return normalizationIssues;
+    return normalizationIssues.filter(issue => issue.groupId === activeFixGroupId);
+  };
   
   const renderDuplicateRecordsTable = () => {
     if (duplicateRecords.length === 0) return null;
@@ -283,18 +299,33 @@ export default function Deduplication() {
             {filteredDuplicateGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="border rounded-lg overflow-hidden">
                 <div 
-                  className="p-3 bg-gray-50 border-b flex justify-between items-center cursor-pointer"
-                  onClick={() => handleViewDuplicates(groupIndex)}
+                  className="p-3 bg-gray-50 border-b flex justify-between items-center"
                 >
-                  <div>
+                  <div 
+                    className="flex-1 cursor-pointer" 
+                    onClick={() => handleViewDuplicates(groupIndex)}
+                  >
                     <span className="font-medium">Group {groupIndex + 1}</span>
                     <span className="text-sm text-gray-500 ml-2">
                       ({group.length} potential matches)
                     </span>
                   </div>
-                  <Button variant="outline" size="sm">
-                    {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAction('group-duplicates', 'fix', `group-${groupIndex}`)}
+                    >
+                      Fix Issues
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewDuplicates(groupIndex)}
+                    >
+                      {selectedDuplicateGroup === groupIndex ? 'Hide Records' : 'View Records'}
+                    </Button>
+                  </div>
                 </div>
                 
                 {selectedDuplicateGroup === groupIndex && (
@@ -345,9 +376,9 @@ export default function Deduplication() {
               <Button 
                 variant="default"
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                onClick={() => setShowFixer(true)}
+                onClick={() => handleAction('all-duplicates', 'fix')}
               >
-                Fix Duplicate Issues
+                Fix All Duplicate Issues
               </Button>
             </div>
           </div>
@@ -438,17 +469,22 @@ export default function Deduplication() {
                 {showFixer ? (
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium">Duplicate Record Resolution</h3>
+                      <h3 className="text-lg font-medium">
+                        {activeFixGroupId ? `Fixing Duplicate Group ${activeFixGroupId.replace('group-', '')}` : 'Duplicate Record Resolution'}
+                      </h3>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setShowFixer(false)}
+                        onClick={() => {
+                          setShowFixer(false);
+                          setActiveFixGroupId(null);
+                        }}
                       >
                         Back to Summary
                       </Button>
                     </div>
                     <NormalizationEditor 
-                      issues={normalizationIssues}
+                      issues={getFilteredNormalizationIssues()}
                       onSave={handleSaveNormalization}
                       issueType="duplicate"
                     />

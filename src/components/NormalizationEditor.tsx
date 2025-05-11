@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   // Initialize edited issues when the component receives issues
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
     return Array.from(new Set(issues.map(issue => issue.type)));
   }, [issues]);
 
-  // Filter issues based on search term and selected types
+  // Filter issues based on search term, selected types, and selected group
   const filteredIssues = editedIssues.filter(issue => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -64,7 +66,8 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
       issue.fieldName.toLowerCase().includes(searchLower)
     );
     const matchesType = selectedTypes.includes(issue.type);
-    return matchesSearch && matchesType;
+    const matchesGroup = !selectedGroup || issue.groupId === selectedGroup;
+    return matchesSearch && matchesType && matchesGroup;
   });
 
   // Group issues by groupId if present
@@ -304,6 +307,41 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
             />
           </div>
           
+          {allGroups.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="mr-2 h-4 w-4" />
+                  {selectedGroup ? `Group ${selectedGroup.replace('group-', '')}` : 'All Groups'}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem
+                  checked={!selectedGroup}
+                  onCheckedChange={() => setSelectedGroup(null)}
+                >
+                  All Groups
+                </DropdownMenuCheckboxItem>
+                {allGroups.map(group => (
+                  <DropdownMenuCheckboxItem
+                    key={group}
+                    checked={selectedGroup === group}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedGroup(group);
+                      } else {
+                        setSelectedGroup(null);
+                      }
+                    }}
+                  >
+                    Group {group?.replace('group-', '') || 'Unspecified'}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto">
@@ -386,6 +424,7 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
             Showing {filteredIssues.length} of {issues.length} issues
             {searchTerm && ` (filtered by "${searchTerm}")`}
             {selectedTypes.length !== allTypes.length && ` (filtered by ${selectedTypes.length} types)`}
+            {selectedGroup && ` (Group ${selectedGroup.replace('group-', '')})`}
           </div>
           <Button 
             onClick={handleSaveChanges} 

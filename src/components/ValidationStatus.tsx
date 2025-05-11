@@ -27,13 +27,14 @@ export interface ValidationResult {
   description?: string;
   severity?: string; 
   technical_details?: string | string[];
+  groupId?: string; // Added groupId to support group-specific actions
 }
 
 interface ValidationStatusProps {
   results: ValidationResult[];
   title: string;
   data?: any[]; 
-  onAction?: (id: string, action: string) => void;
+  onAction?: (id: string, action: string, groupId?: string) => void;
 }
 
 const ValidationStatus = ({ results, title, data = [], onAction }: ValidationStatusProps) => {
@@ -64,52 +65,81 @@ const ValidationStatus = ({ results, title, data = [], onAction }: ValidationSta
     }
   };
 
-  const renderTechnicalDetails = (details: string | string[] | undefined) => {
+  const renderTechnicalDetails = (details: string | string[] | undefined, result: ValidationResult) => {
     if (!details) return null;
     
     if (typeof details === 'string') {
-      return <p className="leading-relaxed">{details}</p>;
+      return (
+        <>
+          <p className="leading-relaxed">{details}</p>
+          {renderFixButton(result)}
+        </>
+      );
     }
     
-    return details.map((detail, index) => {
-      // Check if this is a button action
-      if (typeof detail === 'string' && detail.includes('<button-action')) {
-        // Extract the action ID and text
-        const idMatch = detail.match(/id="([^"]+)"/);
-        const actionMatch = detail.match(/action="([^"]+)"/);
-        const textMatch = detail.match(/>([^<]+)</);
-        
-        if (idMatch && actionMatch && textMatch && onAction) {
-          const id = idMatch[1];
-          const action = actionMatch[1];
-          const buttonText = textMatch[1];
+    return (
+      <>
+        {details.map((detail, index) => {
+          // Check if this is a button action
+          if (typeof detail === 'string' && detail.includes('<button-action')) {
+            // Extract the action ID and text
+            const idMatch = detail.match(/id="([^"]+)"/);
+            const actionMatch = detail.match(/action="([^"]+)"/);
+            const textMatch = detail.match(/>([^<]+)</);
+            
+            if (idMatch && actionMatch && textMatch && onAction) {
+              const id = idMatch[1];
+              const action = actionMatch[1];
+              const buttonText = textMatch[1];
+              
+              return (
+                <div key={index} className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAction(id, action, result.groupId)}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {buttonText}
+                  </Button>
+                </div>
+              );
+            }
+          }
           
           return (
-            <div key={index} className="mt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onAction(id, action)}
-                className="flex items-center gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                {buttonText}
-              </Button>
-            </div>
+            <p key={index} className={cn(
+              "leading-relaxed",
+              detail.startsWith('-') ? 'pl-4' : '',
+              detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
+            )}>
+              {detail}
+            </p>
           );
-        }
-      }
-      
+        })}
+        {renderFixButton(result)}
+      </>
+    );
+  };
+
+  const renderFixButton = (result: ValidationResult) => {
+    if ((result.status === 'warning' || result.status === 'fail') && onAction) {
       return (
-        <p key={index} className={cn(
-          "leading-relaxed",
-          detail.startsWith('-') ? 'pl-4' : '',
-          detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
-        )}>
-          {detail}
-        </p>
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAction(result.id, 'fix', result.groupId)}
+            className="flex items-center gap-2"
+          >
+            <PenLine className="h-4 w-4" />
+            Fix Issues
+          </Button>
+        </div>
       );
-    });
+    }
+    return null;
   };
 
   const getErrorData = (errorId: string) => {
@@ -490,7 +520,7 @@ const ValidationStatus = ({ results, title, data = [], onAction }: ValidationSta
               {(result.status === 'fail' || result.status === 'warning' || result.status === 'pass') && (
                 <AccordionContent className="px-4 pb-3">
                   <div className="space-y-3 text-sm text-gray-700">
-                    {result.technical_details && renderTechnicalDetails(result.technical_details)}
+                    {result.technical_details && renderTechnicalDetails(result.technical_details, result)}
                     
                     <div className="mt-4 flex space-x-2">
                       {result.id === 'header-uniqueness' && (
