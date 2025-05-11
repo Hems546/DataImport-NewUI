@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +56,7 @@ export default function Deduplication() {
   const [showFixer, setShowFixer] = useState(false);
   const [normalizationIssues, setNormalizationIssues] = useState<NormalizationIssue[]>([]);
   const [activeFixGroupId, setActiveFixGroupId] = useState<string | null>(null);
+  const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
 
   useEffect(() => {
     const analyzeDeduplication = async () => {
@@ -233,9 +233,11 @@ export default function Deduplication() {
     setSelectedDuplicateGroup(groupIndex === selectedDuplicateGroup ? null : groupIndex);
   };
   
-  // Update the action handler to support group-specific fixes
+  // Update the action handler to support showing only relevant duplicates
   const handleAction = (id: string, action: string, groupId?: string) => {
     if (action === 'view' || action === 'fix') {
+      setSelectedWarningId(id);
+      
       // If groupId is provided, filter issues to only that group
       if (groupId) {
         setActiveFixGroupId(groupId);
@@ -258,6 +260,7 @@ export default function Deduplication() {
     
     setShowFixer(false);
     setActiveFixGroupId(null);
+    setSelectedWarningId(null);
   };
   
   // Filter duplicate groups based on search term if provided
@@ -271,10 +274,22 @@ export default function Deduplication() {
       )
     : duplicateRecords;
   
-  // Get filtered normalization issues based on active fix group
+  // Get filtered normalization issues based on active fix group and selected warning
   const getFilteredNormalizationIssues = () => {
-    if (!activeFixGroupId) return normalizationIssues;
-    return normalizationIssues.filter(issue => issue.groupId === activeFixGroupId);
+    let filteredIssues = normalizationIssues;
+    
+    // Filter by group if specified
+    if (activeFixGroupId) {
+      filteredIssues = filteredIssues.filter(issue => issue.groupId === activeFixGroupId);
+    }
+    
+    // Further filter by warning type if needed in the future
+    if (selectedWarningId) {
+      // In a real app, you might filter by warning type
+      // For now we'll just return the group-filtered issues
+    }
+    
+    return filteredIssues;
   };
   
   const renderDuplicateRecordsTable = () => {
@@ -311,13 +326,6 @@ export default function Deduplication() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAction('group-duplicates', 'fix', `group-${groupIndex}`)}
-                    >
-                      Fix Issues
-                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -376,9 +384,8 @@ export default function Deduplication() {
               <Button 
                 variant="default"
                 className="bg-brand-purple hover:bg-brand-purple/90"
-                onClick={() => handleAction('all-duplicates', 'fix')}
               >
-                Fix All Duplicate Issues
+                Apply Changes
               </Button>
             </div>
           </div>
@@ -478,6 +485,7 @@ export default function Deduplication() {
                         onClick={() => {
                           setShowFixer(false);
                           setActiveFixGroupId(null);
+                          setSelectedWarningId(null);
                         }}
                       >
                         Back to Summary

@@ -70,10 +70,7 @@ const ValidationStatus = ({ results, title, data = [], onAction }: ValidationSta
     
     if (typeof details === 'string') {
       return (
-        <>
-          <p className="leading-relaxed">{details}</p>
-          {renderFixButton(result)}
-        </>
+        <p className="leading-relaxed">{details}</p>
       );
     }
     
@@ -118,28 +115,8 @@ const ValidationStatus = ({ results, title, data = [], onAction }: ValidationSta
             </p>
           );
         })}
-        {renderFixButton(result)}
       </>
     );
-  };
-
-  const renderFixButton = (result: ValidationResult) => {
-    if ((result.status === 'warning' || result.status === 'fail') && onAction) {
-      return (
-        <div className="mt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onAction(result.id, 'fix', result.groupId)}
-            className="flex items-center gap-2"
-          >
-            <PenLine className="h-4 w-4" />
-            Fix Issues
-          </Button>
-        </div>
-      );
-    }
-    return null;
   };
 
   const getErrorData = (errorId: string) => {
