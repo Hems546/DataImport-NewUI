@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +10,8 @@ import {
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Edit
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -17,11 +19,14 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
+import NormalizationEditor, { NormalizationIssue } from '@/components/NormalizationEditor';
 
 export default function DataNormalization() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [normalizationResults, setNormalizationResults] = useState<ValidationResult[]>([]);
+  const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [normalizationIssues, setNormalizationIssues] = useState<Record<string, NormalizationIssue[]>>({});
 
   useEffect(() => {
     const analyzeNormalization = async () => {
@@ -81,6 +86,9 @@ export default function DataNormalization() {
 
         setNormalizationResults(results);
         
+        // Generate sample issues for demonstration
+        generateSampleIssues(results);
+        
         const warnings = results.filter(r => r.status === 'warning');
         const failures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
 
@@ -116,6 +124,145 @@ export default function DataNormalization() {
 
     analyzeNormalization();
   }, [toast]);
+
+  // Generate sample issues for each validation type
+  const generateSampleIssues = (results: ValidationResult[]) => {
+    const issues: Record<string, NormalizationIssue[]> = {};
+    
+    // Phone number standardization issues
+    issues['phone-standardization'] = [
+      {
+        id: 'phone-1',
+        rowIndex: 0,
+        fieldName: 'phone',
+        originalValue: '5551234567',
+        suggestedValue: '+1-555-123-4567',
+        type: 'phone'
+      },
+      {
+        id: 'phone-2',
+        rowIndex: 3,
+        fieldName: 'mobile',
+        originalValue: '(555) 987-6543',
+        suggestedValue: '+1-555-987-6543',
+        type: 'phone'
+      },
+      {
+        id: 'phone-3',
+        rowIndex: 5,
+        fieldName: 'phone',
+        originalValue: '555.321.7654',
+        suggestedValue: '+1-555-321-7654',
+        type: 'phone'
+      }
+    ];
+    
+    // Email casing issues
+    issues['email-casing'] = [
+      {
+        id: 'email-1',
+        rowIndex: 1,
+        fieldName: 'email',
+        originalValue: 'John.Doe@Example.com',
+        suggestedValue: 'john.doe@example.com',
+        type: 'email'
+      },
+      {
+        id: 'email-2',
+        rowIndex: 4,
+        fieldName: 'email',
+        originalValue: 'JANE.SMITH@COMPANY.COM',
+        suggestedValue: 'jane.smith@company.com',
+        type: 'email'
+      }
+    ];
+    
+    // Name capitalization issues
+    issues['name-capitalization'] = [
+      {
+        id: 'name-1',
+        rowIndex: 2,
+        fieldName: 'firstName',
+        originalValue: 'robert',
+        suggestedValue: 'Robert',
+        type: 'name'
+      },
+      {
+        id: 'name-2',
+        rowIndex: 7,
+        fieldName: 'lastName',
+        originalValue: 'johnson',
+        suggestedValue: 'Johnson',
+        type: 'name'
+      },
+      {
+        id: 'name-3',
+        rowIndex: 9,
+        fieldName: 'firstName',
+        originalValue: 'SUSAN',
+        suggestedValue: 'Susan',
+        type: 'name'
+      }
+    ];
+    
+    setNormalizationIssues(issues);
+  };
+
+  const handleSaveNormalizations = (updatedIssues: NormalizationIssue[]) => {
+    if (!selectedIssue) return;
+    
+    // Update the issues for the selected issue type
+    const updatedIssuesMap = {
+      ...normalizationIssues,
+      [selectedIssue]: updatedIssues
+    };
+    
+    setNormalizationIssues(updatedIssuesMap);
+    
+    // Show success message
+    toast({
+      title: "Normalization applied",
+      description: `Successfully standardized ${updatedIssues.length} values.`
+    });
+  };
+
+  const handleViewIssues = (issueId: string) => {
+    setSelectedIssue(issueId);
+  };
+
+  const handleCloseEditor = () => {
+    setSelectedIssue(null);
+  };
+
+  const renderValidationStatusWithEditButtons = () => {
+    const resultsWithEditButtons = normalizationResults.map(result => {
+      // Only add edit buttons for results that have issues
+      if (normalizationIssues[result.id]?.length > 0 && 
+          (result.status === 'warning' || result.status === 'fail')) {
+        return {
+          ...result,
+          technical_details: [
+            ...(Array.isArray(result.technical_details) ? result.technical_details : 
+               result.technical_details ? [result.technical_details] : []),
+            `<button-action id="${result.id}" action="edit">Edit ${result.name}</button-action>`
+          ]
+        };
+      }
+      return result;
+    });
+
+    return (
+      <ValidationStatus 
+        results={resultsWithEditButtons}
+        title="Normalization Results"
+        onAction={(id, action) => {
+          if (action === 'edit') {
+            handleViewIssues(id);
+          }
+        }}
+      />
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -193,11 +340,26 @@ export default function DataNormalization() {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
                 <p className="text-gray-500">Analyzing data formats...</p>
               </div>
+            ) : selectedIssue ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">
+                    Edit {normalizationResults.find(r => r.id === selectedIssue)?.name}
+                  </h3>
+                  <Button variant="outline" onClick={handleCloseEditor}>
+                    Back to Results
+                  </Button>
+                </div>
+                {normalizationIssues[selectedIssue] && (
+                  <NormalizationEditor 
+                    issues={normalizationIssues[selectedIssue]} 
+                    onSave={handleSaveNormalizations}
+                    issueType={selectedIssue}
+                  />
+                )}
+              </div>
             ) : (
-              <ValidationStatus 
-                results={normalizationResults}
-                title="Normalization Results"
-              />
+              renderValidationStatusWithEditButtons()
             )}
           </div>
 

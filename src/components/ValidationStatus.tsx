@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine, Eye, Pencil } from 'lucide-react';
+import { Check, X, Loader, ChevronDown, Table, AlertTriangle, FileSpreadsheet, PenLine, Eye, Pencil, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -26,17 +25,18 @@ export interface ValidationResult {
   name: string;
   status: 'pending' | 'pass' | 'fail' | 'warning';
   description?: string;
-  severity?: string; // Changed from 'critical' | 'warning' to string to be more flexible
+  severity?: string; 
   technical_details?: string | string[];
 }
 
 interface ValidationStatusProps {
   results: ValidationResult[];
   title: string;
-  data?: any[]; // Add data prop to receive the actual data
+  data?: any[]; 
+  onAction?: (id: string, action: string) => void;
 }
 
-const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) => {
+const ValidationStatus = ({ results, title, data = [], onAction }: ValidationStatusProps) => {
   const { toast } = useToast();
   const [showDuplicateHeaders, setShowDuplicateHeaders] = useState(false);
   const [showSpreadsheetMode, setShowSpreadsheetMode] = useState(false);
@@ -71,15 +71,45 @@ const ValidationStatus = ({ results, title, data = [] }: ValidationStatusProps) 
       return <p className="leading-relaxed">{details}</p>;
     }
     
-    return details.map((detail, index) => (
-      <p key={index} className={cn(
-        "leading-relaxed",
-        detail.startsWith('-') ? 'pl-4' : '',
-        detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
-      )}>
-        {detail}
-      </p>
-    ));
+    return details.map((detail, index) => {
+      // Check if this is a button action
+      if (typeof detail === 'string' && detail.includes('<button-action')) {
+        // Extract the action ID and text
+        const idMatch = detail.match(/id="([^"]+)"/);
+        const actionMatch = detail.match(/action="([^"]+)"/);
+        const textMatch = detail.match(/>([^<]+)</);
+        
+        if (idMatch && actionMatch && textMatch && onAction) {
+          const id = idMatch[1];
+          const action = actionMatch[1];
+          const buttonText = textMatch[1];
+          
+          return (
+            <div key={index} className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onAction(id, action)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                {buttonText}
+              </Button>
+            </div>
+          );
+        }
+      }
+      
+      return (
+        <p key={index} className={cn(
+          "leading-relaxed",
+          detail.startsWith('-') ? 'pl-4' : '',
+          detail.match(/^\d+\./) ? 'pl-4 text-gray-600' : ''
+        )}>
+          {detail}
+        </p>
+      );
+    });
   };
 
   const getErrorData = (errorId: string) => {
