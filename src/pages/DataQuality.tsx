@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function DataQualityPage() {
   const { toast } = useToast();
@@ -227,7 +229,7 @@ export default function DataQualityPage() {
       <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto"> {/* Increased max-width from 4xl to 5xl */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
               <Link to="/import-wizard/column-mapping">
@@ -324,11 +326,15 @@ export default function DataQualityPage() {
                 <p className="text-gray-500">Analyzing data quality...</p>
               </div>
             ) : parsedData.length > 0 ? (
-              <ValidationStatus 
-                results={validationResults}
-                title="Data Quality Results"
-                data={parsedData}
-              />
+              <ScrollArea className="w-full h-[600px]">
+                <div className="min-w-full pr-6"> {/* Added min-width to ensure content doesn't shrink */}
+                  <ValidationStatus 
+                    results={validationResults}
+                    title="Data Quality Results"
+                    data={parsedData}
+                  />
+                </div>
+              </ScrollArea>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
                 <AlertTriangle className="h-10 w-10 text-yellow-500 mb-4" />

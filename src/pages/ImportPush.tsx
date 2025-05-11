@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +8,8 @@ import {
   ArrowLeft,
   FileBox,
   ClipboardCheck,
-  ArrowUpCircle
+  ArrowUpCircle,
+  FileSearch
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -17,6 +17,7 @@ import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
 import ImportProgress from "@/components/ImportProgress";
+import { FileAnalysisModal } from "@/components/FileAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function ImportPush() {
@@ -30,6 +31,7 @@ export default function ImportPush() {
     processedRows: 0,
     failedRows: 0
   });
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
 
   // Check for critical validation failures
   const checkValidations = async (importSessionId: string) => {
@@ -269,17 +271,33 @@ export default function ImportPush() {
                 </Button>
               </Link>
             </div>
-            <Button 
-              className="bg-brand-purple hover:bg-brand-purple/90"
-              disabled={isImporting || importStatus === 'completed'}
-              onClick={startImport}
-            >
-              {importStatus === 'completed' ? 'Import Complete' : 'Start Import'}
-              <ArrowUpCircle className="ml-2" />
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                className="border-brand-purple text-brand-purple hover:bg-brand-purple/10"
+                onClick={() => setIsAnalysisModalOpen(true)}
+                disabled={isImporting || importStatus === 'completed'}
+              >
+                <FileSearch className="mr-2" />
+                Analyze your file
+              </Button>
+              <Button 
+                className="bg-brand-purple hover:bg-brand-purple/90"
+                disabled={isImporting || importStatus === 'completed'}
+                onClick={startImport}
+              >
+                {importStatus === 'completed' ? 'Import Complete' : 'Start Import'}
+                <ArrowUpCircle className="ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+      
+      <FileAnalysisModal 
+        isOpen={isAnalysisModalOpen} 
+        onClose={() => setIsAnalysisModalOpen(false)} 
+      />
     </div>
   );
 }
