@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,22 +24,32 @@ export const useInstructions = () => {
   
   // Load instructions from localStorage when component mounts
   useEffect(() => {
-    const savedInstructions = localStorage.getItem(STORAGE_KEY);
-    if (savedInstructions) {
-      try {
-        setInstructions(JSON.parse(savedInstructions));
-      } catch (err) {
-        console.error('Failed to parse saved instructions', err);
+    try {
+      const savedInstructions = localStorage.getItem(STORAGE_KEY);
+      if (savedInstructions) {
+        const parsedInstructions = JSON.parse(savedInstructions);
+        setInstructions(parsedInstructions);
+        console.log('Loaded instructions from localStorage:', parsedInstructions);
+      } else {
+        console.log('No saved instructions found in localStorage');
       }
+    } catch (err) {
+      console.error('Failed to parse saved instructions', err);
+    } finally {
+      setLoaded(true);
     }
-    setLoaded(true);
   }, []);
   
   // Save instructions to localStorage whenever they change
   // But only after initial load to prevent unnecessary operations
   useEffect(() => {
-    if (loaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(instructions));
+    if (loaded && instructions.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(instructions));
+        console.log('Saved instructions to localStorage:', instructions);
+      } catch (err) {
+        console.error('Failed to save instructions to localStorage', err);
+      }
     }
   }, [instructions, loaded]);
   
@@ -66,16 +77,7 @@ export const useInstructions = () => {
   }, []);
   
   const removeInstruction = useCallback((id: string) => {
-    setInstructions(prev => {
-      const updatedInstructions = prev.filter(instruction => instruction.id !== id);
-      
-      // If we removed the last instruction, clear localStorage
-      if (updatedInstructions.length === 0) {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-      
-      return updatedInstructions;
-    });
+    setInstructions(prev => prev.filter(instruction => instruction.id !== id));
   }, []);
   
   const toggleInstructionActive = useCallback((id: string) => {

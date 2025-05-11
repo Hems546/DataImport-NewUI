@@ -51,15 +51,26 @@ const InstructionManagementTable: React.FC = () => {
   };
   
   const clearAllInstructions = () => {
+    // Remove all instructions from localStorage
     localStorage.removeItem(STORAGE_KEY);
+    
+    // Force page reload to apply changes
     window.location.reload();
+    
+    toast({
+      description: "All instructions have been cleared",
+      variant: "destructive"
+    });
   };
   
   return (
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Instructions</h2>
-        <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} size="sm">
+        <Button variant="destructive" onClick={() => {
+          setInstructionToDelete(null);
+          setDeleteDialogOpen(true);
+        }} size="sm">
           Clear All
         </Button>
       </div>
