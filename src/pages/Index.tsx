@@ -1,11 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
-import { FileText, Table, CheckCircle, History } from 'lucide-react';
+import { FileText, Table, CheckCircle, History, FileSearch } from 'lucide-react';
+import { FileAnalysisModal } from '@/components/FileAnalysisModal';
 
 const Index = () => {
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header currentPage="welcome" />
@@ -26,6 +29,13 @@ const Index = () => {
               <History className="mr-2" /> View Import History
             </Button>
           </Link>
+          <Button 
+            onClick={() => setIsAnalysisModalOpen(true)}
+            variant="outline" 
+            className="ml-4 px-6 py-3 text-lg border-brand-purple text-brand-purple hover:bg-brand-purple/10"
+          >
+            <FileSearch className="mr-2" /> Analyze Your File
+          </Button>
         </div>
 
         <div className="grid grid-cols-3 gap-8 mt-12">
@@ -59,6 +69,11 @@ const Index = () => {
             </p>
           </div>
         </div>
+
+        <FileAnalysisModal
+          isOpen={isAnalysisModalOpen}
+          onClose={() => setIsAnalysisModalOpen(false)}
+        />
       </main>
     </div>
   );
