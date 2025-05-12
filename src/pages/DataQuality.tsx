@@ -229,7 +229,7 @@ export default function DataQualityPage() {
       <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto"> {/* Increased max-width from 4xl to 5xl */}
+        <div className="mx-auto w-full max-w-[1200px]"> {/* Increased max-width */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
               <Link to="/import-wizard/column-mapping">
@@ -243,51 +243,53 @@ export default function DataQualityPage() {
           </div>
 
           {/* Progress Steps */}
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<DataQualityIcon />}
-              label="Data Quality"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
-          </div>
+          <ScrollArea className="w-full pb-4">
+            <div className="flex justify-between items-center mb-12 min-w-max pr-6">
+              <ProgressStep 
+                icon={<FileCheck />}
+                label="File Upload"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<FileCheck />}
+                label="File Preflighting"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<MapColumns />}
+                label="Column Mapping"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<DataQualityIcon />}
+                label="Data Quality"
+                isActive={true}
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<TransformData />}
+                label="Data Normalization"
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<FileBox />}
+                label="Deduplication"
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ClipboardCheck />}
+                label="Final Review & Approval"
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ArrowUpCircle />}
+                label="Import / Push"
+              />
+            </div>
+          </ScrollArea>
           
           {/* Instructions Card */}
           <Card className="mb-6">
@@ -326,15 +328,17 @@ export default function DataQualityPage() {
                 <p className="text-gray-500">Analyzing data quality...</p>
               </div>
             ) : parsedData.length > 0 ? (
-              <ScrollArea className="w-full h-[600px]">
-                <div className="min-w-full pr-6"> {/* Added min-width to ensure content doesn't shrink */}
-                  <ValidationStatus 
-                    results={validationResults}
-                    title="Data Quality Results"
-                    data={parsedData}
-                  />
-                </div>
-              </ScrollArea>
+              <div className="overflow-hidden">
+                <ScrollArea className="w-full h-[600px]">
+                  <div className="min-w-full pr-6">
+                    <ValidationStatus 
+                      results={validationResults}
+                      title="Data Quality Results"
+                      data={parsedData}
+                    />
+                  </div>
+                </ScrollArea>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
                 <AlertTriangle className="h-10 w-10 text-yellow-500 mb-4" />
