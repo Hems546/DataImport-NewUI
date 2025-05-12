@@ -1,21 +1,187 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Book, Star } from 'lucide-react';
+import { Book, Star, CalendarDays, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+// Define feature interface for type safety
+interface Feature {
+  id: string;
+  title: string;
+  content: React.ReactNode;
+  dateAdded: string;
+  formattedDate: string; // For display
+}
+
+// Helper function to format date for features
+const formatFeatureDate = (date: string): string => {
+  return format(new Date(date), 'MMMM d, yyyy');
+};
 
 const AdminHelpCenter: React.FC = () => {
+  const { toast } = useToast();
+  // Initial features data with dates
+  const [features, setFeatures] = useState<Feature[]>([
+    {
+      id: 'item-1',
+      title: 'Page Instructions Management',
+      dateAdded: '2025-05-01',
+      formattedDate: formatFeatureDate('2025-05-01'),
+      content: (
+        <>
+          <p className="mb-2">
+            The new Page Instructions Management feature allows you to create and edit instructions specific to different pages in your application. 
+          </p>
+          <p className="mb-2">
+            Instructions can be organized by page path, making it easier to manage guidance for complex applications with multiple screens.
+          </p>
+          <p className="font-medium mt-3">How to use:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Navigate to the "Page Instructions" tab in the Admin Dashboard</li>
+            <li>Add a new page path to create instructions for that specific page</li>
+            <li>Edit existing instructions by clicking the edit button</li>
+            <li>Instructions will automatically appear on their designated pages when instruction mode is enabled</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-2',
+      title: 'Advanced Data Quality Analysis',
+      dateAdded: '2025-04-15',
+      formattedDate: formatFeatureDate('2025-04-15'),
+      content: (
+        <>
+          <p className="mb-2">
+            Our data quality analysis tools now provide deeper insights into your data, including pattern recognition and anomaly detection.
+          </p>
+          <p className="font-medium mt-3">Key improvements:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Detailed statistical analysis of numerical columns</li>
+            <li>Pattern detection for text fields</li>
+            <li>Visualizations for data distributions</li>
+            <li>Automated suggestions for data cleaning</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-3',
+      title: 'Help Center',
+      dateAdded: '2025-04-01',
+      formattedDate: formatFeatureDate('2025-04-01'),
+      content: (
+        <p>
+          The new Help Center (you're looking at it now!) provides centralized access to information about new features and helpful guides for using the system.
+        </p>
+      )
+    }
+  ]);
+
+  // State for new feature form
+  const [newFeature, setNewFeature] = useState({
+    title: '',
+    content: '',
+    dateAdded: format(new Date(), 'yyyy-MM-dd')
+  });
+
+  // Function to add a new feature
+  const handleAddFeature = () => {
+    if (newFeature.title.trim() === '' || newFeature.content.trim() === '') {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newFeatureItem: Feature = {
+      id: `item-${features.length + 1}`,
+      title: newFeature.title,
+      content: (
+        <p className="whitespace-pre-wrap">{newFeature.content}</p>
+      ),
+      dateAdded: newFeature.dateAdded,
+      formattedDate: formatFeatureDate(newFeature.dateAdded)
+    };
+
+    setFeatures([newFeatureItem, ...features]);
+    setNewFeature({
+      title: '',
+      content: '',
+      dateAdded: format(new Date(), 'yyyy-MM-dd')
+    });
+
+    toast({
+      title: "Feature Added",
+      description: "The new feature has been added to the help center",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Help Center</CardTitle>
-          <CardDescription>
-            Find information about new features and get help with using the system
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Help Center</CardTitle>
+            <CardDescription>
+              Find information about new features and get help with using the system
+            </CardDescription>
+          </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-1">
+                <Plus className="h-4 w-4" /> Add Feature
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Feature</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Feature Title</Label>
+                  <Input 
+                    id="title" 
+                    value={newFeature.title}
+                    onChange={(e) => setNewFeature({...newFeature, title: e.target.value})}
+                    placeholder="Enter feature title"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="content">Feature Description</Label>
+                  <Textarea 
+                    id="content" 
+                    value={newFeature.content}
+                    onChange={(e) => setNewFeature({...newFeature, content: e.target.value})}
+                    placeholder="Describe the feature"
+                    rows={5}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="date">Date Added</Label>
+                  <Input 
+                    id="date" 
+                    type="date" 
+                    value={newFeature.dateAdded}
+                    onChange={(e) => setNewFeature({...newFeature, dateAdded: e.target.value})}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleAddFeature}>Add Feature</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="new-features" className="w-full">
@@ -36,55 +202,22 @@ const AdminHelpCenter: React.FC = () => {
               </div>
               
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger className="font-medium">
-                    Page Instructions Management
-                  </AccordionTrigger>
-                  <AccordionContent className="text-gray-600">
-                    <p className="mb-2">
-                      The new Page Instructions Management feature allows you to create and edit instructions specific to different pages in your application. 
-                    </p>
-                    <p className="mb-2">
-                      Instructions can be organized by page path, making it easier to manage guidance for complex applications with multiple screens.
-                    </p>
-                    <p className="font-medium mt-3">How to use:</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-1">
-                      <li>Navigate to the "Page Instructions" tab in the Admin Dashboard</li>
-                      <li>Add a new page path to create instructions for that specific page</li>
-                      <li>Edit existing instructions by clicking the edit button</li>
-                      <li>Instructions will automatically appear on their designated pages when instruction mode is enabled</li>
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="item-2">
-                  <AccordionTrigger className="font-medium">
-                    Advanced Data Quality Analysis
-                  </AccordionTrigger>
-                  <AccordionContent className="text-gray-600">
-                    <p className="mb-2">
-                      Our data quality analysis tools now provide deeper insights into your data, including pattern recognition and anomaly detection.
-                    </p>
-                    <p className="font-medium mt-3">Key improvements:</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-1">
-                      <li>Detailed statistical analysis of numerical columns</li>
-                      <li>Pattern detection for text fields</li>
-                      <li>Visualizations for data distributions</li>
-                      <li>Automated suggestions for data cleaning</li>
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="item-3">
-                  <AccordionTrigger className="font-medium">
-                    Help Center
-                  </AccordionTrigger>
-                  <AccordionContent className="text-gray-600">
-                    <p>
-                      The new Help Center (you're looking at it now!) provides centralized access to information about new features and helpful guides for using the system.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
+                {features.map((feature) => (
+                  <AccordionItem key={feature.id} value={feature.id}>
+                    <AccordionTrigger className="font-medium">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <span>{feature.title}</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 font-normal">
+                          <CalendarDays className="h-4 w-4" />
+                          <span>{feature.formattedDate}</span>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-gray-600">
+                      {feature.content}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
               </Accordion>
             </TabsContent>
             
@@ -129,6 +262,29 @@ const AdminHelpCenter: React.FC = () => {
                       <p className="text-yellow-700 text-sm">
                         Use the Recent Imports section to quickly resume any paused or incomplete imports without starting over.
                       </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                {/* Feature info embedded in help section */}
+                <AccordionItem value="help-features">
+                  <AccordionTrigger className="font-medium">
+                    New Features
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600">
+                    <div className="space-y-4">
+                      {features.map((feature) => (
+                        <div key={`help-${feature.id}`} className="border-b border-gray-200 pb-4 last:border-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-medium text-gray-800">{feature.title}</h5>
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <CalendarDays className="h-3.5 w-3.5" />
+                              <span>{feature.formattedDate}</span>
+                            </div>
+                          </div>
+                          <div className="text-gray-600">{feature.content}</div>
+                        </div>
+                      ))}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
