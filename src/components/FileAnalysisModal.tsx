@@ -64,13 +64,16 @@ export function FileAnalysisModal({ isOpen, onClose }: FileAnalysisModalProps) {
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
           // Convert to format similar to Papa Parse output with headers
-          if (jsonData.length < 2) {
+          // Fix the TypeScript error by properly typing the jsonData
+          const typedJsonData = jsonData as any[][];
+          
+          if (typedJsonData.length < 2) {
             resolve([]);
             return;
           }
           
-          const headers = jsonData[0] as string[];
-          const rows = jsonData.slice(1);
+          const headers = typedJsonData[0] as string[];
+          const rows = typedJsonData.slice(1);
           
           const formattedData = rows.map(row => {
             const obj: Record<string, any> = {};
