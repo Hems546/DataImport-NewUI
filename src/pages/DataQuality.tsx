@@ -23,6 +23,7 @@ import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
 import { validateDataQuality } from "@/services/fileValidation";
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -38,6 +39,33 @@ export default function DataQualityPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
+
+  const parseExcelData = (base64Data: string): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Convert base64 to binary string
+        const binaryString = atob(base64Data);
+        
+        // Convert binary string to array buffer
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Read the Excel file
+        const workbook = XLSX.read(bytes, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON with headers
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        resolve(jsonData as any[]);
+      } catch (error) {
+        console.error('Error parsing Excel data:', error);
+        reject(error);
+      }
+    });
+  };
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
@@ -61,22 +89,25 @@ export default function DataQualityPage() {
         // Parse the file data
         let fileData: any[] = [];
         
-        // Convert base64 data back to a file object
-        const dataType = uploadedFile.split(',')[0].split(':')[1].split(';')[0];
-        const byteString = atob(uploadedFile.split(',')[1]);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        
-        const blob = new Blob([ab], { type: dataType });
-        const file = new File([blob], fileInfo.name || "file.csv", { type: dataType });
+        // Get the base64 data part
+        const base64Data = uploadedFile.split(',')[1];
         
         // Parse the file depending on its type
         if (fileInfo.extension === '.csv') {
           await new Promise<void>((resolve) => {
+            // Convert base64 data back to a file object
+            const dataType = uploadedFile.split(',')[0].split(':')[1].split(';')[0];
+            const byteString = atob(base64Data);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            
+            const blob = new Blob([ab], { type: dataType });
+            const file = new File([blob], fileInfo.name || "file.csv", { type: dataType });
+            
             Papa.parse(file, {
               header: true,
               dynamicTyping: true,
@@ -100,22 +131,25 @@ export default function DataQualityPage() {
             });
           });
         } else if (['.xls', '.xlsx'].includes(fileInfo.extension)) {
-          // For Excel files, we'd use a library like SheetJS/xlsx
-          // This is a simplified version showing the concept
-          toast({
-            title: "Excel processing",
-            description: "Excel processing is simplified for this demo.",
-            variant: "warning"
-          });
-          
-          // Use mock data for non-CSV files in this demo
-          fileData = [
-            { name: "John Smith", email: "john@example.com", age: 32, phone: "123-456-7890" },
-            { name: "Jane Doe", email: "not-an-email", age: "twenty-eight", phone: "123abc456" },
-            { name: "Bob Johnson", email: "bob@invalid", age: 45, phone: "987-654-3210" },
-            { name: "Sarah Williams", email: "sarah.example.com", age: "thirty", phone: "555@123#" }
-          ];
-          setParsedData(fileData);
+          try {
+            // Parse Excel data from base64
+            fileData = await parseExcelData(base64Data);
+            setParsedData(fileData);
+            
+            toast({
+              title: "Excel file processed",
+              description: `Successfully parsed ${fileData.length} rows from the Excel file.`
+            });
+          } catch (error) {
+            console.error('Error processing Excel file:', error);
+            toast({
+              title: "Error processing Excel file",
+              description: "Could not process the Excel file. It may be corrupted or in an unsupported format.",
+              variant: "destructive"
+            });
+            setIsAnalyzing(false);
+            return;
+          }
         }
         
         // Run data quality validation on the actual data

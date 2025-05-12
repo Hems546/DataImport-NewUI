@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { validateFile, validateDataQuality } from '@/services/fileValidation';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,6 +45,93 @@ export function FileAnalysisModal({ isOpen, onClose }: FileAnalysisModalProps) {
     }
   };
 
+  const parseExcelFile = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) {
+            reject(new Error('Failed to read file data'));
+            return;
+          }
+          
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          // Convert to format similar to Papa Parse output with headers
+          if (jsonData.length < 2) {
+            resolve([]);
+            return;
+          }
+          
+          const headers = jsonData[0] as string[];
+          const rows = jsonData.slice(1);
+          
+          const formattedData = rows.map(row => {
+            const obj: Record<string, any> = {};
+            headers.forEach((header, index) => {
+              if (typeof header === 'string') {
+                obj[header] = index < row.length ? row[index] : null;
+              }
+            });
+            return obj;
+          });
+          
+          resolve(formattedData);
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          reject(error);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('File reading error:', error);
+        reject(error);
+      };
+      
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const parseFile = async (file: File): Promise<any[]> => {
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    
+    if (['.xls', '.xlsx'].includes(fileExtension)) {
+      return parseExcelFile(file);
+    } else if (fileExtension === '.csv') {
+      return new Promise((resolve, reject) => {
+        Papa.parse(file, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            if (results.data && results.data.length > 0) {
+              // Filter out empty rows
+              const filteredData = results.data.filter(row => 
+                Object.keys(row).length > 0 && 
+                !Object.keys(row).every(key => !row[key])
+              );
+              resolve(filteredData);
+            } else {
+              resolve([]);
+            }
+          },
+          error: (error) => {
+            console.error('Error parsing CSV:', error);
+            reject(error);
+          }
+        });
+      });
+    }
+    
+    return Promise.resolve([]);
+  };
+
   const analyzeFile = async () => {
     if (!file) return;
     
@@ -70,35 +158,38 @@ export function FileAnalysisModal({ isOpen, onClose }: FileAnalysisModalProps) {
       let dataQualityScore = 0;
       let dataQualityIssues: any[] = [];
       
-      // Parse file data for quality analysis
-      await new Promise<void>((resolve) => {
-        Papa.parse(file, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            if (results.data && results.data.length > 0) {
-              // Get data quality validation results
-              setProgress(60);
-              const dataQualityResults = validateDataQuality(results.data);
-              
-              dataQualityIssues = dataQualityResults.map(result => ({
-                name: result.name,
-                status: result.status,
-                details: result.description || ''
-              }));
-              
-              dataQualityScore = calculateScore(dataQualityResults.map(r => r.status));
-              resolve();
-            } else {
-              resolve();
-            }
-          },
-          error: () => {
-            resolve();
-          }
+      try {
+        // Parse file data for quality analysis
+        const parsedData = await parseFile(file);
+        
+        if (parsedData.length > 0) {
+          setProgress(60);
+          
+          // Get data quality validation results
+          const dataQualityResults = validateDataQuality(parsedData);
+          
+          dataQualityIssues = dataQualityResults.map(result => ({
+            name: result.name,
+            status: result.status,
+            details: result.description || ''
+          }));
+          
+          dataQualityScore = calculateScore(dataQualityResults.map(r => r.status));
+        } else {
+          toast({
+            title: "No data found",
+            description: "The file appears to be empty or contains no valid data.",
+            variant: "warning"
+          });
+        }
+      } catch (parseError) {
+        console.error('Error parsing file:', parseError);
+        toast({
+          title: "File parsing failed",
+          description: "Unable to parse the file content. The file might be corrupted or in an unsupported format.",
+          variant: "destructive"
         });
-      });
+      }
       
       setProgress(80);
       
