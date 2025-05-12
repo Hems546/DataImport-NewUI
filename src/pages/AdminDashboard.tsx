@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -14,6 +14,7 @@ import { generateCodeBundle } from "@/utils/codeExporter";
 import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
+import InstructionPageManager from "@/components/admin/InstructionPageManager";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
@@ -90,6 +91,14 @@ export default function AdminDashboard() {
               }`}
             >
               <StickyNote className="w-5 h-5 mr-2" /> Developer Instructions
+            </button>
+            <button 
+              onClick={() => setActiveTab('page-instructions')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'page-instructions' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
+              }`}
+            >
+              <Map className="w-5 h-5 mr-2" /> Page Instructions
             </button>
             <button 
               onClick={() => setActiveTab('indexing')}
@@ -214,6 +223,8 @@ export default function AdminDashboard() {
               <InstructionManagementTable />
             </>
           )}
+
+          {activeTab === 'page-instructions' && <InstructionPageManager />}
 
           {activeTab === 'indexing' && <IndexingFiles />}
         </div>
