@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Book, Star, Collapsible, CollapsibleContent, CollapsibleTrigger } from 'lucide-react';
+import { Book, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const AdminHelpCenter: React.FC = () => {
   return (
@@ -584,4 +585,3 @@ const AdminHelpCenter: React.FC = () => {
 };
 
 export default AdminHelpCenter;
-
