@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map, HelpCircle } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
 import InstructionPageManager from "@/components/admin/InstructionPageManager";
+import AdminHelpCenter from "@/components/admin/AdminHelpCenter";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
@@ -107,6 +108,14 @@ export default function AdminDashboard() {
               }`}
             >
               <Files className="w-5 h-5 mr-2" /> Indexing Files
+            </button>
+            <button 
+              onClick={() => setActiveTab('help')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'help' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
+              }`}
+            >
+              <HelpCircle className="w-5 h-5 mr-2" /> Help
             </button>
           </nav>
         </div>
@@ -227,6 +236,8 @@ export default function AdminDashboard() {
           {activeTab === 'page-instructions' && <InstructionPageManager />}
 
           {activeTab === 'indexing' && <IndexingFiles />}
+          
+          {activeTab === 'help' && <AdminHelpCenter />}
         </div>
       </div>
     </div>
