@@ -42,7 +42,7 @@ const InstructionModeToggle: React.FC = () => {
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="text-white opacity-70 hover:opacity-100">
+            <button className="text-muted-foreground hover:text-foreground">
               <Info size={16} />
             </button>
           </TooltipTrigger>
@@ -55,16 +55,16 @@ const InstructionModeToggle: React.FC = () => {
           onCheckedChange={handleToggle}
           id="instruction-mode"
         />
-        <label htmlFor="instruction-mode" className="text-xs text-white cursor-pointer">
+        <label htmlFor="instruction-mode" className="text-sm cursor-pointer">
           {instructionModeEnabled ? 'Edit Mode On' : 'Edit Mode'}
         </label>
       </div>
       
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={handleVisibilityToggle}
-        className="h-7 px-2 text-white hover:bg-white/20"
+        className="h-7 px-2"
       >
         {instructionsVisible ? (
           <EyeOff size={14} className="mr-1" />

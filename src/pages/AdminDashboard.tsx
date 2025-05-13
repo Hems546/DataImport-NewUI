@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, Files, Eye, EyeOff, Map, HelpCircle, ToggleLeft } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, Files, Map, HelpCircle, ToggleLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -8,8 +8,6 @@ import TemplateCard from "@/components/admin/TemplateCard";
 import { ValidationManager } from "@/components/admin/ValidationManager";
 import Header from "@/components/Header";
 import { systemTemplates } from "@/data/systemTemplates";
-import InstructionModeToggle from "@/components/instructions/InstructionModeToggle";
-import InstructionManagementTable from "@/components/admin/InstructionManagementTable";
 import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
@@ -21,7 +19,6 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
   const [templates, setTemplates] = useState([...systemTemplates]);
   const { toast } = useToast();
-  const { instructionsVisible, toggleInstructionsVisibility } = useInstructionMode();
 
   const handleUpdateTemplate = (index: number, updatedTemplate: any) => {
     const newTemplates = [...templates];

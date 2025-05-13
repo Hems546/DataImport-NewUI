@@ -3,7 +3,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FileHistoryDropdown } from './FileHistoryDropdown';
-import InstructionModeToggle from './instructions/InstructionModeToggle';
 
 interface HeaderProps {
   currentPage?: string;
@@ -47,11 +46,6 @@ const Header = ({ currentPage }: HeaderProps) => {
                 Admin
               </Button>
             </Link>
-            {(currentPage === "admin" || currentPage === "context") && (
-              <div className="ml-2">
-                <InstructionModeToggle />
-              </div>
-            )}
           </nav>
         </div>
       </div>
