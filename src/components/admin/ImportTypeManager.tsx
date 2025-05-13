@@ -4,8 +4,14 @@ import { defaultImportTypes, ImportTypeConfig } from "@/data/importTypeConfigs";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import * as Icons from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  UserCircle, 
+  Package, 
+  Receipt, 
+  Users,
+  FileText 
+} from "lucide-react";
 
 const ImportTypeManager = () => {
   const [importTypes, setImportTypes] = useState<ImportTypeConfig[]>(() => {
@@ -51,10 +57,28 @@ const ImportTypeManager = () => {
     });
   };
 
-  // Dynamically render icons from lucide-react
+  // Map of icon names to their components
+  const iconMap: Record<string, React.ReactNode> = {
+    UserCircle: <UserCircle />,
+    Package: <Package />,
+    Receipt: <Receipt />,
+    Users: <Users />,
+    FileText: <FileText />
+  };
+  
+  // Render the icon based on its name
   const renderIcon = (iconName: string, color: string) => {
-    const Icon = (Icons as Record<string, React.ComponentType<{ size?: number, color?: string }>>)[iconName];
-    return Icon ? <Icon size={24} color={color} /> : null;
+    const icon = iconMap[iconName];
+    
+    // If the icon exists, clone it with the right props
+    if (icon) {
+      return React.cloneElement(icon as React.ReactElement, { 
+        size: 24, 
+        color: color 
+      });
+    }
+    
+    return null;
   };
   
   return (
