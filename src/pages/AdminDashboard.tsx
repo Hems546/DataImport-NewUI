@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map, HelpCircle, ToggleLeft } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, Files, Eye, EyeOff, Map, HelpCircle, ToggleLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -10,7 +9,6 @@ import Header from "@/components/Header";
 import { systemTemplates } from "@/data/systemTemplates";
 import InstructionModeToggle from "@/components/instructions/InstructionModeToggle";
 import InstructionManagementTable from "@/components/admin/InstructionManagementTable";
-import { generateCodeBundle } from "@/utils/codeExporter";
 import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
@@ -33,23 +31,6 @@ export default function AdminDashboard() {
       title: "Template Updated",
       description: `${updatedTemplate.title} template has been updated successfully.`,
     });
-  };
-
-  const handleExportCode = async () => {
-    try {
-      await generateCodeBundle();
-      toast({
-        title: "Export Successful",
-        description: "The instruction tool code has been exported successfully.",
-      });
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting the instruction tool code.",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -219,21 +200,6 @@ export default function AdminDashboard() {
                       <li>Optionally draw a pointer to highlight specific UI elements</li>
                       <li>Use the Show/Hide toggle to control instruction visibility without disabling edit mode</li>
                     </ol>
-                  </div>
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium">Export Tool</h3>
-                      <Button 
-                        onClick={handleExportCode}
-                        className="gap-2"
-                        variant="outline"
-                      >
-                        <FileCode2 size={16} /> Export Code
-                      </Button>
-                    </div>
-                    <p className="text-gray-600 mt-2">
-                      Export the code for this instruction tool to use in another project.
-                    </p>
                   </div>
                 </div>
               </div>
