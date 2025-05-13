@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import ImportCard from '@/components/ImportCard';
+import { FileText } from 'lucide-react';
 
 const ImportTypeSelection = () => {
   const navigate = useNavigate();
@@ -106,6 +107,17 @@ const ImportTypeSelection = () => {
                     <path d="M12 2v20" />
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
+                </div>
+              }
+              onClick={handleSelectImportType}
+            />
+            
+            <ImportCard
+              title="Rate Cards"
+              description="Import pricing rate cards and tariff structures"
+              icon={
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <FileText size={20} stroke="#ED8936" />
                 </div>
               }
               onClick={handleSelectImportType}
