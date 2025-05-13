@@ -97,14 +97,25 @@ export const useInstructions = () => {
   
   // Filter instructions to only show on the page they were created for
   const getVisibleInstructions = useCallback((currentPath: string) => {
+    // Debug logging to help diagnose the issue
+    console.log('Filtering instructions for path:', currentPath);
+    console.log('Available instructions:', instructions);
+    
     return instructions.filter(instruction => {
       // If the instruction is not active, don't show it
       if (instruction.active === false) return false;
       
-      // Only show instructions that match the current path
+      // All Pages instructions should show on all pages
+      if (instruction.pagePath === "All Pages") return true;
+      
       // If no pagePath is specified (for backwards compatibility), default to '/'
       const instructionPath = instruction.pagePath || '/';
-      return instructionPath === currentPath || instructionPath === "All Pages";
+      
+      // Show instructions that match the current path
+      const shouldShow = instructionPath === currentPath;
+      console.log(`Instruction ${instruction.id} for path ${instructionPath} visible: ${shouldShow}`);
+      
+      return shouldShow;
     });
   }, [instructions]);
   
@@ -137,6 +148,16 @@ const InstructionManager: React.FC = () => {
 
   // Get only the instructions for the current page
   const visibleInstructions = getVisibleInstructions(currentPath);
+  
+  // Debug log to see what instructions are actually visible
+  useEffect(() => {
+    if (loaded) {
+      console.log('Current path:', currentPath);
+      console.log('Visible instructions:', visibleInstructions);
+      console.log('Instruction mode enabled:', instructionModeEnabled);
+      console.log('Instructions visible setting:', instructionsVisible);
+    }
+  }, [loaded, currentPath, visibleInstructions, instructionModeEnabled, instructionsVisible]);
 
   const handleAddInstruction = () => {
     const newInstruction = addInstruction(currentPath);
@@ -166,15 +187,10 @@ const InstructionManager: React.FC = () => {
     return null;
   }
 
-  // If instructions should not be visible, don't render anything
-  if (!instructionsVisible) {
-    return null;
-  }
-
-  // Show instructions but in different modes depending on instructionModeEnabled
+  // Always render the component, but control visibility of its content
   return (
     <>
-      {instructionModeEnabled && (
+      {instructionModeEnabled && instructionsVisible && (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
           <Button 
             onClick={handleAddInstruction}
@@ -185,7 +201,7 @@ const InstructionManager: React.FC = () => {
         </div>
       )}
       
-      {visibleInstructions.map(instruction => (
+      {instructionsVisible && visibleInstructions.map(instruction => (
         <InstructionBox
           key={instruction.id}
           id={instruction.id}
