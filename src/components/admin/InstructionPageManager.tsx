@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useNavigate } from 'react-router-dom';
 
 // Array of all available page paths in the application
 const availablePages = [
@@ -33,6 +34,8 @@ const availablePages = [
 const InstructionPageManager: React.FC = () => {
   const { instructions, updateInstruction, addInstruction } = useInstructions();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [editingInstruction, setEditingInstruction] = useState<string | null>(null);
   const [editText, setEditText] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('');
@@ -80,12 +83,26 @@ const InstructionPageManager: React.FC = () => {
 
   const handleAddInstruction = () => {
     if (newPagePath) {
-      addInstruction(newPagePath);
+      const newInstruction = addInstruction(newPagePath);
       setNewPagePath('');
       
       toast({
         description: "New instruction added for page: " + newPagePath,
       });
+      
+      // Update the tabs to include the new page if it's not already there
+      if (!pagePathsWithInstructions.includes(newPagePath)) {
+        // Set active tab to the new page path
+        setTimeout(() => {
+          setActiveTab(newPagePath);
+        }, 100);
+      }
+    }
+  };
+
+  const handlePreviewPage = (pagePath: string) => {
+    if (pagePath !== 'All Pages') {
+      navigate(pagePath);
     }
   };
 
@@ -152,16 +169,28 @@ const InstructionPageManager: React.FC = () => {
                           ) : (
                             <span className="text-xs text-muted-foreground">No instructions</span>
                           )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-7"
-                            onClick={() => {
-                              setNewPagePath(page);
-                            }}
-                          >
-                            Select
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7"
+                              onClick={() => {
+                                setNewPagePath(page);
+                              }}
+                            >
+                              Select
+                            </Button>
+                            {page !== 'All Pages' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7"
+                                onClick={() => handlePreviewPage(page)}
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
