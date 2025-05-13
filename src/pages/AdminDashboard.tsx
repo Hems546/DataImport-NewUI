@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { FileText, Shield, Database, ChevronLeft, StickyNote, Files, Eye, EyeOff, Map, HelpCircle, ToggleLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,7 +13,7 @@ import InstructionManagementTable from "@/components/admin/InstructionManagement
 import { useToast } from "@/hooks/use-toast";
 import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
-import InstructionPageManager from "@/components/admin/InstructionPageManager";
+import CombinedInstructionManager from "@/components/admin/CombinedInstructionManager";
 import AdminHelpCenter from "@/components/admin/AdminHelpCenter";
 import ImportTypeManager from "@/components/admin/ImportTypeManager";
 
@@ -73,15 +74,7 @@ export default function AdminDashboard() {
                 activeTab === 'instructions' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
               }`}
             >
-              <StickyNote className="w-5 h-5 mr-2" /> Developer Instructions
-            </button>
-            <button 
-              onClick={() => setActiveTab('page-instructions')}
-              className={`flex items-center px-4 py-2 rounded-lg ${
-                activeTab === 'page-instructions' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
-              }`}
-            >
-              <Map className="w-5 h-5 mr-2" /> Page Instructions
+              <StickyNote className="w-5 h-5 mr-2" /> Instructions
             </button>
             <button 
               onClick={() => setActiveTab('indexing')}
@@ -152,63 +145,7 @@ export default function AdminDashboard() {
           
           {activeTab === 'validations' && <ValidationManager />}
 
-          {activeTab === 'instructions' && (
-            <>
-              <h2 className="text-2xl font-bold mb-4">Developer Instructions</h2>
-              <p className="text-gray-600 mb-6">
-                Enable the instruction mode to add guidance boxes for developers across the application.
-              </p>
-              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
-                <div className="flex flex-col gap-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Instruction Mode</h3>
-                    <p className="text-gray-600 mb-4">
-                      When enabled, you can add draggable instruction boxes anywhere in the application. 
-                      These boxes can be positioned and configured to provide guidance to developers.
-                    </p>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-4">
-                        <InstructionModeToggle />
-                      </div>
-                      <div className="flex items-center">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={toggleInstructionsVisibility}
-                          className="flex items-center gap-2"
-                        >
-                          {instructionsVisible ? (
-                            <>
-                              <EyeOff size={16} /> Hide All Instructions
-                            </>
-                          ) : (
-                            <>
-                              <Eye size={16} /> Show All Instructions
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-2">How to Use</h3>
-                    <ol className="list-decimal pl-5 space-y-2 text-gray-600">
-                      <li>Enable Instruction Edit Mode using the toggle above</li>
-                      <li>Click the "+" button that appears in the bottom-right corner of any page</li>
-                      <li>Drag the instruction box to position it where needed</li>
-                      <li>Edit the text by clicking the pencil icon</li>
-                      <li>Optionally draw a pointer to highlight specific UI elements</li>
-                      <li>Use the Show/Hide toggle to control instruction visibility without disabling edit mode</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-              
-              <InstructionManagementTable />
-            </>
-          )}
-
-          {activeTab === 'page-instructions' && <InstructionPageManager />}
+          {activeTab === 'instructions' && <CombinedInstructionManager />}
 
           {activeTab === 'indexing' && <IndexingFiles />}
           
