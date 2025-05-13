@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,36 +29,140 @@ const formatFeatureDate = (date: string): string => {
 
 const AdminHelpCenter: React.FC = () => {
   const { toast } = useToast();
-  // Initial features data with dates
+  // Updated features data with comprehensive system features
   const [features, setFeatures] = useState<Feature[]>([
     {
       id: 'item-1',
-      title: 'Page Instructions Management',
-      dateAdded: '2025-05-01',
-      formattedDate: formatFeatureDate('2025-05-01'),
+      title: 'Combined Instructions Management',
+      dateAdded: '2025-05-13',
+      formattedDate: formatFeatureDate('2025-05-13'),
       content: (
         <>
           <p className="mb-2">
-            The new Page Instructions Management feature allows you to create and edit instructions specific to different pages in your application. 
+            The Instructions Management has been consolidated into a single, powerful tab that combines both developer instructions and page-specific instructions.
           </p>
           <p className="mb-2">
-            Instructions can be organized by page path, making it easier to manage guidance for complex applications with multiple screens.
+            This unified interface allows administrators to manage all guidance in one place, with clear separation between global and page-specific instructions.
           </p>
-          <p className="font-medium mt-3">How to use:</p>
+          <p className="font-medium mt-3">Key improvements:</p>
           <ul className="list-disc pl-5 space-y-1 mt-1">
-            <li>Navigate to the "Page Instructions" tab in the Admin Dashboard</li>
-            <li>Add a new page path to create instructions for that specific page</li>
-            <li>Edit existing instructions by clicking the edit button</li>
-            <li>Instructions will automatically appear on their designated pages when instruction mode is enabled</li>
+            <li>Tabbed interface for better organization of instructions</li>
+            <li>Global toggle for instruction visibility</li>
+            <li>Page-specific instruction management</li>
+            <li>Streamlined workflow for creating and editing instructions</li>
           </ul>
         </>
       )
     },
     {
       id: 'item-2',
-      title: 'Advanced Data Quality Analysis',
+      title: 'Import Type Management',
+      dateAdded: '2025-05-10',
+      formattedDate: formatFeatureDate('2025-05-10'),
+      content: (
+        <>
+          <p className="mb-2">
+            The new Import Type Management system allows administrators to control which import methods are available to users.
+          </p>
+          <p className="font-medium mt-3">Features include:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Enable/disable specific import types</li>
+            <li>Configure import type properties and behavior</li>
+            <li>Set default import types for different user roles</li>
+            <li>Visual interface for managing import workflows</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-3',
+      title: 'Advanced File Indexing',
+      dateAdded: '2025-05-05',
+      formattedDate: formatFeatureDate('2025-05-05'),
+      content: (
+        <>
+          <p className="mb-2">
+            Our new file indexing system creates searchable indexes of uploaded files, making data retrieval faster and more efficient.
+          </p>
+          <p className="font-medium mt-3">Key capabilities:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Automated indexing of uploaded files</li>
+            <li>Full-text search across all indexed content</li>
+            <li>Manual re-indexing triggers for updated files</li>
+            <li>Indexing status monitoring and logs</li>
+            <li>Configurable indexing rules and priorities</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-4',
+      title: 'Template Management System',
+      dateAdded: '2025-04-20',
+      formattedDate: formatFeatureDate('2025-04-20'),
+      content: (
+        <>
+          <p className="mb-2">
+            The Template Management System allows administrators to create and edit field mapping templates for faster data imports.
+          </p>
+          <p className="font-medium mt-3">System features:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>System-defined and user-defined templates</li>
+            <li>Template editor with field configuration</li>
+            <li>Field validation rules integrated into templates</li>
+            <li>Template versioning and history</li>
+            <li>Reusable templates across different import types</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-5',
+      title: 'Validation Rule Management',
       dateAdded: '2025-04-15',
       formattedDate: formatFeatureDate('2025-04-15'),
+      content: (
+        <>
+          <p className="mb-2">
+            Our data validation framework allows administrators to define custom validation rules that enforce data quality standards during import processes.
+          </p>
+          <p className="font-medium mt-3">Key features:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Rule creation with custom conditions and error messages</li>
+            <li>Different validation severity levels (warning, error, info)</li>
+            <li>Field-specific and cross-field validations</li>
+            <li>Testing interface for validating rules against sample data</li>
+            <li>Bulk activation/deactivation of validation rules</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-6',
+      title: 'Help Center',
+      dateAdded: '2025-04-01',
+      formattedDate: formatFeatureDate('2025-04-01'),
+      content: (
+        <>
+          <p className="mb-2">
+            The new Help Center (you're looking at it now!) provides centralized access to information about features and guides for using the system.
+          </p>
+          <p className="font-medium mt-3">Help Center features:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Feature announcements and descriptions</li>
+            <li>Step-by-step guides for system functionality</li>
+            <li>Troubleshooting information</li>
+            <li>Keyboard shortcuts reference</li>
+            <li>Searchable help content</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-7',
+      title: 'Enhanced Data Quality Analysis',
+      dateAdded: '2025-03-28',
+      formattedDate: formatFeatureDate('2025-03-28'),
       content: (
         <>
           <p className="mb-2">
@@ -69,19 +174,76 @@ const AdminHelpCenter: React.FC = () => {
             <li>Pattern detection for text fields</li>
             <li>Visualizations for data distributions</li>
             <li>Automated suggestions for data cleaning</li>
+            <li>Data profiling reports with quality metrics</li>
+            <li>Comparison of data quality between imports</li>
           </ul>
         </>
       )
     },
     {
-      id: 'item-3',
-      title: 'Help Center',
-      dateAdded: '2025-04-01',
-      formattedDate: formatFeatureDate('2025-04-01'),
+      id: 'item-8',
+      title: 'File History and Analytics',
+      dateAdded: '2025-03-15',
+      formattedDate: formatFeatureDate('2025-03-15'),
       content: (
-        <p>
-          The new Help Center (you're looking at it now!) provides centralized access to information about new features and helpful guides for using the system.
-        </p>
+        <>
+          <p className="mb-2">
+            The File History system now includes advanced analytics and tracking for all imported files, providing better visibility into your data operations.
+          </p>
+          <p className="font-medium mt-3">New capabilities:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Comprehensive file import history with detailed logs</li>
+            <li>Import statistics and performance metrics</li>
+            <li>Visual timeline of file processing stages</li>
+            <li>Error tracking and resolution history</li>
+            <li>User activity tracking for auditing purposes</li>
+            <li>Export of history logs for compliance reporting</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-9',
+      title: 'Context Document System',
+      dateAdded: '2025-03-01',
+      formattedDate: formatFeatureDate('2025-03-01'),
+      content: (
+        <>
+          <p className="mb-2">
+            The Context Document system allows teams to create and share important reference documents that provide context for data imports and business processes.
+          </p>
+          <p className="font-medium mt-3">System features:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Markdown-based document creation and editing</li>
+            <li>Document categorization with tags</li>
+            <li>Version control for documents</li>
+            <li>Searchable document repository</li>
+            <li>Access control based on user roles</li>
+            <li>Integration with related import templates</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      id: 'item-10',
+      title: 'Normalization Engine',
+      dateAdded: '2025-02-15',
+      formattedDate: formatFeatureDate('2025-02-15'),
+      content: (
+        <>
+          <p className="mb-2">
+            The Data Normalization Engine standardizes imported data according to configurable rules, ensuring consistency across all data sources.
+          </p>
+          <p className="font-medium mt-3">Engine capabilities:</p>
+          <ul className="list-disc pl-5 space-y-1 mt-1">
+            <li>Predefined normalization rules for common data types</li>
+            <li>Custom rule creation for specialized data</li>
+            <li>Normalization previews before applying changes</li>
+            <li>Bulk normalization operations</li>
+            <li>Normalization templates for reuse</li>
+            <li>Rule chaining for complex transformations</li>
+          </ul>
+        </>
       )
     }
   ]);
@@ -741,3 +903,4 @@ const AdminHelpCenter: React.FC = () => {
 };
 
 export default AdminHelpCenter;
+
