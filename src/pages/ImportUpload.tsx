@@ -205,9 +205,6 @@ export default function ImportUpload() {
             <h2 className="text-2xl font-bold">File Upload</h2>
             <div className="flex items-center gap-3">
               <TestFilesDropdown onFileGenerated={handleTestFileGenerated} />
-              <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-                Target: customers
-              </div>
             </div>
           </div>
 
