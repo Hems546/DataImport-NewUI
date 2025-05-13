@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map, HelpCircle } from "lucide-react";
+import { FileText, Shield, Database, ChevronLeft, StickyNote, FileCode2, BookText, Files, Eye, EyeOff, Map, HelpCircle, ToggleLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -16,6 +16,7 @@ import IndexingFiles from "@/components/admin/IndexingFiles";
 import { useInstructionMode } from "@/contexts/InstructionContext";
 import InstructionPageManager from "@/components/admin/InstructionPageManager";
 import AdminHelpCenter from "@/components/admin/AdminHelpCenter";
+import ImportTypeManager from "@/components/admin/ImportTypeManager";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('templates');
@@ -108,6 +109,14 @@ export default function AdminDashboard() {
               }`}
             >
               <Files className="w-5 h-5 mr-2" /> Indexing Files
+            </button>
+            <button 
+              onClick={() => setActiveTab('import-types')}
+              className={`flex items-center px-4 py-2 rounded-lg ${
+                activeTab === 'import-types' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:bg-white/80'
+              }`}
+            >
+              <ToggleLeft className="w-5 h-5 mr-2" /> Import Types
             </button>
             <button 
               onClick={() => setActiveTab('help')}
@@ -236,6 +245,8 @@ export default function AdminDashboard() {
           {activeTab === 'page-instructions' && <InstructionPageManager />}
 
           {activeTab === 'indexing' && <IndexingFiles />}
+          
+          {activeTab === 'import-types' && <ImportTypeManager />}
           
           {activeTab === 'help' && <AdminHelpCenter />}
         </div>

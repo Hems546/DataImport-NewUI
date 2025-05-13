@@ -1,127 +1,73 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import ImportCard from '@/components/ImportCard';
-import { FileText } from 'lucide-react';
+import { FileText, UserCircle, Package, Receipt, Users } from 'lucide-react';
+import { ImportTypeConfig, defaultImportTypes } from '@/data/importTypeConfigs';
 
 const ImportTypeSelection = () => {
   const navigate = useNavigate();
+  const [importTypes, setImportTypes] = useState<ImportTypeConfig[]>([]);
   
-  const handleSelectImportType = () => {
+  useEffect(() => {
+    // Load import type configurations from localStorage or use defaults
+    const savedConfig = localStorage.getItem("importTypeConfigs");
+    setImportTypes(savedConfig ? JSON.parse(savedConfig) : defaultImportTypes);
+  }, []);
+
+  const handleSelectImportType = (typeId: string) => {
+    // Handle type selection logic
     navigate('/import-wizard/upload');
   };
   
+  // Map icon names to actual components
+  const iconComponents: Record<string, React.ReactNode> = {
+    UserCircle: <UserCircle size={20} />,
+    Package: <Package size={20} />,
+    Receipt: <Receipt size={20} />,
+    Users: <Users size={20} />,
+    FileText: <FileText size={20} />,
+  };
+  
+  // Filter to only show enabled import types
+  const enabledImportTypes = importTypes.filter(type => type.enabled);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header currentPage="import-wizard" />
-      <main className="flex-1 flex flex-col items-center max-w-5xl mx-auto px-4 py-8">
-        <div className="w-full max-w-4xl">
-          <h1 className="text-3xl font-bold text-center mb-4">Select Import Type</h1>
-          <p className="text-center text-muted-foreground mb-8">
-            Choose the type of data you want to import. Each import type has specific field mappings and validation rules.
-          </p>
-          
-          <div className="space-y-4">
-            <ImportCard
-              title="Single File Import"
-              description="Import data from a single CSV or Excel file"
-              icon={
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3182CE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Multiple Files Import"
-              description="Import and combine data from multiple files"
-              icon={
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#805AD5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 16v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
-                    <path d="M22 12V5a2 2 0 0 0-2-2H9" />
-                    <path d="m21 17-5-5" />
-                    <path d="M16 17h5v-5" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Append Data"
-              description="Add data to an existing dataset"
-              icon={
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38A169" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M12 8v8" />
-                    <path d="M8 12h8" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Customer Import"
-              description="Import customer data including contact information"
-              icon={
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3182CE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Product Catalog"
-              description="Import product details including pricing and inventory"
-              icon={
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38A169" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                    <path d="M3 6h18" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Transaction Records"
-              description="Import historical transaction data"
-              icon={
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#805AD5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
-            
-            <ImportCard
-              title="Rate Cards"
-              description="Import pricing rate cards and tariff structures"
-              icon={
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <FileText size={20} stroke="#ED8936" />
-                </div>
-              }
-              onClick={handleSelectImportType}
-            />
+      <Header currentPage="import" />
+      <main className="flex-grow py-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">Import Data</h1>
+              <p className="text-gray-600">
+                Select the type of data you want to import. You can import data from various sources
+                including CSV, Excel, or JSON files.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {enabledImportTypes.map((importType) => (
+                <ImportCard
+                  key={importType.id}
+                  title={importType.title}
+                  description={importType.description}
+                  icon={
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: `${importType.iconColor}15` }}
+                    >
+                      {React.cloneElement(
+                        iconComponents[importType.icon] as React.ReactElement, 
+                        { stroke: importType.iconColor }
+                      )}
+                    </div>
+                  }
+                  onClick={() => handleSelectImportType(importType.id)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </main>
