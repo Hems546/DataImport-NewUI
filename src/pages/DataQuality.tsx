@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -286,14 +285,14 @@ export default function DataQualityPage() {
               />
               <StepConnector isCompleted={true} />
               <ProgressStep 
-                icon={<FileCheck />}
-                label="File Preflighting"
+                icon={<MapColumns />}
+                label="Column Mapping"
                 isComplete={true}
               />
               <StepConnector isCompleted={true} />
               <ProgressStep 
-                icon={<MapColumns />}
-                label="Column Mapping"
+                icon={<FileCheck />}
+                label="File Preflighting"
                 isComplete={true}
               />
               <StepConnector isCompleted={true} />

@@ -175,14 +175,14 @@ export default function ImportPush() {
             />
             <StepConnector isCompleted={true} />
             <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
+              icon={<MapColumns />}
+              label="Column Mapping"
               isComplete={true}
             />
             <StepConnector isCompleted={true} />
             <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
+              icon={<FileCheck />}
+              label="File Preflighting"
               isComplete={true}
             />
             <StepConnector isCompleted={true} />

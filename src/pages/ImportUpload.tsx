@@ -24,14 +24,51 @@ import ValidationStatus, { ValidationResult } from '@/components/ValidationStatu
 import { validations, getTechnicalDescription } from '@/constants/validations';
 import { validateFile } from '@/services/fileValidation';
 import { TestFilesDropdown } from "@/components/TestFilesDropdown";
+import { preflightService } from "@/services/preflightService";
+import { useImport } from '@/contexts/ImportContext';
+
+interface PreflightResponse {
+  content: {
+    Status: string;
+    Data: {
+      ID: number;
+      Status: string;
+      DataStatus: string;
+      Message?: string;
+    };
+  };
+}
+
+interface DataStatus {
+  FileUpload: string;
+  FieldMapping: string;
+  DataPreflight: string;
+  DataValidation: string;
+  DataVerification: string;
+}
 
 export default function ImportUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { selectedImportType, selectedImportTypeName } = useImport();
   const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Loading");
+  const [preflightFileInfo, setPreflightFileInfo] = useState({
+    PreflightFileID: 0,
+    Status: "",
+    FileUploadStatus: "",
+    FieldMappingStatus: "",
+    DataPreflightStatus: "",
+    DataValidationStatus: "",
+    DataVerificationStatus: "",
+    ImportName: "",
+    Action: "File Upload",
+    AddColumns: ""
+  });
 
   useEffect(() => {
     if (file) {
@@ -160,27 +197,92 @@ export default function ImportUpload() {
     handleFileSelection(generatedFile);
   };
 
-  const handleContinue = () => {
-    if (file) {
+  const handleContinue = async () => {
+    if (!file) return;
+
+    try {
+      setIsLoading(true);
+      setLoadingText("Processing file...");
+
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         if (e.target && e.target.result) {
-          localStorage.setItem('uploadedFile', e.target.result.toString());
-          
-          const fileInfo = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            extension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+          const fileData = e.target.result.toString();
+          const currentDateTime = getCurrentDateTime();
+          // Prepare request object for API
+          const request = {
+            DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
+            FileName: file.name,
+            FileType: file.type,
+            FileInput: fileData,
+            Status: "In Progress",
+            Action: "File Upload",
+            AddColumns: "",
+            ImportName: "Preflight_" + (selectedImportTypeName || "Unknown") + "_" + currentDateTime,
+            FilePath:""
           };
-          localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
-          
-          navigate('/import-wizard/verification');
+          console.log("request Body : ", request);
+
+          try {
+            const res = await preflightService.saveFile(request) as PreflightResponse;
+            const result = res?.content?.Data;
+
+            if (result?.ID > 0) {
+              let dataStatus: DataStatus | null = null;
+              if (result?.DataStatus && result?.DataStatus !== "") {
+                dataStatus = JSON.parse(result.DataStatus) as DataStatus;
+              }
+
+              navigate('/import-wizard/verification');
+            } else {
+              toast({
+                title: "Error",
+                description: result?.Message || "Something went wrong! Please try again.",
+                variant: "destructive"
+              });
+            }
+          } catch (error) {
+            console.error("Error saving file:", error);
+            toast({
+              title: "Error",
+              description: "An error occurred while processing. Please try again.",
+              variant: "destructive"
+            });
+          }
         }
       };
+
       reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while processing the file.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingText("Loading");
     }
   };
+
+  // ex out put "2019-10-22 15:33:22"
+ const getCurrentDateTime = (addDays = 0) => {
+  let dt = new Date();
+  let dateString =
+    dt.getFullYear() +
+    "-" +
+    (dt.getMonth() + 1) +
+    "-" +
+    dt.getDate() +
+    " " +
+    dt.getHours() +
+    ":" +
+    dt.getMinutes() +
+    ":" +
+    dt.getSeconds();
+  return dateString;
+};
 
   // Prepare sample data for the spreadsheet view
   const getSampleData = () => {
@@ -216,14 +318,14 @@ export default function ImportUpload() {
             />
             <StepConnector />
             <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
+              icon={<MapColumns />}
+              label="Column Mapping"
               isComplete={false}
             />
             <StepConnector />
             <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
+              icon={<FileCheck />}
+              label="File Preflighting"
             />
             <StepConnector />
             <ProgressStep 
@@ -328,7 +430,7 @@ export default function ImportUpload() {
                 className="bg-brand-purple hover:bg-brand-purple/90"
                 onClick={handleContinue}
               >
-                Continue to File Verification
+                Continue to Column Mapping
                 <ArrowRight className="ml-2" />
               </Button>
             </div>

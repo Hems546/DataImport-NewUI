@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -145,15 +144,14 @@ export default function ColumnMapping() {
             />
             <StepConnector isCompleted={true} />
             <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
               icon={<MapColumns />}
               label="Column Mapping"
               isActive={true}
+            />
+            <StepConnector />
+            <ProgressStep 
+              icon={<FileCheck />}
+              label="File Preflighting"
             />
             <StepConnector />
             <ProgressStep 

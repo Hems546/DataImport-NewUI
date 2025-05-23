@@ -27,7 +27,7 @@ const NotFound = () => {
         <h1 className="text-6xl font-bold mb-4 text-gray-800">404</h1>
         <p className="text-xl text-gray-600 mb-8">Oops! Page not found</p>
         <Button asChild size="lg">
-          <Link to="/" className="font-medium">
+          <Link to="/newui" className="font-medium">
             Return to Home
           </Link>
         </Button>

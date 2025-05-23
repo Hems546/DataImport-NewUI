@@ -140,14 +140,15 @@ export default function FileVerification() {
             />
             <StepConnector isCompleted={true} />
             <ProgressStep 
+              icon={<MapColumns />}
+              label="Column Mapping"
+              isComplete={true}
+            />
+            <StepConnector isCompleted={true} />
+            <ProgressStep 
               icon={<FileCheck />}
               label="File Preflighting"
               isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
             />
             <StepConnector />
             <ProgressStep 

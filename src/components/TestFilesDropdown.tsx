@@ -181,7 +181,7 @@ export const TestFilesDropdown = ({ onFileGenerated }: TestFilesDropdownProps) =
           if (categoryFiles.length === 0) return null;
           
           return (
-            <React.Fragment key={index}>
+            <div key={index}>
               <DropdownMenuLabel className="text-xs font-medium text-gray-500 pl-2">
                 {category}
               </DropdownMenuLabel>
@@ -194,7 +194,7 @@ export const TestFilesDropdown = ({ onFileGenerated }: TestFilesDropdownProps) =
                 </DropdownMenuItem>
               ))}
               {index < Object.values(ValidationCategory).length - 1 && <DropdownMenuSeparator />}
-            </React.Fragment>
+            </div>
           );
         })}
       </DropdownMenuContent>

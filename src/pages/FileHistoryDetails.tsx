@@ -251,11 +251,11 @@ const FileHistoryDetails = () => {
   const getCategoryName = (category: ValidationCategory) => {
     const categoryNames = {
       [ValidationCategory.FILE_UPLOAD]: "File Upload",
-      [ValidationCategory.VERIFY_FILE]: "File Preflighting",
       [ValidationCategory.COLUMN_MAPPING]: "Column Mapping",
+      [ValidationCategory.VERIFY_FILE]: "File Preflighting",
       [ValidationCategory.DATA_QUALITY]: "Data Quality",
       [ValidationCategory.DATA_NORMALIZATION]: "Data Normalization",
-      [ValidationCategory.DEDUPLICATION]: "Deduplication",
+      //[ValidationCategory.DEDUPLICATION]: "Deduplication",
       [ValidationCategory.FINAL_REVIEW]: "Final Review & Approval",
       [ValidationCategory.IMPORT_PUSH]: "Import / Push"
     };
