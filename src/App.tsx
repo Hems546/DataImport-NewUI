@@ -7,6 +7,7 @@ import { Suspense, lazy } from "react";
 import { InstructionProvider } from "./contexts/InstructionContext";
 import { ImportProvider } from "./contexts/ImportContext";
 import InstructionManager from "./components/instructions/InstructionManager";
+import { Loading } from "@/components/ui/loading";
 
 // Lazy load all page components
 const Index = lazy(() => import("./pages/Index"));
@@ -36,13 +37,13 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <InstructionManager />
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<Loading message="Loading page..." size="lg" className="min-h-screen" />}>
               <Routes>
                 <Route path="/newui" element={<Index />} />
                 <Route path="/import-wizard" element={<ImportTypeSelection />} />
                 <Route path="/import-wizard/upload" element={<ImportUpload />} />
-                <Route path="/import-wizard/verification" element={<FileVerification />} />
                 <Route path="/import-wizard/column-mapping" element={<ColumnMapping />} />
+                <Route path="/import-wizard/verification" element={<FileVerification />} />
                 <Route path="/import-wizard/data-quality" element={<DataQuality />} />
                 <Route path="/import-wizard/normalization" element={<DataNormalization />} />
                 <Route path="/import-wizard/deduplication" element={<Deduplication />} />

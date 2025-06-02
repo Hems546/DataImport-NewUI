@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
 import { 
   FileCheck,
   ArrowLeft,
@@ -243,7 +244,9 @@ export default function ImportPush() {
               </ol>
             </p>
             
-            {importStatus === 'pending' ? (
+            {isImporting ? (
+              <Loading message="Processing import..." />
+            ) : importStatus === 'pending' ? (
               <div className="p-8 bg-gray-50 border rounded-md text-center">
                 <p className="text-gray-600">Click "Start Import" when you're ready to begin.</p>
                 <p className="text-sm text-gray-500 mt-2">This process cannot be interrupted once started.</p>

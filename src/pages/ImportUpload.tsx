@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
 import { 
   Upload,
   FileCheck,
@@ -209,6 +210,14 @@ export default function ImportUpload() {
         if (e.target && e.target.result) {
           const fileData = e.target.result.toString();
           const currentDateTime = getCurrentDateTime();
+          const fileInfo = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            extension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+          };
+          localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
+          localStorage.setItem('uploadedFile', fileData);
           // Prepare request object for API
           const request = {
             DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
@@ -233,7 +242,27 @@ export default function ImportUpload() {
                 dataStatus = JSON.parse(result.DataStatus) as DataStatus;
               }
 
-              navigate('/import-wizard/verification');
+              const request2 = {
+                DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
+                FileName: file.name,
+                FileType: file.type,
+                FileInput: fileData,
+                Status: "In Progress",
+                ImportName: "Preflight_" + (selectedImportTypeName || "Unknown") + "_" + currentDateTime,
+                FilePath:"",
+                MappedFieldIDs : "",
+                IsValidate : true,
+                Action : "Field Mappings",
+                AddColumns : ""
+              };
+              setLoadingText("Please hold on while we process the Data Preflight. This may take a few moments to complete");
+              const res2 = await preflightService.saveFile(request2) as PreflightResponse;
+              const result2 = res2?.content?.Data;
+
+              // Store the preflight file ID in localStorage
+              localStorage.setItem('preflightFileID', result?.ID.toString() || '0');
+
+              navigate('/import-wizard/column-mapping');
             } else {
               toast({
                 title: "Error",

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ interface HeaderProps {
 
 const Header = ({ currentPage }: HeaderProps) => {
   return (
-    <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-purple-700 text-white p-4 shadow-sm">
+    <header className="bg-gradient-to-r from-[rgb(30,58,138)] to-[rgb(59,130,246)] text-white p-4 shadow-sm">
       <div className="container mx-auto">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -34,7 +33,7 @@ const Header = ({ currentPage }: HeaderProps) => {
                 <FileHistoryDropdown />
               </>
             )}
-            <Link to="/admin">
+            <Link to="/newui/admin">
               <Button 
                 variant="ghost" 
                 className={`text-white hover:text-gray-200 hover:bg-white/20 ${(currentPage === "admin" || currentPage === "context") ? "bg-white/20" : ""}`}

@@ -7,6 +7,7 @@ import { ImportTypeConfig } from '@/data/importTypeConfigs';
 import { preflightService, PreflightType } from '@/services/preflightService';
 import { useToast } from '@/hooks/use-toast';
 import { useImport } from '@/contexts/ImportContext';
+import { Loading } from '@/components/ui/loading';
 
 const ImportTypeSelection = () => {
   const navigate = useNavigate();
@@ -94,9 +95,7 @@ const ImportTypeSelection = () => {
         <main className="flex-grow py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              <div className="text-center">
-                <p>Loading import types...</p>
-              </div>
+              <Loading message="Loading import types..." />
             </div>
           </div>
         </main>

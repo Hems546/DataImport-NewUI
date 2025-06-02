@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loading } from "@/components/ui/loading";
 
 export default function DataQualityPage() {
   const { toast } = useToast();
@@ -356,10 +357,7 @@ export default function DataQualityPage() {
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
             {isAnalyzing ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
-                <p className="text-gray-500">Analyzing data quality...</p>
-              </div>
+              <Loading message="Analyzing data quality..." />
             ) : parsedData.length > 0 ? (
               <div className="overflow-hidden">
                 <ScrollArea className="w-full h-[600px]">

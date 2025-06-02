@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { ColumnMappingForm, ColumnMapping as ColumnMappingType } from "@/components/admin/ColumnMappingForm";
+import { ColumnMappingForm, ColumnMapping } from "@/components/admin/ColumnMappingForm";
 import { 
   FileCheck,
   ArrowRight,
@@ -18,8 +18,8 @@ import DataQuality from "@/components/icons/DataQuality";
 import TransformData from "@/components/icons/TransformData";
 import ProgressStep from "@/components/ProgressStep";
 import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult as ValidationStatusResult } from "@/components/ValidationStatus";
-import { validateColumnMappings, FileValidationResult } from "@/services/fileValidation";
+import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
+import { validateColumnMappings } from '@/services/fileValidation';
 import {
   Card,
   CardContent,
@@ -28,230 +28,237 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { systemTemplates } from "@/data/systemTemplates";
+import { preflightService } from "@/services/preflightService";
+import { Loading } from "@/components/ui/loading";
 
-export default function ColumnMapping() {
+export default function ColumnMappingPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
+  const [preflightFileID, setPreflightFileID] = useState<number>(0);
+  const [isEdit, setIsEdit] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
-  const [mockData, setMockData] = useState<any[]>([]);
-  
-  // Mock source columns (would come from context or state in a real application)
-  const sourceColumns = [
-    "First Name", "Last Name", "Email Address", "Company", "Phone Number", 
-    "Job Title", "Department", "Address Line 1", "City", "State/Province", 
-    "Country", "ZIP/Postal"
-  ];
-  
-  // Find the selected template (default to Contacts)
-  const template = "Contacts";
-  const selectedTemplate = systemTemplates.find(t => t.title === template) || systemTemplates[0];
-  
-  // Required fields (in a real app, this would come from the selected template)
-  const requiredTargetFields = selectedTemplate.fields
-    .filter(field => field.required)
-    .map(field => field.name);
-  
+
   useEffect(() => {
-    // Generate some mock data for the spreadsheet view
-    const generateMockData = () => {
-      return [
-        { 
-          "First Name": "John", 
-          "Last Name": "Doe", 
-          "Email Address": "john@example.com", 
-          "Company": "ACME Inc" 
-        },
-        { 
-          "First Name": "Jane", 
-          "Last Name": "Smith", 
-          "Email Address": "jane@example.com", 
-          "Company": "Globex Corp" 
-        },
-        { 
-          "First Name": "Bob", 
-          "Last Name": "Johnson", 
-          "Email Address": "bob@example.com", 
-          "Company": "Widget Co" 
-        }
-      ];
-    };
-    
-    setMockData(generateMockData());
+    // Get preflight file ID from localStorage
+    const storedFileID = localStorage.getItem('preflightFileID');
+    if (storedFileID) {
+      setPreflightFileID(parseInt(storedFileID));
+    }
+
+    // Check if we're in edit mode
+    const editMode = localStorage.getItem('editMode') === 'true';
+    setIsEdit(editMode);
   }, []);
 
-  const handleMappingSave = (mappings: ColumnMappingType[]) => {
-    // Run validation on the mappings
-    const fileValidationResults = validateColumnMappings(sourceColumns, mappings, requiredTargetFields);
-    
-    // Convert to ValidationStatusResult format
-    const results: ValidationStatusResult[] = fileValidationResults.map(result => ({
-      id: result.id || result.validation_type === "Required Field Missing" ? "required-columns" : result.validation_type,
-      name: result.validation_type, // Use validation_type as name (required)
-      status: result.status,
-      description: result.message,
-      severity: result.severity || 'warning',
-      technical_details: result.technical_details
-    }));
-    
-    setValidationResults(results);
-    
-    // Check if there are any critical failures
-    const hasCriticalErrors = results.some(result => 
-      result.status === 'fail' && result.severity === 'critical'
-    );
-    
-    setHasValidationErrors(hasCriticalErrors);
-    
-    if (hasCriticalErrors) {
+  const handleMappingSave = (mappings: ColumnMapping[]) => {
+    setIsLoading(true);
+    try {
+      // Save mappings to localStorage
+      localStorage.setItem('columnMappings', JSON.stringify(mappings));
+
+      // Validate mappings
+      const sourceColumns = mappings.map(m => m.sourceColumn);
+      const mappedFields = mappings.map(m => ({
+        sourceColumn: m.sourceColumn,
+        targetField: m.targetField
+      }));
+
+      const validationResults = validateColumnMappings(sourceColumns, mappedFields);
+      const formattedResults: ValidationResult[] = validationResults.map(result => ({
+        id: result.id,
+        name: result.validation_type,
+        status: result.status,
+        description: result.message,
+        severity: result.severity,
+        technical_details: result.technical_details
+      }));
+      
+      setValidationResults(formattedResults);
+
+      // Check for critical errors
+      const hasCriticalErrors = formattedResults.some(
+        result => result.severity === 'critical' && result.status === 'fail'
+      );
+      setHasValidationErrors(hasCriticalErrors);
+
+      if (hasCriticalErrors) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the critical errors before continuing.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Column mappings saved successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving mappings:", error);
       toast({
-        title: "Validation errors detected",
-        description: "Please fix the critical errors before continuing.",
+        title: "Error",
+        description: "Failed to save column mappings. Please try again.",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Column mapping saved",
-        description: "Your column mapping has been saved successfully."
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header currentPage="import-wizard" />
+  const handleContinue = () => {
+    if (hasValidationErrors) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix all validation errors before continuing.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      <div className="flex-1 container mx-auto px-4 py-8">
+    // Navigate to verification page
+    navigate('/import-wizard/verification');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Column Mapping</h2>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-semibold text-gray-900">Column Mapping</h1>
+            </div>
+            <div className="flex justify-between items-center mb-12">
+              <ProgressStep 
+                icon={<FileCheck />} 
+                label="File Upload" 
+                isComplete={true} 
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<MapColumns />} 
+                label="Column Mapping" 
+                isActive={true} 
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<FileCheck />} 
+                label="File Preflighting" 
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<DataQuality />} 
+                label="Data Quality" 
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<TransformData />} 
+                label="Data Normalization" 
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<FileBox />} 
+                label="Deduplication" 
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ClipboardCheck />} 
+                label="Final Review & Approval" 
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ArrowUpCircle />} 
+                label="Import / Push" 
+              />
             </div>
           </div>
 
-          {/* Progress Steps */}
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
+          {/* Map Your Columns Info Section */}
+          <div className="mb-8">
+            <div className="border rounded-2xl bg-white/50 p-8">
+              <h2 className="text-2xl font-bold mb-1">Map Your Columns</h2>
+              <p className="text-gray-500 mb-6">
+                Match your file columns with our system fields to ensure data is imported correctly
+              </p>
+              <div className="space-y-5">
+                <div className="flex items-start gap-3 border rounded-xl bg-gray-50 p-5">
+                  <span className="mt-1 text-blue-500">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                  </span>
+                  <div>
+                    <div className="font-semibold mb-1">About column mapping:</div>
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      <li>
+                        <span className="font-bold">Auto-mapped columns</span> are highlighted in <span className="text-green-700 font-bold">green</span>
+                      </li>
+                      <li>
+                        <span className="font-bold">AI-suggested mappings</span> are highlighted in <span className="text-blue-700 font-bold">blue</span>
+                      </li>
+                      <li>
+                        <span className="font-bold">Manual mapping</span> is required for any remaining columns
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 border rounded-xl bg-gray-50 p-5">
+                  <span className="mt-1 text-blue-500">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
+                  </span>
+                  <div>
+                    <div className="font-semibold mb-1">Tips for successful mapping:</div>
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      <li>Required fields are marked with a red asterisk (<span className="text-red-500">*</span>)</li>
+                      <li>Use "Ignore this column" for data you don't want to import</li>
+                      <li>Review AI-suggested mappings for accuracy</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Instructions Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Map Your Columns</CardTitle>
-              <CardDescription>
-                Match your file columns with our system fields to ensure data is imported correctly
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <p className="font-medium">About column mapping:</p>
-                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                    <li><strong>Auto-mapped columns</strong> are highlighted in green</li>
-                    <li><strong>AI-suggested mappings</strong> are highlighted in blue</li>
-                    <li><strong>Manual mapping</strong> is required for any remaining columns</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <p className="font-medium">Tips for successful mapping:</p>
-                  <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                    <li>Required fields are marked with a red asterisk (*)</li>
-                    <li>Use "Ignore this column" for data you don't want to import</li>
-                    <li>Review AI-suggested mappings for accuracy</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-
-          {/* Validation Results Section */}
           {validationResults.length > 0 && (
             <div className="mb-6">
-              <ValidationStatus
+              <ValidationStatus 
                 results={validationResults}
                 title="Column Mapping Validation Results"
-                data={mockData}
               />
             </div>
           )}
 
-          {/* Column Mapping Form */}
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <ColumnMappingForm onSave={handleMappingSave} />
+            {isLoading ? (
+              <Loading message="Loading column mappings..." />
+            ) : (
+              <ColumnMappingForm
+                preflightFileID={preflightFileID}
+                onSave={handleMappingSave}
+                isEdit={isEdit}
+              />
+            )}
           </div>
 
-          {/* Navigation */}
-          <div className="mt-8 flex justify-between items-center">
-            <div className="flex gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-            </div>
-            <Link to="/import-wizard/data-quality">
-              <Button 
-                className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={hasValidationErrors}
-              >
-                Continue to Data Quality
-                <ArrowRight className="ml-2" />
-              </Button>
-            </Link>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center mt-8">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/import-wizard/upload')}
+            >
+              <ArrowLeft className="mr-2" />
+              Back
+            </Button>
+            <Button
+              onClick={handleContinue}
+              disabled={hasValidationErrors || isLoading}
+            >
+              Continue to Verification
+              <ArrowRight className="ml-2" />
+            </Button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

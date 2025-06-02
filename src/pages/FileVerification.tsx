@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
 import { 
   FileCheck,
   ArrowRight,
@@ -110,7 +111,7 @@ export default function FileVerification() {
   };
 
   const handleContinue = () => {
-    navigate('/import-wizard/column-mapping');
+    navigate('/import-wizard/data-quality');
   };
 
   const handleOverride = () => {
@@ -129,7 +130,7 @@ export default function FileVerification() {
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">File Verification</h2>
+            <h2 className="text-2xl font-bold">File Preflighting</h2>
           </div>
 
           <div className="flex justify-between items-center mb-12">
@@ -178,7 +179,7 @@ export default function FileVerification() {
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            <h3 className="text-xl font-semibold mb-4">File Verification</h3>
+            <h3 className="text-xl font-semibold mb-4">File Preflighting</h3>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-blue-700">
                 We're checking your file for proper formatting and data quality. This includes:
@@ -195,20 +196,17 @@ export default function FileVerification() {
             </p>
             
             {isVerifying ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
-                <p className="text-gray-500">File verification in progress...</p>
-              </div>
+              <Loading message="File Preflighting in progress..." />
             ) : (
               <>
                 {verificationResults.length > 0 ? (
                   <ValidationStatus 
                     results={verificationResults}
-                    title="File Verification Results"
+                    title="File Preflighting Results"
                   />
                 ) : (
                   <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-yellow-700">No validation checks were completed. There might be an issue with the file format.</p>
+                    <p className="text-yellow-700">No Preflight checks were completed. There might be an issue with the file format.</p>
                   </div>
                 )}
               </>
@@ -238,7 +236,7 @@ export default function FileVerification() {
                 onClick={handleContinue}
                 disabled={isVerifying || verificationResults.some(v => v.status === 'fail' && v.severity === 'critical')}
               >
-                Continue to Column Mapping
+                Continue to Data Quality
                 <ArrowRight className="ml-2" />
               </Button>
             </div>

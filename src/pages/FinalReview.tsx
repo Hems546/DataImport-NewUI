@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import FinalReviewValidations from "@/components/FinalReviewValidations";
+import { Loading } from '@/components/ui/loading';
 
 interface AutoFix {
   id: string;
@@ -285,10 +286,7 @@ export default function FinalReview() {
             <h3 className="text-xl font-semibold mb-6">Final Review & Approval</h3>
             
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
-                <p className="text-gray-500">Loading import summary...</p>
-              </div>
+              <Loading message="Loading review data..." />
             ) : (
               <div className="space-y-6">
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">

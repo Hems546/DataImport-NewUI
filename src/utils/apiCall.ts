@@ -9,12 +9,43 @@ export const apiCall = async (
   apiOptions: any = false,
   dynamicBaseURL?: string
 ) => {
-  //let baseURL = process.env.VITE_API_BASE_URL || "http://localhost:3000";
+    let token = "";
+    let domain = "";
+    let baseURL = "";
+
+    // Get MMClientVars from localStorage
+    const mmClientVars = localStorage.getItem("MMClientVars");
+    const clientData = mmClientVars ? JSON.parse(mmClientVars) : null;
+
+    if (import.meta.env.MODE === "development") {
+        // Development environment
+        baseURL = `https://tier1-feature12.magazinemanager.com/`;
+        domain = "tier1-feature12";  // Just the subdomain part
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJMb2dnZWRJblVzZXJJRCI6IjEiLCJMb2dnZWRJblNpdGVDbGllbnRJRCI6Ijk5NTkiLCJMb2dnZWRJblNpdGVDdWx0dXJlVUkiOiJlbi1VUyIsIkRhdGVUaW1lIjoiNi8yLzIwMjUgMzowMzoxNSBQTSIsIkxvZ2dlZEluU2l0ZUN1cnJlbmN5U3ltYm9sIjoiIiwiTG9nZ2VkSW5TaXRlRGF0ZUZvcm1hdCI6IiIsIkRvbWFpbiI6InRpZXIxLWZlYXR1cmUxMiIsIkxvZ2dlZEluU2l0ZVRpbWVBZGQiOlsiMCIsIjAiXSwiU291cmNlIjoiVE1NIiwiRW1haWwiOiJzYUBtYWdhemluZW1hbmFnZXIuY29tIiwiSXNBUElVc2VyIjoiRmFsc2UiLCJuYmYiOjE3NDg4NzY1OTUsImV4cCI6MTc0ODg5MDk5NSwiaWF0IjoxNzQ4ODc2NTk1LCJpc3MiOiJNYWdhemluZU1hbmFnZXIiLCJhdWQiOiIqIn0.NYv1fnuUNyfkmUUpZ5DMRMdj6496AlQhl0DHC0DujKE";
+        console.log("configCheck_Dev", baseURL, domain);
+    
+      } else {
+        // Production or other environments
+        const envBaseUrl = import.meta.env.BASE_URL;
+        
+        if (envBaseUrl) {
+          // Use environment variable if available
+          baseURL = `${window.location.origin}`;
+          domain = window.location.hostname.split('.')[0];  // Get just the subdomain part
+        } 
+        console.log("configCheck", baseURL, domain);
+        
+        // Get token from localStorage
+        token = clientData?.Token || "";
+      }
+  //let baseURL = process.env.VITE_API_BASE_URL || "http://localhost:8088";
   //const domain = process.env.VITE_DOMAIN || "localhost";
-  //const token = localStorage.getItem("token") || "";
-  let baseURL = "https://tier1-feature7.magazinemanager.com/";
-  const domain = "tier1-feature7";
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJMb2dnZWRJblVzZXJJRCI6IjEiLCJMb2dnZWRJblNpdGVDbGllbnRJRCI6Ijk5NTkiLCJMb2dnZWRJblNpdGVDdWx0dXJlVUkiOiJlbi1VUyIsIkRhdGVUaW1lIjoiNS8yMy8yMDI1IDg6MDY6NTcgQU0iLCJMb2dnZWRJblNpdGVDdXJyZW5jeVN5bWJvbCI6IiIsIkxvZ2dlZEluU2l0ZURhdGVGb3JtYXQiOiIiLCJEb21haW4iOiJ0aWVyMS1mZWF0dXJlMTIiLCJMb2dnZWRJblNpdGVUaW1lQWRkIjpbIjAiLCIwIl0sIlNvdXJjZSI6IlRNTSIsIkVtYWlsIjoic2FAbWFnYXppbmVtYW5hZ2VyLmNvbSIsIklzQVBJVXNlciI6IkZhbHNlIiwibmJmIjoxNzQ3OTg3NjE3LCJleHAiOjE3NDgwMDIwMTcsImlhdCI6MTc0Nzk4NzYxNywiaXNzIjoiTWFnYXppbmVNYW5hZ2VyIiwiYXVkIjoiKiJ9.f39t6pZjjtNEmeXT-qfTITzHssvpNOtRQFpLI2t6dlU";
+  //const token = getSessionValue("token") || "";
+  //let baseURL = "https://tier1-feature12.magazinemanager.com/";
+  //const domain = "tier1-feature12";
+  //const domain = "localhost";
+  //let baseURL = "http://localhost";
+  //const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJMb2dnZWRJblVzZXJJRCI6IjEiLCJMb2dnZWRJblNpdGVDbGllbnRJRCI6Ijk5MjAiLCJMb2dnZWRJblNpdGVDdWx0dXJlVUkiOiJlbi11cyIsIkRhdGVUaW1lIjoiMjgtMDUtMjAyNSAwOToyMzo1MyIsIkxvZ2dlZEluU2l0ZUN1cnJlbmN5U3ltYm9sIjoiIiwiTG9nZ2VkSW5TaXRlRGF0ZUZvcm1hdCI6IiIsIkRvbWFpbiI6ImxvY2FsaG9zdCIsIkxvZ2dlZEluU2l0ZVRpbWVBZGQiOlsiMCIsIjAiXSwiU291cmNlIjoiVE1NIiwiRW1haWwiOiJzYUBtYWdhemluZW1hbmFnZXIuY29tIiwiSXNBUElVc2VyIjoiRmFsc2UiLCJuYmYiOjE3NDg0MjQyMzMsImV4cCI6MTc0ODQ0MjIzMywiaWF0IjoxNzQ4NDI0MjMzLCJpc3MiOiJNYWdhemluZU1hbmFnZXIiLCJhdWQiOiIqIn0.vsDa3vwh7H2Out6Rdm-wuEHRK3mZOcvHkunZE2eh0MM";
 
   const fullUrl = (dynamicBaseURL ? dynamicBaseURL : baseURL) + endpoint;
   const _headers = new Headers({
@@ -42,9 +73,6 @@ export const apiCall = async (
     
     if (!response.ok) {
       if (response.status === 401) {
-        // Handle unauthorized access
-        localStorage.removeItem("token");
-        window.location.href = "/login";
         throw new Error("Unauthorized access");
       }
       throw new Error(`HTTP error! status: ${response.status}`);

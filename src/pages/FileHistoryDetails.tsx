@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FileCheck, Check, X, ChevronRight, Calendar, FileBox, Clock } from 'lucide-react';
@@ -21,6 +20,7 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/ui/loading';
 
 // Mock validation data - in a real app this would come from an API/database
 const mockFiles = {
@@ -277,9 +277,8 @@ const FileHistoryDetails = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading file history...</p>
+          <div className="max-w-4xl mx-auto">
+            <Loading message="Loading file details..." />
           </div>
         </div>
       </div>

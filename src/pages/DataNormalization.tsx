@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
 import { 
   FileCheck,
   ArrowRight,
@@ -335,10 +336,7 @@ export default function DataNormalization() {
             </p>
             
             {isAnalyzing ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
-                <p className="text-gray-500">Analyzing data formats...</p>
-              </div>
+              <Loading message="Analyzing data formats..." />
             ) : selectedIssue ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">

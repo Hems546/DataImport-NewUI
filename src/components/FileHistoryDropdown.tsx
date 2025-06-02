@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileBox, Calendar, Check, X, FileCheck } from 'lucide-react';
 import {
@@ -140,7 +139,7 @@ export const FileHistoryDropdown = ({ className }: FileHistoryDropdownProps) => 
   const handleFileClick = (fileId: string) => {
     setOpen(false);
     // Navigate to file details page
-    window.location.href = `/file-history/${fileId}`;
+    window.location.href = `/newui/file-history/${fileId}`;
     
     // For demo purposes, show a toast instead
     toast({
