@@ -256,7 +256,7 @@ const InstructionBox: React.FC<InstructionBoxProps> = ({
       onMouseLeave={() => setShowControls(false)}
     >
       <div 
-        className={`flex items-center justify-between p-2 bg-purple-100 ${editMode ? 'cursor-move' : ''}`}
+        className={`flex items-center justify-between p-2 bg-[rgb(59,130,246,0.1)] ${editMode ? 'cursor-move' : ''}`}
         onMouseDown={handleDragStart}
       >
         <div className="flex items-center">

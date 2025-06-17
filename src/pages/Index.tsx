@@ -58,9 +58,9 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="text-center p-6 bg-purple-50 rounded-lg">
-            <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="text-purple-600 w-8 h-8" />
+          <div className="text-center p-6 bg-[rgb(59,130,246,0.1)] rounded-lg">
+            <div className="bg-[rgb(59,130,246,0.2)] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="text-[rgb(59,130,246)] w-8 h-8" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Validate & Import</h3>
             <p className="text-gray-600">

@@ -391,7 +391,7 @@ export default function ImportUpload() {
               </p>
 
               <div 
-                className={`border-2 border-dashed ${isDragging ? 'border-brand-purple bg-purple-50' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
+                className={`border-2 border-dashed ${isDragging ? 'border-[rgb(59,130,246)] bg-[rgb(59,130,246,0.1)]' : 'border-gray-300'} rounded-lg p-12 text-center transition-all`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -456,7 +456,7 @@ export default function ImportUpload() {
               </div>
               <Button 
                 disabled={!file} 
-                className="bg-brand-purple hover:bg-brand-purple/90"
+                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
                 onClick={handleContinue}
               >
                 Continue to Column Mapping

@@ -528,7 +528,7 @@ export default function Deduplication() {
               Cancel
             </Button>
             <Button 
-              className="bg-brand-purple hover:bg-brand-purple/90"
+              className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
               size="sm"
               onClick={handleApplyMerge}
             >
@@ -630,7 +630,7 @@ export default function Deduplication() {
             {selectedDuplicates.size} records selected for deletion
           </div>
           <Button 
-            className="bg-brand-purple hover:bg-brand-purple/90"
+            className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
             onClick={handleApplyMerge}
           >
             Apply Merge

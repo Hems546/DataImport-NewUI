@@ -263,7 +263,7 @@ export default function DataQualityPage() {
       <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="mx-auto w-full max-w-[1200px]"> {/* Increased max-width */}
+        <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
               <Link to="/import-wizard/column-mapping">

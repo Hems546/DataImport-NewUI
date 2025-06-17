@@ -393,7 +393,7 @@ const ValidationStatus = ({ results, title, data = [], onAction }: ValidationSta
               <Button 
                 size="sm"
                 onClick={handleApplyFixes}
-                className="bg-brand-purple hover:bg-brand-purple/90"
+                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
               >
                 Apply Fixes
               </Button>

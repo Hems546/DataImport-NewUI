@@ -30,7 +30,7 @@ const STATUS_COLORS = {
   "Warning": "bg-yellow-400 text-white",
   "Success": "bg-green-600 text-white",
   "Error": "bg-red-600 text-white",
-  "Verification Pending": "bg-purple-400 text-white",
+  "Verification Pending": "bg-[rgb(59,130,246)] text-white",
 };
 
 const PAGE_SIZE = 20;
@@ -215,7 +215,7 @@ const FileHistory = () => {
                     <div className="flex gap-2">
                       {item.TableName ? (
                         <BiDownload
-                          className="text-xl cursor-pointer text-purple-500 hover:text-purple-700 transition-colors"
+                          className="text-xl cursor-pointer text-[rgb(59,130,246)] hover:text-[rgb(37,99,235)] transition-colors"
                           title="Download File"
                           onClick={() => handleDownload(item)}
                         />
@@ -229,7 +229,7 @@ const FileHistory = () => {
                         src={deleteIcon}
                         alt="Delete File"
                         title="Delete File"
-                        className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-purple-100 rounded transition-transform"
+                        className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
                         onClick={() => handleDelete(item)}
                       />
                     </div>
@@ -312,7 +312,7 @@ const FileHistory = () => {
                   <tr>
                     <td colSpan={8} className="text-center py-12">
                       <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(59,130,246)]"></div>
                       </div>
                     </td>
                   </tr>
@@ -362,7 +362,7 @@ const FileHistory = () => {
                         <div className="flex items-center justify-center gap-2">
                           {fileItem.TableName ? (
                             <BiDownload
-                              className="text-xl cursor-pointer text-purple-500 hover:text-purple-700 transition-colors"
+                              className="text-xl cursor-pointer text-[rgb(59,130,246)] hover:text-[rgb(37,99,235)] transition-colors"
                               title="Download File"
                               onClick={() => handleDownload(fileItem)}
                             />
@@ -376,7 +376,7 @@ const FileHistory = () => {
                             src={deleteIcon}
                             alt="Delete File"
                             title="Delete File"
-                            className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-purple-100 rounded transition-transform"
+                            className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
                             onClick={() => handleDelete(fileItem)}
                           />
                         </div>

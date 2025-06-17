@@ -11,7 +11,8 @@ import {
   FileBox,
   ClipboardCheck,
   ArrowUpCircle,
-  Info
+  Info,
+  FileType
 } from "lucide-react";
 import MapColumns from "@/components/icons/MapColumns";
 import DataQuality from "@/components/icons/DataQuality";
@@ -30,6 +31,15 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { preflightService } from "@/services/preflightService";
 import { Loading } from "@/components/ui/loading";
+
+interface PreflightResponse {
+  content?: {
+    Data?: {
+      ID: number;
+      Message?: string;
+    };
+  };
+}
 
 export default function ColumnMappingPage() {
   const navigate = useNavigate();
@@ -57,6 +67,40 @@ export default function ColumnMappingPage() {
     try {
       // Save mappings to localStorage
       localStorage.setItem('columnMappings', JSON.stringify(mappings));
+
+      // Check for duplicate field mappings
+      const originValues = mappings
+        ?.filter(
+          (x) =>
+            x.PreflightFieldID !== 0 &&
+            !x.PreflightFieldID?.toString().startsWith('-9999')
+        )
+        ?.map((x) => x.PreflightFieldID);
+      
+      const duplicates = originValues?.filter(
+        (item, index) => originValues.indexOf(item) !== index
+      );
+      const duplicateValues = Array.from(new Set(duplicates));
+
+      if (duplicateValues?.length) {
+        let duplicateNames = "";
+        for (let i = 0; i < duplicateValues.length; i++) {
+          let fieldInfo = mappings.find(
+            (x) => x.PreflightFieldID == duplicateValues[i]
+          );
+          if (fieldInfo) {
+            duplicateNames += fieldInfo["DisplayName"] + ",";
+          }
+        }
+        duplicateNames = duplicateNames.substring(0, duplicateNames.length - 1);
+        toast({
+          title: "Validation Error",
+          description: `The fields below are already assigned to another column. Please choose a different one: ${duplicateNames}`,
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
 
       // Validate mappings
       const sourceColumns = mappings.map(m => m.sourceColumn);
@@ -89,12 +133,53 @@ export default function ColumnMappingPage() {
           description: "Please fix the critical errors before continuing.",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Success",
-          description: "Column mappings saved successfully.",
-        });
+        setIsLoading(false);
+        return;
       }
+
+      // Prepare request object for preflight service
+      const request = {
+        MappedFieldIDs: mappings.map(mapping => ({
+          FileColumnName: mapping.sourceColumn,
+          PreflightFieldID: mapping.PreflightFieldID,
+          IsCustom: mapping.IsCustom,
+          Location: mapping.Locations
+        })),
+        IsValidate: true,
+        Action: "Field Mappings",
+        AddColumns: "",
+        FilePath: localStorage.getItem('uploadedFilePath') || "",
+        FileType: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').type || "",
+        PreflightFileID: preflightFileID,
+        FileName: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').name || "",
+        ImportName: "Preflight_" + (localStorage.getItem('selectedImportTypeName') || "Unknown") + "_" + new Date().toISOString(),
+        DocTypeID: parseInt(localStorage.getItem('selectedImportType') || '1')
+      };
+
+      // Call preflight service
+      preflightService.saveFile(request).then((res: PreflightResponse) => {
+        const result = res?.content?.Data;
+        if (result?.ID > 0) {
+          toast({
+            title: "Success",
+            description: "Column mappings saved successfully.",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: result?.Message || "Failed to save column mappings. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }).catch((error) => {
+        console.error("Error saving mappings:", error);
+        toast({
+          title: "Error",
+          description: "Failed to save column mappings. Please try again.",
+          variant: "destructive"
+        });
+      });
+
     } catch (error) {
       console.error("Error saving mappings:", error);
       toast({
@@ -253,7 +338,7 @@ export default function ColumnMappingPage() {
               onClick={handleContinue}
               disabled={hasValidationErrors || isLoading}
             >
-              Continue to Verification
+              Continue to Data Preflight
               <ArrowRight className="ml-2" />
             </Button>
           </div>

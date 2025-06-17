@@ -28,7 +28,7 @@ const Header = ({ currentPage }: HeaderProps) => {
               <>
                 <Button variant="ghost" className="text-white hover:text-gray-200 hover:bg-white/20">
                   Audit History
-                  <span className="ml-2 bg-white text-purple-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
+                  <span className="ml-2 bg-white text-[rgb(59,130,246)] rounded-full w-5 h-5 flex items-center justify-center text-xs">11</span>
                 </Button>
                 <FileHistoryDropdown />
               </>

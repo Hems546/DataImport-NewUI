@@ -16,7 +16,7 @@ export function Loading({ message = "Loading...", className, size = 'md' }: Load
 
   return (
     <div className={cn("flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md", className)}>
-      <div className={cn("animate-spin rounded-full border-b-2 border-brand-purple mb-4", sizeClasses[size])}></div>
+      <div className={cn("animate-spin rounded-full border-b-2 border-[rgb(59,130,246)] mb-4", sizeClasses[size])}></div>
       <p className="text-gray-500">{message}</p>
     </div>
   );

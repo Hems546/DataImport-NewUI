@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -384,7 +383,7 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
         
         <Button 
           onClick={handleSaveChanges} 
-          className="bg-brand-purple hover:bg-brand-purple/90"
+          className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
         >
           <ArrowUpCircle className="mr-2 h-4 w-4" />
           Apply Changes
@@ -429,7 +428,7 @@ export default function NormalizationEditor({ issues, onSave, issueType }: Norma
           <Button 
             onClick={handleSaveChanges} 
             size="sm"
-            className="bg-brand-purple hover:bg-brand-purple/90"
+            className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
           >
             Apply Changes
           </Button>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -194,7 +193,7 @@ const InstructionManager: React.FC = () => {
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
           <Button 
             onClick={handleAddInstruction}
-            className="rounded-full w-12 h-12 p-0 bg-brand-purple hover:bg-brand-purple/90 shadow-lg"
+            className="rounded-full w-12 h-12 p-0 bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)] shadow-lg"
           >
             <PlusCircle size={24} />
           </Button>

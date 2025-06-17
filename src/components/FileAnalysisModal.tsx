@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Upload, AlertTriangle, Check, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -367,7 +366,7 @@ export function FileAnalysisModal({ isOpen, onClose }: FileAnalysisModalProps) {
               <p className="font-medium">{file.name}</p>
               <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               <Button 
-                className="mt-4 bg-brand-purple hover:bg-brand-purple/90" 
+                className="mt-4 bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]" 
                 onClick={analyzeFile}
               >
                 Analyze File

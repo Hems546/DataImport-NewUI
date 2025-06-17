@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ValidationResult } from '@/components/ValidationStatus';
 import { ClipboardCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -97,7 +96,7 @@ const FinalReviewValidations: React.FC<FinalReviewValidationsProps> = ({ isLoadi
   return (
     <div className="space-y-4">
       <h4 className="font-medium text-gray-800 mb-3 flex items-center">
-        <ClipboardCheck className="h-5 w-5 text-purple-600 mr-2" />
+        <ClipboardCheck className="h-5 w-5 text-[rgb(59,130,246)] mr-2" />
         Final Review Checks
       </h4>
       
@@ -132,7 +131,7 @@ const FinalReviewValidations: React.FC<FinalReviewValidationsProps> = ({ isLoadi
           
           {check.id === 'final-approval' && (
             <div className="ml-4 mt-1">
-              <button className="px-3 py-1 bg-brand-purple text-white text-sm rounded-md hover:bg-brand-purple/90">
+              <button className="px-3 py-1 bg-[rgb(59,130,246)] text-white text-sm rounded-md hover:bg-[rgb(37,99,235)]">
                 Approve
               </button>
             </div>

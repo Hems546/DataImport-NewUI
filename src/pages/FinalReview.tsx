@@ -418,7 +418,7 @@ export default function FinalReview() {
                     <span className="text-gray-700 font-medium">Final Approval</span>
                     <Button 
                       variant={finalApproved ? "outline" : "default"}
-                      className={finalApproved ? "bg-green-50 text-green-700 border-green-200" : "bg-brand-purple"}
+                      className={finalApproved ? "bg-green-50 text-green-700 border-green-200" : "bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"}
                       onClick={handleFinalApproval}
                       disabled={finalApproved}
                     >
