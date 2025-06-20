@@ -218,6 +218,8 @@ export default function ImportUpload() {
           };
           localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
           localStorage.setItem('uploadedFile', fileData);
+          localStorage.setItem('selectedImportTypeName',selectedImportTypeName);
+          localStorage.setItem('selectedImportType',selectedImportType);
           // Prepare request object for API
           const request = {
             DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
@@ -231,6 +233,7 @@ export default function ImportUpload() {
             FilePath:""
           };
           console.log("request Body : ", request);
+
 
           try {
             const res = await preflightService.saveFile(request) as PreflightResponse;
@@ -349,7 +352,6 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<MapColumns />}
               label="Column Mapping"
-              isComplete={false}
             />
             <StepConnector />
             <ProgressStep 
@@ -365,11 +367,6 @@ export default function ImportUpload() {
             <ProgressStep 
               icon={<TransformData />}
               label="Data Normalization"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
             />
             <StepConnector />
             <ProgressStep 

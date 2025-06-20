@@ -223,7 +223,7 @@ export default function FinalReview() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              <Link to="/import-wizard/deduplication">
+              <Link to="/import-wizard/normalization">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2" />
                   Back
@@ -264,12 +264,12 @@ export default function FinalReview() {
               isComplete={true}
             />
             <StepConnector isCompleted={true} />
-            <ProgressStep 
+            {/* <ProgressStep 
               icon={<FileBox />}
               label="Deduplication"
               isComplete={true}
             />
-            <StepConnector isCompleted={true} />
+            <StepConnector isCompleted={true} /> */}
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"
@@ -435,7 +435,7 @@ export default function FinalReview() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/deduplication">
+              <Link to="/import-wizard/normalization">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2" />
                   Back

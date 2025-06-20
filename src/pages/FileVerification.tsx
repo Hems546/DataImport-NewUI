@@ -813,11 +813,11 @@ export default function FileVerification() {
               label="Data Normalization"
             />
             <StepConnector />
-            <ProgressStep 
+            {/* <ProgressStep 
               icon={<FileBox />}
               label="Deduplication"
             />
-            <StepConnector />
+            <StepConnector /> */}
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"

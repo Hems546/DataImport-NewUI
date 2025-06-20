@@ -13,7 +13,7 @@ const Header = ({ currentPage }: HeaderProps) => {
       <div className="container mx-auto">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Link to="/newui" className="text-2xl font-bold flex items-center gap-2 hover:text-gray-200">
+            <Link to="/" className="text-2xl font-bold flex items-center gap-2 hover:text-gray-200">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-database">
                 <ellipse cx="12" cy="5" rx="9" ry="3" />
                 <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
@@ -33,7 +33,7 @@ const Header = ({ currentPage }: HeaderProps) => {
                 <FileHistoryDropdown />
               </>
             )}
-            <Link to="/newui/admin">
+            <Link to="/admin">
               <Button 
                 variant="ghost" 
                 className={`text-white hover:text-gray-200 hover:bg-white/20 ${(currentPage === "admin" || currentPage === "context") ? "bg-white/20" : ""}`}

@@ -139,7 +139,7 @@ export const FileHistoryDropdown = ({ className }: FileHistoryDropdownProps) => 
   const handleFileClick = (fileId: string) => {
     setOpen(false);
     // Navigate to file details page
-    window.location.href = `/newui/file-history/${fileId}`;
+    window.location.href = `/file-history/${fileId}`;
     
     // For demo purposes, show a toast instead
     toast({

@@ -227,7 +227,7 @@ export default function ColumnMappingPage() {
                 label="Column Mapping" 
                 isActive={true} 
               />
-              <StepConnector isCompleted={true} />
+              <StepConnector />
               <ProgressStep 
                 icon={<FileCheck />} 
                 label="File Preflighting" 
@@ -243,11 +243,11 @@ export default function ColumnMappingPage() {
                 label="Data Normalization" 
               />
               <StepConnector />
-              <ProgressStep 
+              {/* <ProgressStep 
                 icon={<FileBox />} 
                 label="Deduplication" 
               />
-              <StepConnector />
+              <StepConnector /> */}
               <ProgressStep 
                 icon={<ClipboardCheck />} 
                 label="Final Review & Approval" 

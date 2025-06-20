@@ -199,12 +199,12 @@ export default function ImportPush() {
               isComplete={true}
             />
             <StepConnector isCompleted={true} />
-            <ProgressStep 
+            {/* <ProgressStep 
               icon={<FileBox />}
               label="Deduplication"
               isComplete={true}
             />
-            <StepConnector isCompleted={true} />
+            <StepConnector isCompleted={true} /> */}
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"

@@ -36,10 +36,11 @@ const SidePanel: React.FC<SidePanelProps> = ({
         onClick={isMouseOutClose ? onClose : undefined}
       />
       <div 
-        className="relative bg-white rounded-lg shadow-lg"
+        className="relative bg-white rounded-lg shadow-lg flex flex-col"
         style={style}
       >
-        <div className="flex items-center justify-between p-4 border-b">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between p-4 border-b shrink-0">
           <h2 className="text-lg font-semibold">{title}</h2>
           <Button
             variant="ghost"
@@ -49,8 +50,10 @@ const SidePanel: React.FC<SidePanelProps> = ({
             <X className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Scrollable Content */}
         <div 
-          className="p-4"
+          className="flex-1 overflow-y-auto"
           style={containerCSS}
         >
           {loader ? (
@@ -58,11 +61,15 @@ const SidePanel: React.FC<SidePanelProps> = ({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
             </div>
           ) : (
-            children
+            <div className="p-4">
+              {children}
+            </div>
           )}
         </div>
+
+        {/* Fixed Footer */}
         {customButton && (
-          <div className="flex justify-end gap-2 p-4 border-t">
+          <div className="flex justify-end gap-2 p-4 border-t shrink-0">
             {customButton.map((button, index) => (
               <Button
                 key={index}

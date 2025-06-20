@@ -35,11 +35,11 @@ const App = () => (
         <ImportProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename="/newui">
             <InstructionManager />
             <Suspense fallback={<Loading message="Loading page..." size="lg" className="min-h-screen" />}>
               <Routes>
-                <Route path="/newui" element={<Index />} />
+                <Route path="/" element={<Index />} />
                 <Route path="/import-wizard" element={<ImportTypeSelection />} />
                 <Route path="/import-wizard/upload" element={<ImportUpload />} />
                 <Route path="/import-wizard/column-mapping" element={<ColumnMapping />} />

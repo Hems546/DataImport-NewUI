@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -33,222 +33,321 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "@/components/ui/loading";
+import { preflightService } from "@/services/preflightService";
+import Grid from '@/components/GridGrouping';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import StatusDropdown from '@/components/StatusDropdown';
+import PagerTop from '@/components/Pager';
+import Modal from '@/components/Modal';
+import { MasterDataSelection } from '@/components/MasterDataSelection';
+import '@/styles/components/MasterDataSelection.css';
+import SidePanel from '@/components/SidePanel';
+
+interface WarningData {
+  Type: string;
+  Message: string;
+  Value?: string;
+}
+
+interface Warning {
+  [key: string]: WarningData;
+}
+
+interface PreflightResponse {
+  content: {
+    Status: string;
+    Data?: {
+      Result?: string;
+      Count?: number;
+      MappedFields?: string;
+      Warnings?: Warning[];
+    };
+  };
+}
+
+interface GridData {
+  field: string;
+  type: string;
+  message: string;
+  value: string;
+}
+
+const defaultPagerData = {
+  currentPageIndex: 1,
+  pageSize: 10,
+  total: 0,
+  currentPageTotal: 0
+};
+
+const statusOptions = [
+  { value: 'All', label: 'Show All', color: '#6B7280', description: 'Display all records' },
+  { value: 'Success', label: 'Show Data Without Warnings', color: '#10B981', description: 'Display only records without warnings' },
+  { value: 'Warning', label: 'Show Data With Warnings', color: '#FFD700', description: 'Display only records with warnings' }
+];
+
+function getGridData(records) {
+  return records.map((record, index) => {
+    const newRow = { ...record };
+    let warningCount = 0;
+    if (record.StatusMessage) {
+      try {
+        const warnings = JSON.parse(record.StatusMessage);
+        warnings.forEach((warning) => {
+          const key = Object.keys(warning)[0];
+          if (warning[key].Type === "Warning") {
+            warningCount++;
+            newRow[key] = (
+              <span className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-pointer">
+                        <Info className="h-4 w-4 text-yellow-500" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={0} align="center" className="relative shadow-lg rounded-md border border-gray-200 bg-white px-3 py-2">
+                      <p className="text-sm text-gray-800">{warning[key].Message}</p>
+                      <div className="absolute left-1/2 top-full -translate-x-1/2 mt-1 w-3 h-3 rotate-45 bg-white border-r border-b border-gray-200 shadow z-20"></div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <span>{record[key]}</span>
+              </span>
+            );
+          }
+        });
+      } catch {}
+    }
+    
+    newRow.rowNumber = index + 1;
+    newRow.rowStatus = (
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${warningCount > 0 ? "bg-yellow-500" : "bg-green-500"}`}></span>
+        <span>{warningCount > 0 ? "Warning" : "Success"}</span>
+      </div>
+    );
+
+    return newRow;
+  });
+}
+
+// Custom Spinner
+const Spinner = () => (
+  <div className="flex justify-center items-center p-8">
+    <svg className="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+  </div>
+);
+
+// Custom Dropdown
+const Dropdown = ({ items, placeholder, value, onChange }) => (
+  <select
+    className="border rounded px-2 py-1 min-w-[120px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+    value={value || ''}
+    onChange={onChange}
+  >
+    <option value="" disabled>{placeholder}</option>
+    {items && items.map((item, idx) => (
+      <option key={idx} value={item.Value || item.value || item}>{item.Display || item.display || item.label || item}</option>
+    ))}
+  </select>
+);
 
 export default function DataQualityPage() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
   const [parsedData, setParsedData] = useState<any[]>([]);
+  const [gridData, setGridData] = useState<GridData[]>([]);
+  const [filteredGridData, setFilteredGridData] = useState<GridData[]>([]);
+  const [headers, setHeaders] = useState<{
+    Header: string;
+    accessor: string;
+  }[]>([]);
+  const [preflightType] = useState("DataValidation");
+  const [isFixingData, setIsFixingData] = useState(false);
+  const [filter, setFilter] = useState('All');
+  const [pagerData, setPagerData] = useState(defaultPagerData);
+  const [logsPageLoad, setLogsPageLoad] = useState(false);
+  const [manualFilter, setManualFilter] = useState(false);
+  const [showFixDataPanel, setShowFixDataPanel] = useState(false);
+  const [isLoadingMaster, setIsLoadingMaster] = useState(false);
 
-  const parseExcelData = (base64Data: string): Promise<any[]> => {
-    return new Promise((resolve, reject) => {
-      try {
-        // Convert base64 to binary string
-        const binaryString = atob(base64Data);
-        
-        // Convert binary string to array buffer
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+  // Filter grid data based on selected status
+  useEffect(() => {
+    if (filter === 'All') {
+      setFilteredGridData(gridData);
+    } else {
+      setFilteredGridData(gridData.filter(item => item.type === filter));
+    }
+  }, [filter, gridData]);
+
+  const handleStatusSelect = (value: string) => {
+    setFilter(value);
+  };
+
+  const getImportLogs = (preflightFileID: string, ExcludeSystemColumns = false) => {
+    setLogsPageLoad(true);
+    preflightService.getPreflightImportLogs(
+      preflightFileID,
+      (pagerData.currentPageIndex - 1) * pagerData.pageSize,
+      pagerData.pageSize,
+      ExcludeSystemColumns,
+      "Result",
+      filter,
+      preflightType
+    )
+    .then(function (res: PreflightResponse) {
+      if (res?.content?.Status === "Success") {
+        if(res.content.Data?.Result === "[]" && filter !== "All" && !manualFilter){
+          setFilter("All");
+          return;
         }
-        
-        // Read the Excel file
-        const workbook = XLSX.read(bytes, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // Convert to JSON with headers
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-        resolve(jsonData as any[]);
-      } catch (error) {
-        console.error('Error parsing Excel data:', error);
-        reject(error);
+        setManualFilter(false);
+        getLogsData(res);
+      } else {
+        toast({
+          title: "Error",
+          description: "Unable to fetch the data",
+          variant: "destructive",
+        });
+        setLogsPageLoad(false);
       }
+    })
+    .catch((err) => {
+      console.log(err);
+      setLogsPageLoad(false);
     });
+  };
+
+  const getLogsData = (res: PreflightResponse) => {
+    if (res?.content?.Data?.Result) {
+      let records = JSON.parse(res.content.Data.Result);
+      const mappedFields = JSON.parse(res.content.Data?.MappedFields || "[]");
+      
+      setParsedData(records);
+      getHeaders(records, mappedFields);
+      
+      // Generate grid data from warnings
+      const warnings = records.map(record => {
+        if (record.StatusMessage) {
+          try {
+            return JSON.parse(record.StatusMessage);
+          } catch (e) {
+            return [];
+          }
+        }
+        return [];
+      }).flat();
+
+      const transformedData = warnings.map(warning => {
+        const field = Object.keys(warning)[0];
+        return {
+          field,
+          type: warning[field].Type,
+          message: warning[field].Message,
+          value: warning[field].Value || ''
+        };
+      });
+
+      setGridData(getGridData(records));
+      setFilteredGridData(getGridData(records));
+      
+      setPagerData({
+        ...pagerData,
+        total: res.content.Data.Count || 0,
+        currentPageTotal: records.length,
+      });
+    }
+    setLogsPageLoad(false);
+  };
+
+  const getHeaders = (records: any[], mappedFields: any[]) => {
+    if (records.length === 0) {
+      setHeaders([]);
+      return;
+    }
+
+    const firstRecord = records[0];
+    const headerKeys = Object.keys(firstRecord);
+
+    const generatedHeaders = headerKeys
+      .filter(key => key !== 'StatusMessage' && key !== 'RowStatusWithColor' && key !== 'PreflightFileID' && key !== 'MappedRecordID')
+      .map(key => {
+        const mappedField = mappedFields.find(f => f.Value === key);
+        return {
+          Header: mappedField ? mappedField.Display : key,
+          accessor: key,
+        };
+      });
+
+    const staticHeaders = [
+      { Header: "Row #", accessor: "rowNumber" },
+      { Header: "Status", accessor: "rowStatus" }
+    ];
+
+    setHeaders([...staticHeaders, ...generatedHeaders]);
+  };
+
+  const transformWarningsToGridData = (warnings: Warning[]): GridData[] => {
+    return warnings.flatMap(warning => 
+      Object.entries(warning).map(([field, data]) => ({
+        field,
+        type: data.Type,
+        message: data.Message,
+        value: data.Value || ''
+      }))
+    );
   };
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
       try {
-        setIsAnalyzing(true);
-        
-        // Get uploaded file data from localStorage
-        const uploadedFile = localStorage.getItem('uploadedFile');
-        const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
-
-        if (!uploadedFile) {
+        const preflightFileID = localStorage.getItem('preflightFileID');
+        if (!preflightFileID) {
           toast({
-            title: "No file data found",
-            description: "Please upload a file in the previous step.",
-            variant: "destructive"
+            title: "Error",
+            description: "No preflight file ID found. Please upload a file first.",
+            variant: "destructive",
           });
-          setIsAnalyzing(false);
           return;
         }
 
-        // Parse the file data
-        let fileData: any[] = [];
-        
-        // Get the base64 data part
-        const base64Data = uploadedFile.split(',')[1];
-        
-        // Parse the file depending on its type
-        if (fileInfo.extension === '.csv') {
-          await new Promise<void>((resolve) => {
-            // Convert base64 data back to a file object
-            const dataType = uploadedFile.split(',')[0].split(':')[1].split(';')[0];
-            const byteString = atob(base64Data);
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            
-            for (let i = 0; i < byteString.length; i++) {
-              ia[i] = byteString.charCodeAt(i);
-            }
-            
-            const blob = new Blob([ab], { type: dataType });
-            const file = new File([blob], fileInfo.name || "file.csv", { type: dataType });
-            
-            Papa.parse(file, {
-              header: true,
-              dynamicTyping: true,
-              complete: (results) => {
-                fileData = results.data.filter(row => 
-                  Object.keys(row).length > 0 && 
-                  !Object.keys(row).every(key => !row[key])
-                );
-                setParsedData(fileData);
-                resolve();
-              },
-              error: (error) => {
-                console.error('Error parsing CSV:', error);
-                toast({
-                  title: "Error parsing file",
-                  description: "The file could not be parsed correctly.",
-                  variant: "destructive"
-                });
-                resolve();
-              }
-            });
-          });
-        } else if (['.xls', '.xlsx'].includes(fileInfo.extension)) {
-          try {
-            // Parse Excel data from base64
-            fileData = await parseExcelData(base64Data);
-            setParsedData(fileData);
-            
-            toast({
-              title: "Excel file processed",
-              description: `Successfully parsed ${fileData.length} rows from the Excel file.`
-            });
-          } catch (error) {
-            console.error('Error processing Excel file:', error);
-            toast({
-              title: "Error processing Excel file",
-              description: "Could not process the Excel file. It may be corrupted or in an unsupported format.",
-              variant: "destructive"
-            });
-            setIsAnalyzing(false);
-            return;
-          }
+        const storedColumnMappings = JSON.parse(localStorage.getItem('columnMappings') || '[]');
+        const request = {
+          MappedFieldIDs: [
+            ...storedColumnMappings.map(mapping => ({
+              FileColumnName: mapping.sourceColumn,
+              PreflightFieldID: mapping.PreflightFieldID,
+              IsCustom: mapping.IsCustom,
+              Location: mapping.Locations
+            })),
+          ],
+          IsValidate: true,
+          Action: "Field Mappings",
+          AddColumns: "",
+          FilePath: localStorage.getItem('uploadedFilePath') || "",
+          FileType: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').type || "",
+          PreflightFileID: localStorage.getItem('preflightFileID') || "",
+          FileName: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').name || "",
+          ImportName: "Preflight_" + (localStorage.getItem('selectedImportTypeName') || "Unknown") + "_" + new Date().toISOString(),
+          DocTypeID: parseInt(localStorage.getItem('selectedImportType') || '1'),
+          Status: "Warning"
+        };
+
+        const response = await preflightService.validateWarnings(request) as PreflightResponse;
+        if (response?.content?.Status === "Success") {
+          getImportLogs(preflightFileID);
         }
-        
-        // Run data quality validation on the actual data
-        let results = validateDataQuality(fileData);
-        
-        // Add email format validation explicitly
-        const invalidEmails = fileData.filter(row => {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          return row.email && typeof row.email === 'string' && !emailRegex.test(row.email);
-        });
-        
-        const emailFormatValidation: ValidationStatusResult = {
-          id: 'email-format',
-          name: 'Email Format Validation',
-          status: invalidEmails.length > 0 ? 'fail' : 'pass',
-          severity: 'warning',
-          technical_details: invalidEmails.length > 0 ? [
-            `Found ${invalidEmails.length} records with invalid email formats:`,
-            ...invalidEmails.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.email}" is not a valid email address`),
-            invalidEmails.length > 5 ? `- And ${invalidEmails.length - 5} more...` : ''
-          ].filter(Boolean) : ['All email addresses follow valid format']
-        };
 
-        // Add numeric values validation explicitly
-        const invalidNumeric = fileData.filter(row => {
-          return row.age !== undefined && isNaN(parseFloat(row.age));
-        });
-
-        const numericValidation: ValidationStatusResult = {
-          id: 'numeric-values',
-          name: 'Numeric Data Validation',
-          status: invalidNumeric.length > 0 ? 'fail' : 'pass',
-          severity: 'warning',
-          technical_details: invalidNumeric.length > 0 ? [
-            `Found ${invalidNumeric.length} records with non-numeric values in numeric fields:`,
-            ...invalidNumeric.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.age}" in age field is not a valid number`),
-            invalidNumeric.length > 5 ? `- And ${invalidNumeric.length - 5} more...` : ''
-          ].filter(Boolean) : ['All numeric fields contain valid numbers']
-        };
-
-        // Add phone format validation
-        const invalidPhone = fileData.filter(row => {
-          const phoneRegex = /^[\d\+\-\(\)\s]+$/;
-          return row.phone && !phoneRegex.test(String(row.phone));
-        });
-
-        const phoneValidation: ValidationStatusResult = {
-          id: 'phone-format',
-          name: 'Phone Format Validation',
-          status: invalidPhone.length > 0 ? 'fail' : 'pass',
-          severity: 'warning',
-          technical_details: invalidPhone.length > 0 ? [
-            `Found ${invalidPhone.length} records with invalid phone formats:`,
-            ...invalidPhone.slice(0, 5).map((row, index) => `- Row ${index + 1}: "${row.phone}" is not a valid phone number`),
-            invalidPhone.length > 5 ? `- And ${invalidPhone.length - 5} more...` : ''
-          ].filter(Boolean) : ['All phone numbers follow valid format']
-        };
-        
-        // Ensure all results have the required properties for ValidationStatusResult
-        const formattedResults: ValidationStatusResult[] = [
-          ...results.map(result => ({
-            ...result,
-            name: result.name || result.id || ''
-          })),
-          emailFormatValidation,
-          numericValidation,
-          phoneValidation
-        ];
-
-        setValidationResults(formattedResults);
-        
-        // Analyze results for toast notification
-        const warnings = formattedResults.filter(r => r.status === 'warning');
-        const failures = formattedResults.filter(r => r.status === 'fail' && r.severity === 'high');
-
-        if (failures.length > 0) {
-          toast({
-            title: "Critical data quality issues found",
-            description: `${failures.length} critical issues need attention.`,
-            variant: "destructive"
-          });
-        } else if (warnings.length > 0) {
-          toast({
-            title: "Data quality warnings found",
-            description: `${warnings.length} quality issues can be addressed in spreadsheet mode.`,
-            variant: "warning"
-          });
-        } else {
-          toast({
-            title: "Data quality check complete",
-            description: "All quality checks passed successfully."
-          });
-        }
       } catch (error) {
-        console.error('Data quality analysis error:', error);
+        console.error('Error analyzing data quality:', error);
         toast({
-          title: "Analysis failed",
-          description: "An error occurred during data quality analysis.",
-          variant: "destructive"
+          title: "Error",
+          description: "Failed to analyze data quality. Please try again.",
+          variant: "destructive",
         });
       } finally {
         setIsAnalyzing(false);
@@ -256,7 +355,87 @@ export default function DataQualityPage() {
     };
 
     analyzeDataQuality();
-  }, [toast]);
+  }, []);
+
+  const handleFixDataClick = () => {
+    console.log('Fix Data button clicked');
+    setIsLoadingMaster(true);
+    
+    // Directly call getSectionsData method
+    const getSectionsData = async () => {
+      try {
+        const preflightFileID = localStorage.getItem('preflightFileID');
+        if (!preflightFileID) {
+          toast({
+            title: "Error",
+            description: "No preflight file ID found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const res = await preflightService.getMissingMasterColumns(preflightFileID) as any;
+        if (res?.content?.Data) {
+          const data = JSON.parse(res.content.Data);
+          if (data.length > 0) {
+            setShowFixDataPanel(true);
+          } else {
+            toast({
+              title: "Info",
+              description: "No missing master data found to fix.",
+              variant: "default",
+            });
+          }
+        } else {
+          toast({
+            title: "Info",
+            description: "No missing master data found to fix.",
+            variant: "default",
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching sections data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch sections data.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingMaster(false);
+      }
+    };
+
+    getSectionsData();
+  };
+
+  const handleRefreshClick = () => {
+    setPagerData(defaultPagerData);
+    setHeaders([]);
+    setLogsPageLoad(true);
+    const preflightFileID = localStorage.getItem('preflightFileID');
+    if (preflightFileID) {
+      getImportLogs(preflightFileID);
+    }
+  };
+
+  const handlePageIndexChange = (nextIndex) => {
+    if (nextIndex !== pagerData.currentPageIndex && nextIndex > 0) {
+      setLogsPageLoad(true);
+      setPagerData({
+        ...pagerData,
+        currentPageIndex: nextIndex,
+      });
+    }
+  };
+
+  // Add useEffect to reload data when pagerData.currentPageIndex changes
+  useEffect(() => {
+    const preflightFileID = localStorage.getItem('preflightFileID');
+    if (preflightFileID) {
+      getImportLogs(preflightFileID);
+    }
+    // eslint-disable-next-line
+  }, [pagerData.currentPageIndex]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -266,7 +445,7 @@ export default function DataQualityPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              <Link to="/import-wizard/column-mapping">
+              <Link to="/import-wizard/verification">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2" />
                   Back
@@ -308,11 +487,11 @@ export default function DataQualityPage() {
                 label="Data Normalization"
               />
               <StepConnector />
-              <ProgressStep 
+              {/* <ProgressStep 
                 icon={<FileBox />}
                 label="Deduplication"
               />
-              <StepConnector />
+              <StepConnector /> */}
               <ProgressStep 
                 icon={<ClipboardCheck />}
                 label="Final Review & Approval"
@@ -346,42 +525,78 @@ export default function DataQualityPage() {
                   </ul>
                 </AlertDescription>
               </Alert>
-              <Alert variant="warning">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Common issues include invalid email formats, out-of-range values, and inconsistent date ranges
-                </AlertDescription>
-              </Alert>
             </CardContent>
           </Card>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            {isAnalyzing ? (
+            {isAnalyzing || logsPageLoad ? (
               <Loading message="Analyzing data quality..." />
-            ) : parsedData.length > 0 ? (
-              <div className="overflow-hidden">
-                <ScrollArea className="w-full h-[600px]">
-                  <div className="min-w-full pr-6">
-                    <ValidationStatus 
-                      results={validationResults}
-                      title="Data Quality Results"
-                      data={parsedData}
-                    />
-                  </div>
-                </ScrollArea>
-              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-                <AlertTriangle className="h-10 w-10 text-yellow-500 mb-4" />
-                <p className="text-gray-800 font-medium">No data available for analysis</p>
-                <p className="text-gray-500 mt-2">Please ensure a valid file was uploaded in the previous step</p>
-              </div>
+              <>
+                {gridData.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Data Validation Results</h3>
+                      <Button 
+                        variant="outline"
+                        className="flex items-center gap-2"
+                        onClick={handleFixDataClick}
+                        disabled={isLoadingMaster}
+                      >
+                        <FileSpreadsheet className="h-4 w-4" />
+                        {isLoadingMaster ? 'Fixing Data...' : 'Fix Data'}
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4 gap-4">
+                      <div className="status-dropdown-container">
+                        <StatusDropdown
+                          options={statusOptions}
+                          defaultText={statusOptions.find((x) => x.value === filter)?.label || "Show All"}
+                          onSelect={handleStatusSelect}
+                          value={filter}
+                          outerStyles={{ width: "280px" }}
+                        />
+                      </div>
+                      <div className="pager-container">
+                        <PagerTop
+                          pageSize={pagerData.pageSize}
+                          currentPageIndex={pagerData.currentPageIndex}
+                          currentPageTotal={pagerData.currentPageTotal}
+                          total={pagerData.total}
+                          handlePageIndexChange={handlePageIndexChange}
+                          refreshData={handleRefreshClick}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="w-full">
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+                        <div className="min-w-full">
+                          <Grid
+                            columnHeaders={headers}
+                            gridData={gridData}
+                            isAutoAdjustWidth={true}
+                            fixedWidthColumns={headers.map(h => ({ accessor: h.accessor, width: 150 }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
+                    <AlertTriangle className="h-10 w-10 text-yellow-500 mb-4" />
+                    <p className="text-gray-800 font-medium">No data available for analysis</p>
+                    <p className="text-gray-500 mt-2">Please ensure a valid file was uploaded in the previous step</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/column-mapping">
+              <Link to="/import-wizard/verification">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2" />
                   Back
@@ -390,14 +605,34 @@ export default function DataQualityPage() {
             </div>
             <Link to="/import-wizard/normalization">
               <Button 
-                className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isAnalyzing || validationResults.some(v => v.status === 'fail' && v.severity === 'high')}
+                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
+                disabled={isAnalyzing || logsPageLoad}
               >
                 Continue to Data Normalization
                 <ArrowRight className="ml-2" />
               </Button>
             </Link>
           </div>
+
+          {showFixDataPanel && (
+            <SidePanel
+              title="Fix Missing Master Data"
+              isMouseOutClose={false}
+              isBackgroundDisable={true}
+              style={{ width: "60%", zIndex: 9999, right: 0, position: "fixed", height: "100vh", top: 0, overflow: "hidden" }}
+              onClose={() => setShowFixDataPanel(false)}
+            >
+              <MasterDataSelection
+                preflightFileID={localStorage.getItem('preflightFileID') || ''}
+                onClose={() => setShowFixDataPanel(false)}
+                onSuccess={() => {
+                  handleRefreshClick();
+                  setShowFixDataPanel(false);
+                }}
+              />
+              <div id="side-panel-fallback" style={{display: 'none', color: 'red'}}>If you see this, the side panel failed to render.</div>
+            </SidePanel>
+          )}
         </div>
       </div>
     </div>
