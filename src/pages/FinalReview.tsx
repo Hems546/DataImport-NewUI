@@ -32,7 +32,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import FinalReviewValidations from "@/components/FinalReviewValidations";
 import { Loading } from '@/components/ui/loading';
-import StepTracker from "@/components/StepTracker";
 
 interface AutoFix {
   id: string;
