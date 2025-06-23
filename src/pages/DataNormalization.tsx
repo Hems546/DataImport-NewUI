@@ -605,15 +605,7 @@ export default function DataNormalization() {
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/data-quality">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Data Normalization</h2>
-            </div>
+            <h2 className="text-2xl font-bold">Data Normalization & Verification</h2>
           </div>
 
           {/* Progress Steps */}

@@ -20,6 +20,7 @@ import StepConnector from "@/components/StepConnector";
 import ImportProgress from "@/components/ImportProgress";
 import { FileAnalysisModal } from "@/components/FileAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
+import StepTracker from "@/components/StepTracker";
 
 export default function ImportPush() {
   const { toast } = useToast();
@@ -199,12 +200,6 @@ export default function ImportPush() {
               isComplete={true}
             />
             <StepConnector isCompleted={true} />
-            {/* <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} /> */}
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"

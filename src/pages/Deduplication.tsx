@@ -658,53 +658,54 @@ export default function Deduplication() {
             </div>
           </div>
 
-          {/* Progress steps */}
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-12">
+              <ProgressStep 
+                icon={<FileCheck />}
+                label="File Upload"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<FileCheck />}
+                label="File Preflighting"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<MapColumns />}
+                label="Column Mapping"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<DataQuality />}
+                label="Data Quality"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<TransformData />}
+                label="Data Normalization"
+                isComplete={true}
+              />
+              <StepConnector isCompleted={true} />
+              <ProgressStep 
+                icon={<FileBox />}
+                label="Deduplication"
+                isActive={true}
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ClipboardCheck />}
+                label="Final Review & Approval"
+              />
+              <StepConnector />
+              <ProgressStep 
+                icon={<ArrowUpCircle />}
+                label="Import / Push"
+              />
+            </div>
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">

@@ -32,6 +32,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import FinalReviewValidations from "@/components/FinalReviewValidations";
 import { Loading } from '@/components/ui/loading';
+import StepTracker from "@/components/StepTracker";
 
 interface AutoFix {
   id: string;
@@ -264,12 +265,6 @@ export default function FinalReview() {
               isComplete={true}
             />
             <StepConnector isCompleted={true} />
-            {/* <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} /> */}
             <ProgressStep 
               icon={<ClipboardCheck />}
               label="Final Review & Approval"

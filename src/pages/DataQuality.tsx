@@ -42,6 +42,7 @@ import Modal from '@/components/Modal';
 import { MasterDataSelection } from '@/components/MasterDataSelection';
 import '@/styles/components/MasterDataSelection.css';
 import SidePanel from '@/components/SidePanel';
+import StepTracker from "@/components/StepTracker";
 
 interface WarningData {
   Type: string;
