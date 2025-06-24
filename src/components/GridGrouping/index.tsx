@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Input } from '@/components/ui/input';
+// @ts-ignore
+import type {} from 'react-beautiful-dnd';
 
 interface GridProps {
   columnHeaders: any[];
@@ -111,87 +114,201 @@ const Grid: React.FC<GridProps> = React.memo(({
   getCellError,
   onCellBlur = noop
 }) => {
-  console.log('Grid: received onCellBlur', { hasOnCellBlur: !!onCellBlur, onCellBlurType: typeof onCellBlur });
+  // Sorting state
+  const [sortState, setSortState] = useState({ column: '', direction: 'asc' });
+  const [columns, setColumns] = useState(columnHeaders);
+  // Column widths state
+  const [colWidths, setColWidths] = useState(() =>
+    columnHeaders.reduce((acc, col) => {
+      acc[col.accessor] = 180; // default width
+      return acc;
+    }, {})
+  );
+  const resizingCol = useRef(null);
+
+  // Sorting logic
+  const handleSort = (accessor: string) => {
+    let direction = 'asc';
+    if (sortState.column === accessor && sortState.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortState({ column: accessor, direction });
+  };
+
+  // Sort data
+  const sortedData = React.useMemo(() => {
+    if (!sortState.column) return gridData;
+    return [...gridData].sort((a, b) => {
+      const aValue = a[sortState.column];
+      const bValue = b[sortState.column];
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortState.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortState.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      return 0;
+    });
+  }, [gridData, sortState]);
+
+  // Draggable columns logic
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(columns);
+    const [removed] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, removed);
+    setColumns(reordered);
+  };
+
+  // Column resizing logic
+  const startResize = (e, accessor) => {
+    resizingCol.current = { startX: e.clientX, accessor, startWidth: colWidths[accessor] };
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', stopResize);
+  };
+  const handleResize = (e) => {
+    if (!resizingCol.current) return;
+    const { startX, accessor, startWidth } = resizingCol.current;
+    const delta = e.clientX - startX;
+    setColWidths((prev) => ({ ...prev, [accessor]: Math.max(60, startWidth + delta) }));
+  };
+  const stopResize = () => {
+    resizingCol.current = null;
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', stopResize);
+  };
+
   return (
     <div className="grid-container">
-      <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
-        <thead>
-          <tr>
-            {columnHeaders.map((header, index) => {
-              const fixedColumn = fixedWidthColumns.find(col => col.accessor === header.accessor);
-              const width = fixedColumn ? fixedColumn.width : 'auto';
-              return (
-                <th
-                  key={index}
-                  style={{ width: isAutoAdjustWidth ? width : 'auto' }}
-                  className="px-3 py-2 text-left border border-gray-200 bg-gray-50 font-medium text-sm"
-                >
-                  {header.Header}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {gridData.map((row, rowIndex) => (
-            <tr
-              key={rowIndex}
-              className="hover:bg-gray-50 transition-colors duration-100"
-              style={{ minHeight: '36px' }}
-            >
-              {columnHeaders.map((header, colIndex) => {
-                const fixedColumn = fixedWidthColumns.find(col => col.accessor === header.accessor);
-                let cellData = row[header.accessor];
-                // Status badge rendering
-                if (
-                  header.accessor.toLowerCase().includes('status') &&
-                  typeof cellData === 'string' &&
-                  statusColors[cellData]
-                ) {
-                  cellData = (
-                    <span
-                      className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${statusColors[cellData]}`}
-                    >
-                      {cellData}
-                    </span>
-                  );
-                }
-                // Check if this cell should be editable
-                const errorMessage = getCellError ? getCellError(row, header.accessor) : null;
-                if (errorMessage) {
-                  return (
-                    <EditableCell
-                      key={colIndex}
-                      row={row}
-                      header={header}
-                      rowIndex={rowIndex}
-                      getCellError={getCellError}
-                      onCellBlur={onCellBlur}
-                    />
-                  );
-                }
-                // Regular cell rendering
-                const isString = typeof cellData === 'string';
-                return (
-                  <td
-                    key={colIndex}
-                    style={{ width: isAutoAdjustWidth ? (fixedColumn ? fixedColumn.width : 'auto') : 'auto', maxWidth: 220 }}
-                    className="px-3 py-2 border border-gray-200 align-middle text-sm truncate"
-                  >
-                    {isString && cellData.length > 40 ? (
-                      <span title={cellData} className="truncate block max-w-[200px] cursor-help">
-                        {cellData.slice(0, 40)}&hellip;
+      <DragDropContext onDragEnd={onDragEnd}>
+        <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+          <Droppable droppableId="droppable-columns" direction="horizontal" type="column">
+            {(provided) => (
+              <thead ref={provided.innerRef} {...provided.droppableProps}>
+                <tr>
+                  {columns.map((header, index) => (
+                    <Draggable key={header.accessor} draggableId={header.accessor} index={index}>
+                      {(provided) => (
+                        <th
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          style={{
+                            width: colWidths[header.accessor],
+                            minWidth: 60,
+                            maxWidth: 600,
+                            ...provided.draggableProps.style
+                          }}
+                          className="px-3 py-2 text-left border border-gray-200 bg-gray-50 font-medium text-sm cursor-move select-none relative group"
+                          onClick={() => handleSort(header.accessor)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>{header.Header}</span>
+                            {sortState.column === header.accessor && (
+                              <span style={{ marginLeft: 4 }}>{sortState.direction === 'asc' ? '▲' : '▼'}</span>
+                            )}
+                            <span
+                              className="resize-handle"
+                              style={{ cursor: 'col-resize', padding: '0 4px', userSelect: 'none' }}
+                              onMouseDown={e => { e.stopPropagation(); startResize(e, header.accessor); }}
+                            >
+                              ||
+                            </span>
+                          </div>
+                        </th>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </tr>
+              </thead>
+            )}
+          </Droppable>
+          <tbody>
+            {sortedData.map((row, rowIndex) => (
+              <tr
+                key={rowIndex}
+                className="hover:bg-gray-50 transition-colors duration-100"
+                style={{ minHeight: '36px' }}
+              >
+                {columns.map((header, colIndex) => {
+                  const width = colWidths[header.accessor];
+                  let cellData = row[header.accessor];
+                  // Status badge rendering
+                  if (
+                    header.accessor.toLowerCase().includes('status') &&
+                    typeof cellData === 'string' &&
+                    statusColors[cellData]
+                  ) {
+                    cellData = (
+                      <span
+                        className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${statusColors[cellData]}`}
+                      >
+                        {cellData}
                       </span>
-                    ) : (
-                      cellData
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                    );
+                  }
+                  // File type column tooltip
+                  if (header.accessor === 'FileType' && cellData && cellData.props && cellData.props.children && cellData.props.children.type === 'img') {
+                    cellData = React.cloneElement(cellData, {
+                      children: React.cloneElement(cellData.props.children, {
+                        title: row.FileName ? row.FileName.split('.').pop() : '',
+                      })
+                    });
+                  }
+                  // EDIT column: render edit button if present
+                  if (header.accessor === 'EDIT' && row.EDIT) {
+                    return (
+                      <td
+                        key={colIndex}
+                        style={{ width, maxWidth: 220 }}
+                        className="px-3 py-2 border border-gray-200 align-middle text-sm truncate"
+                      >
+                        {row.EDIT}
+                      </td>
+                    );
+                  }
+                  // Check if this cell should be editable
+                  const errorMessage = getCellError ? getCellError(row, header.accessor) : null;
+                  if (errorMessage) {
+                    return (
+                      <EditableCell
+                        key={colIndex}
+                        row={row}
+                        header={header}
+                        rowIndex={rowIndex}
+                        getCellError={getCellError}
+                        onCellBlur={onCellBlur}
+                      />
+                    );
+                  }
+                  // Regular cell rendering
+                  const isString = typeof cellData === 'string';
+                  return (
+                    <td
+                      key={colIndex}
+                      style={{ width, maxWidth: 220 }}
+                      className="px-3 py-2 border border-gray-200 align-middle text-sm truncate"
+                    >
+                      {isString && cellData.length > 40 ? (
+                        <span title={cellData} className="truncate block max-w-[200px] cursor-help">
+                          {cellData.slice(0, 40)}&hellip;
+                        </span>
+                      ) : (
+                        cellData
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </DragDropContext>
     </div>
   );
 });

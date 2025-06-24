@@ -1,6 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PagerProps {
   pageSize: number;
@@ -8,7 +7,6 @@ interface PagerProps {
   currentPageTotal: number;
   total: number;
   handlePageIndexChange: (index: number) => void;
-  refreshData: () => void;
 }
 
 const PagerTop: React.FC<PagerProps> = ({
@@ -16,43 +14,55 @@ const PagerTop: React.FC<PagerProps> = ({
   currentPageIndex,
   currentPageTotal,
   total,
-  handlePageIndexChange,
-  refreshData
+  handlePageIndexChange
 }) => {
   const totalPages = Math.ceil(total / pageSize);
   const startItem = (currentPageIndex - 1) * pageSize + 1;
   const endItem = Math.min(startItem + currentPageTotal - 1, total);
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageIndexChange(currentPageIndex - 1)}
-          disabled={currentPageIndex === 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm">
-          {startItem}-{endItem} of {total}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageIndexChange(currentPageIndex + 1)}
-          disabled={currentPageIndex === totalPages}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={refreshData}
+    <div style={{ display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 400, gap: 8 }}>
+      <span style={{ color: '#6B7280', marginRight: 8 }}>{startItem}-{endItem} of {total}</span>
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
+        }}
       >
-        <RotateCcw className="h-4 w-4" />
-      </Button>
+        <ChevronLeft
+          style={{
+            cursor: currentPageIndex === 1 ? 'not-allowed' : 'pointer',
+            color: currentPageIndex === 1 ? '#D1D5DB' : '#374151',
+            transition: 'color 0.2s',
+            height: 20,
+            width: 20
+          }}
+          onClick={() => currentPageIndex > 1 && handlePageIndexChange(currentPageIndex - 1)}
+          onMouseOver={e => {
+            if (currentPageIndex !== 1) e.currentTarget.style.color = '#111827';
+          }}
+          onMouseOut={e => {
+            if (currentPageIndex !== 1) e.currentTarget.style.color = '#374151';
+          }}
+        />
+        <ChevronRight
+          style={{
+            cursor: currentPageIndex === totalPages ? 'not-allowed' : 'pointer',
+            color: currentPageIndex === totalPages ? '#D1D5DB' : '#374151',
+            transition: 'color 0.2s',
+            height: 20,
+            width: 20
+          }}
+          onClick={() => currentPageIndex < totalPages && handlePageIndexChange(currentPageIndex + 1)}
+          onMouseOver={e => {
+            if (currentPageIndex !== totalPages) e.currentTarget.style.color = '#111827';
+          }}
+          onMouseOut={e => {
+            if (currentPageIndex !== totalPages) e.currentTarget.style.color = '#374151';
+          }}
+        />
+      </span>
     </div>
   );
 };

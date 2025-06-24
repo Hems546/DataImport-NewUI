@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { preflightService } from "@/services/preflightService";
 import Header from "@/components/Header";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { useTableSort } from "@/hooks/useTableSort";
 import SortableHeader from "@/components/SortableHeader";
+import ResizableTableHeader from "@/components/ResizableTableHeader";
 import TableFilters from "@/components/TableFilters";
 import NameBubble from "../components/NameBubble";
 import { BiDownload } from "react-icons/bi";
@@ -12,16 +12,29 @@ import csvIcon from "@/assets/csvIcon.svg";
 import xlsIcon from "@/assets/xlsIcon.svg";
 import xlsxIcon from "@/assets/xlsxIcon.svg";
 import pdfIcon from "@/assets/pdfIcon.svg";
+import * as XLSX from 'xlsx';
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import "@/styles/table.css";
+import PagerTop from "../components/Pager";
 
 const STATUS_OPTIONS = [
-  { value: "All", label: "Show All Imports" },
-  { value: "Not Started", label: "Not Started" },
-  { value: "In Progress", label: "In Progress" },
-  { value: "Warning", label: "Warning" },
-  { value: "Success", label: "Success" },
-  { value: "Error", label: "Error" },
-  { value: "Verification Pending", label: "Verification Pending" },
+  { value: "All", label: "Show All Imports", color: "black" },
+  { value: "Not Started", label: "Not Started", color: "#A3A3A3" },
+  { value: "In Progress", label: "In Progress", color: "#F59E42" },
+  { value: "Warning", label: "Warning", color: "#FBBF24" },
+  { value: "Success", label: "Success", color: "#10B981" },
+  { value: "Error", label: "Error", color: "#F43F5E" },
+  { value: "Verification Pending", label: "Verification Pending", color: "#3B82F6" },
 ];
 
 const STATUS_COLORS = {
@@ -33,7 +46,7 @@ const STATUS_COLORS = {
   "Verification Pending": "bg-[rgb(59,130,246)] text-white",
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 function getFileExtension(fileName) {
   if (!fileName) return "";
@@ -90,7 +103,25 @@ const FileHistory = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [gridData, setGridData] = useState([]);
   const [total, setTotal] = useState(0);
+  const [columnWidths, setColumnWidths] = useState({
+    Edit: 80,
+    ImportName: 200,
+    DocTypeName: 150,
+    CreateDate: 160,
+    UserName: 150,
+    Type: 80,
+    UpdateDate: 150,
+    Status: 120,
+    Action: 100
+  });
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    message: "",
+    onConfirm: () => {},
+    onReject: () => {}
+  });
 
+  const { toast } = useToast();
   const { sortedData, sortState, handleSort } = useTableSort(gridData, {
     column: "UpdateDate",
     direction: "desc"
@@ -121,43 +152,227 @@ const FileHistory = () => {
     fetchData();
   }, [fetchData]);
 
-  // Paging handler
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  // Download handler (stub)
-  const handleDownload = (fileItem) => {
-    // Implement your download logic here
-    alert(`Download: ${fileItem.FileName}`);
+  // Handle column resize
+  const handleColumnResize = (column: string, width: number) => {
+    // Map the column names to match our state keys
+    const columnMap: { [key: string]: string } = {
+      'ImportName': 'ImportName',
+      'DocTypeName': 'DocTypeName', 
+      'CreateDate': 'CreateDate',
+      'User.Name': 'UserName',
+      'UpdateDate': 'UpdateDate',
+      'Status': 'Status'
+    };
+    
+    const stateKey = columnMap[column] || column;
+    setColumnWidths(prev => ({
+      ...prev,
+      [stateKey]: width
+    }));
   };
 
-  // Delete handler (stub)
+  // Helper function to convert JSON to CSV
+  const convertToCSV = (jsonData) => {
+    if (!jsonData || jsonData.length === 0) return '';
+    
+    const headers = Object.keys(jsonData[0]);
+    const csvRows = [headers.join(',')];
+    
+    for (const row of jsonData) {
+      const values = headers.map(header => {
+        const value = row[header];
+        // Escape quotes and wrap in quotes if contains comma or quote
+        const escaped = String(value).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(','));
+    }
+    
+    return csvRows.join('\n');
+  };
+
+  // Helper function to get sort and filter query
+  const getSortFilterQuery = () => {
+    return `${sortState.column} ${sortState.direction}`;
+  };
+
+  // Helper function to get grid data
+  const getGridData = async (data) => {
+    return data || [];
+  };
+
+  // Show confirmation dialog using AlertDialog
+  const showConfirm = ({ message }) => {
+    return new Promise((resolve) => {
+      setConfirmDialogConfig({
+        message: message,
+        onConfirm: () => {
+          setShowConfirmDialog(false);
+          resolve(true);
+        },
+        onReject: () => {
+          setShowConfirmDialog(false);
+          resolve(false);
+        }
+      });
+      setShowConfirmDialog(true);
+    });
+  };
+
+  // Show success message using toaster
+  const showSuccess = ({ message }) => {
+    toast({
+      title: "Success",
+      description: message,
+    });
+  };
+
+  // Show alert message using toaster
+  const showAlert = ({ message }) => {
+    toast({
+      title: "Alert",
+      description: message,
+      variant: "destructive"
+    });
+  };
+
+  // Delete handler
   const handleDelete = (fileItem) => {
-    // Implement your delete logic here
-    alert(`Delete: ${fileItem.FileName}`);
+    const handleDeleteIconClick = (e, id) => {
+      e.stopPropagation();
+      showConfirm({ message: "Are you sure you want to delete?" }).then(
+        (isOk) => {
+          if (isOk) {
+            setIsLoading(true);
+            preflightService
+              .deletePreflightFile(
+                id,
+                true,
+                (currentPage - 1) * PAGE_SIZE,
+                getSortFilterQuery(),
+                statusFilter,
+                searchValue.length >= 3 ? searchValue : ""
+              )
+              .then(async (resp: any) => {
+                if (resp?.content?.Status === "Success") {
+                  showSuccess({ message: "File deleted successfully" });
+                  const result = await getGridData(resp.content.Data.List);
+                  setTotal(resp.content.Data.Count);
+                  setGridData(result);
+                } else {
+                  showAlert({
+                    message: "Unable to delete the preflight import file",
+                  });
+                  setGridData([]);
+                }
+                setIsLoading(false);
+              })
+              .catch((err) => {
+                setIsLoading(false);
+                console.log(err);
+              });
+          }
+        }
+      );
+    };
+
+    handleDeleteIconClick({ stopPropagation: () => {} }, fileItem.PreflightFileID);
+  };
+
+  // Download handler
+  const handleDownload = (fileItem) => {
+    const downloadFile = (
+      id,
+      importName,
+      fileName,
+      excludeSystemColumns = false
+    ) => {
+      setIsLoading(true);
+      preflightService
+        .getPreflightImportLogs(id, -1, -1, excludeSystemColumns, "Download", "All", "")
+        .then(function (res: any) {
+          if (res?.content?.Status === "Success" && res?.content?.Data?.Result) {
+            let jsonData = JSON.parse(res?.content?.Data?.Result);
+            const extension = getFileExtension(fileName);
+            let wb, ws, blob, link;
+            switch (extension) {
+              case "csv":
+                const csv = convertToCSV(jsonData);
+                blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                break;
+              case "xls":
+                wb = XLSX.utils.book_new();
+                ws = XLSX.utils.json_to_sheet(jsonData);
+                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+                blob = new Blob(
+                  [XLSX.write(wb, { bookType: "xls", type: "array" })],
+                  {
+                    type: "application/vnd.ms-excel",
+                  }
+                );
+                break;
+              case "xlsx":
+                wb = XLSX.utils.book_new();
+                ws = XLSX.utils.json_to_sheet(jsonData);
+                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+                blob = new Blob(
+                  [XLSX.write(wb, { bookType: "xlsx", type: "array" })],
+                  {
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  }
+                );
+                break;
+              default:
+                showAlert({ message: "Unsupported file format" });
+                setIsLoading(false);
+                return;
+            }
+
+            // Create download link and trigger download
+            link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+            link.download = importName ?? fileName;
+            link.click();
+            
+            // Saving the history
+            const payload = {
+              FileID: id,
+              Action: "File has been downloaded",
+              Description: "File has been downloaded",
+              Source: "DataPreflight", // You may need to import this constant
+            };
+            preflightService.saveHistory(payload);
+          } else {
+            showAlert({ message: "Unable to fetch the data" });
+          }
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          setIsLoading(false);
+          console.log(err);
+        });
+    };
+
+    downloadFile(
+      fileItem.PreflightFileID,
+      fileItem.ImportName,
+      fileItem.FileName,
+      false
+    );
+  };
+
+  const handleEdit = (fileItem) => {
+    // TODO: Replace with your edit modal logic
+    console.log('File Item Details:', JSON.stringify(fileItem, null, 2));
+    alert(`Edit: ${JSON.stringify(fileItem, null, 2)}`);
   };
 
   const filterOptions = {
     dropdown1: {
       label: "Status",
-      options: STATUS_OPTIONS
-    },
-    dropdown2: {
-      label: "Type",
-      options: [
-        { value: "all", label: "All Types" },
-        { value: "csv", label: "CSV" },
-        { value: "xls", label: "XLS" },
-        { value: "xlsx", label: "XLSX" },
-        { value: "pdf", label: "PDF" }
-      ]
-    },
-    dropdown3: {
-      label: "Category",
-      options: [
-        { value: "all", label: "All Categories" },
-        { value: "import", label: "Import" },
-        { value: "export", label: "Export" }
-      ]
+      options: STATUS_OPTIONS,
+      value: statusFilter,
+      onSelect: setStatusFilter
     }
   };
 
@@ -165,15 +380,31 @@ const FileHistory = () => {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header currentPage="file-history" />
-        <div className="container mx-auto px-4 py-8">
-          <TableFilters
-            searchTerm={searchValue}
-            onSearchChange={setSearchValue}
-            activeView={activeView}
-            onViewChange={setActiveView}
-            onRefresh={fetchData}
-            filterOptions={filterOptions}
-          />
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between mb-2 w-full">
+            <div className="flex-1 flex items-center">
+              <TableFilters
+                searchTerm={searchValue}
+                onSearchChange={setSearchValue}
+                activeView={activeView}
+                onViewChange={setActiveView}
+                onRefresh={fetchData}
+                filterOptions={filterOptions}
+                hideActions={true}
+              />
+            </div>
+            <div className="flex-1 flex justify-end items-center">
+              <TableFilters
+                searchTerm={searchValue}
+                onSearchChange={setSearchValue}
+                activeView={activeView}
+                onViewChange={setActiveView}
+                onRefresh={fetchData}
+                filterOptions={undefined}
+                hideFilters={true}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {sortedData.map((item) => (
               <div key={item.PreflightFileID} className="border rounded-lg p-4 bg-white shadow-sm">
@@ -183,6 +414,7 @@ const FileHistory = () => {
                     className="w-8 h-8 rounded shadow border border-purple-100 bg-white"
                     src={getImage(getFileExtension(item.FileName))}
                     alt="File Type"
+                    title={getFileExtension(item.FileName).toUpperCase()}
                   />
                 </div>
                 <div className="space-y-2">
@@ -246,159 +478,276 @@ const FileHistory = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header currentPage="file-history" />
-      <div className="container mx-auto px-4 py-8">
-        <TableFilters
-          searchTerm={searchValue}
-          onSearchChange={setSearchValue}
-          activeView={activeView}
-          onViewChange={setActiveView}
-          onRefresh={fetchData}
-          filterOptions={filterOptions}
-        />
-        
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between mb-2 w-full">
+          <div className="flex-1 flex items-center">
+            {/* Left: Status Dropdown (filters) */}
+            <TableFilters
+              searchTerm={searchValue}
+              onSearchChange={setSearchValue}
+              activeView={activeView}
+              onViewChange={setActiveView}
+              onRefresh={fetchData}
+              filterOptions={filterOptions}
+              hideActions={true}
+            />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <PagerTop
+              pageSize={PAGE_SIZE}
+              currentPageIndex={currentPage}
+              currentPageTotal={gridData.length}
+              total={total}
+              handlePageIndexChange={setCurrentPage}
+            />
+          </div>
+          <div className="flex-1 flex justify-end items-center">
+            {/* Right: Actions (refresh, view toggle, search) */}
+            <TableFilters
+              searchTerm={searchValue}
+              onSearchChange={setSearchValue}
+              activeView={activeView}
+              onViewChange={setActiveView}
+              onRefresh={fetchData}
+              filterOptions={undefined}
+              hideFilters={true}
+            />
+          </div>
+        </div>
         <div className="opportunities-table-container">
-          <div className="table-scroll-area">
-            <table className="opportunities-table">
-              <thead className="table-header">
-                <tr className="table-header-row">
-                  <SortableHeader
-                    column="ImportName"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    Name
-                  </SortableHeader>
-                  <SortableHeader
-                    column="DocTypeName"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    Doc Type
-                  </SortableHeader>
-                  <SortableHeader
-                    column="CreateDate"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    Created
-                  </SortableHeader>
-                  <SortableHeader
-                    column="User.Name"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    By
-                  </SortableHeader>
-                  <th className="table-header-cell text-center">Type</th>
-                  <SortableHeader
-                    column="UpdateDate"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    Modified
-                  </SortableHeader>
-                  <SortableHeader
-                    column="Status"
-                    currentSort={sortState}
-                    onSort={handleSort}
-                  >
-                    Status
-                  </SortableHeader>
-                  <th className="table-header-cell text-center">Action</th>
+          <table className="opportunities-table">
+            <thead className="table-header">
+              <tr className="table-header-row">
+                <th 
+                  className="table-header-cell text-center"
+                  style={{ width: `${columnWidths.Edit}px`, minWidth: `${columnWidths.Edit}px` }}
+                >
+                  Edit
+                </th>
+                <ResizableTableHeader
+                  column="ImportName"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.ImportName}
+                  minWidth={120}
+                  onResize={handleColumnResize}
+                >
+                  Name
+                </ResizableTableHeader>
+                <ResizableTableHeader
+                  column="DocTypeName"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.DocTypeName}
+                  minWidth={100}
+                  onResize={handleColumnResize}
+                >
+                  Doc Type
+                </ResizableTableHeader>
+                <ResizableTableHeader
+                  column="CreateDate"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.CreateDate}
+                  minWidth={120}
+                  onResize={handleColumnResize}
+                >
+                  Created On
+                </ResizableTableHeader>
+                <ResizableTableHeader
+                  column="User.Name"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.UserName}
+                  minWidth={120}
+                  onResize={handleColumnResize}
+                >
+                  Created By
+                </ResizableTableHeader>
+                <th 
+                  className="table-header-cell text-center"
+                  style={{ width: `${columnWidths.Type}px`, minWidth: `${columnWidths.Type}px` }}
+                >
+                  Type
+                </th>
+                <ResizableTableHeader
+                  column="UpdateDate"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.UpdateDate}
+                  minWidth={120}
+                  onResize={handleColumnResize}
+                >
+                  Modified On
+                </ResizableTableHeader>
+                <ResizableTableHeader
+                  column="Status"
+                  currentSort={sortState}
+                  onSort={handleSort}
+                  defaultWidth={columnWidths.Status}
+                  minWidth={100}
+                  onResize={handleColumnResize}
+                >
+                  Status
+                </ResizableTableHeader>
+                <th 
+                  className="table-header-cell text-center"
+                  style={{ width: `${columnWidths.Action}px`, minWidth: `${columnWidths.Action}px` }}
+                >
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody className="table-body-scroll-area">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-12">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(59,130,246)]"></div>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(59,130,246)]"></div>
+              ) : sortedData.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-12 text-gray-500">
+                    No data found
+                  </td>
+                </tr>
+              ) : (
+                sortedData.map((fileItem) => (
+                  <tr key={fileItem.PreflightFileID} className="table-row">
+                    <td 
+                      className="table-cell text-center"
+                      style={{ width: `${columnWidths.Edit}px`, minWidth: `${columnWidths.Edit}px` }}
+                    >
+                      <button
+                        className="edit-btn"
+                        onClick={() => handleEdit(fileItem)}
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.ImportName}px`, minWidth: `${columnWidths.ImportName}px` }}
+                      title={fileItem.ImportName}
+                    >
+                      <span className="opportunity-link">{fileItem.ImportName}</span>
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.DocTypeName}px`, minWidth: `${columnWidths.DocTypeName}px` }}
+                      title={fileItem.DocTypeName}
+                    >
+                      {fileItem.DocTypeName}
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.CreateDate}px`, minWidth: `${columnWidths.CreateDate}px` }}
+                      title={formatDate(fileItem.CreateDate)}
+                    >
+                      {formatDate(fileItem.CreateDate)}
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.UserName}px`, minWidth: `${columnWidths.UserName}px` }}
+                      title={fileItem.User?.Name}
+                    >
+                      <div className="flex items-center gap-2">
+                        <NameBubble
+                          initials={getInitials(fileItem.User?.FirstName, fileItem.User?.LastName)}
+                          bgColor={repColorCodes[Math.floor(Math.random() * repColorCodes.length)]}
+                          hideName={true}
+                          allNames={fileItem.User?.Name}
+                        />
+                        <span className="company-link">{fileItem.User?.Name}</span>
+                      </div>
+                    </td>
+                    <td 
+                      className="table-cell text-center"
+                      style={{ width: `${columnWidths.Type}px`, minWidth: `${columnWidths.Type}px` }}
+                      title={getFileExtension(fileItem.FileName).toUpperCase()}
+                    >
+                      <img
+                        className="w-7 h-7 mx-auto rounded shadow border border-purple-100 bg-white"
+                        src={getImage(getFileExtension(fileItem.FileName))}
+                        alt="File Type"
+                      />
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.UpdateDate}px`, minWidth: `${columnWidths.UpdateDate}px` }}
+                      title={formatDateWithTime(fileItem.UpdateDate)}
+                    >
+                      {formatDateWithTime(fileItem.UpdateDate)}
+                    </td>
+                    <td 
+                      className="table-cell"
+                      style={{ width: `${columnWidths.Status}px`, minWidth: `${columnWidths.Status}px` }}
+                      title={fileItem.Status}
+                    >
+                      <div
+                        className={`status-badge ${
+                          STATUS_COLORS[fileItem.Status] || "bg-gray-200 text-gray-800"
+                        }`}
+                      >
+                        {fileItem.Status}
+                      </div>
+                    </td>
+                    <td 
+                      className="table-cell text-center"
+                      style={{ width: `${columnWidths.Action}px`, minWidth: `${columnWidths.Action}px` }}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {fileItem.TableName ? (
+                          <BiDownload
+                            className="text-xl cursor-pointer text-[rgb(59,130,246)] hover:text-[rgb(37,99,235)] transition-colors"
+                            title="Download File"
+                            onClick={() => handleDownload(fileItem)}
+                          />
+                        ) : (
+                          <BiDownload
+                            className="text-xl opacity-50 cursor-not-allowed"
+                            title="No file data to download"
+                          />
+                        )}
+                        <img
+                          src={deleteIcon}
+                          alt="Delete File"
+                          title="Delete File"
+                          className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
+                          onClick={() => handleDelete(fileItem)}
+                        />
                       </div>
                     </td>
                   </tr>
-                ) : sortedData.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12 text-gray-500">
-                      No data found
-                    </td>
-                  </tr>
-                ) : (
-                  sortedData.map((fileItem) => (
-                    <tr key={fileItem.PreflightFileID} className="table-row">
-                      <td className="table-cell">
-                        <span className="opportunity-link">{fileItem.ImportName}</span>
-                      </td>
-                      <td className="table-cell">{fileItem.DocTypeName}</td>
-                      <td className="table-cell">{formatDate(fileItem.CreateDate)}</td>
-                      <td className="table-cell">
-                        <div className="flex items-center gap-2">
-                          <NameBubble
-                            initials={getInitials(fileItem.User?.FirstName, fileItem.User?.LastName)}
-                            bgColor={repColorCodes[Math.floor(Math.random() * repColorCodes.length)]}
-                            hideName={true}
-                            allNames={fileItem.User?.Name}
-                          />
-                          <span className="company-link">{fileItem.User?.Name}</span>
-                        </div>
-                      </td>
-                      <td className="table-cell text-center">
-                        <img
-                          className="w-7 h-7 mx-auto rounded shadow border border-purple-100 bg-white"
-                          src={getImage(getFileExtension(fileItem.FileName))}
-                          alt="File Type"
-                        />
-                      </td>
-                      <td className="table-cell">{formatDateWithTime(fileItem.UpdateDate)}</td>
-                      <td className="table-cell">
-                        <div
-                          className={`status-badge ${
-                            STATUS_COLORS[fileItem.Status] || "bg-gray-200 text-gray-800"
-                          }`}
-                        >
-                          {fileItem.Status}
-                        </div>
-                      </td>
-                      <td className="table-cell text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {fileItem.TableName ? (
-                            <BiDownload
-                              className="text-xl cursor-pointer text-[rgb(59,130,246)] hover:text-[rgb(37,99,235)] transition-colors"
-                              title="Download File"
-                              onClick={() => handleDownload(fileItem)}
-                            />
-                          ) : (
-                            <BiDownload
-                              className="text-xl opacity-50 cursor-not-allowed"
-                              title="No file data to download"
-                            />
-                          )}
-                          <img
-                            src={deleteIcon}
-                            alt="Delete File"
-                            title="Delete File"
-                            className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
-                            onClick={() => handleDelete(fileItem)}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="table-footer">
-            <div className="table-footer-text">
-              Showing {sortedData.length} of {total} records
-            </div>
-            <div className="pagination-controls">
-              <div className="pagination-info">
-                Page {currentPage} of {totalPages}
-              </div>
-            </div>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialogConfig.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={confirmDialogConfig.onReject}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDialogConfig.onConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

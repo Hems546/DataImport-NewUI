@@ -79,33 +79,33 @@ export const preflightService = {
   },
   //this api call get all the preflight file
   getAllPreflightFiles: (
-      StartIndex,
-      SortFilter = "[UpdateDate] DESC",
-      Filter = "All",
-      SearchValue = ""
-    ) => {
-      let data = {
-        StartIndex: StartIndex,
-        SortFilter: SortFilter,
-        Filter: Filter,
-        SearchValue: SearchValue,
-      };
-      return new Promise((resolve, reject) => {
-        apiCall(`${API_PREFLIGHT_FILES_GET_ALL}`, "POST", data)
-          .then((resp) => {
-            if (resp?.content?.Status === "Success") {
-              let result = resp.content.Data;
-              resolve(result);
-            } else {
-              reject("Error: Not Success");
-            }
-          })
-          .catch((error) => {
-            console.log(error);
-            reject(error);
-          });
-      });
-    }, 
+    StartIndex,
+    SortFilter = "[UpdateDate] DESC",
+    Filter = "All",
+    SearchValue = ""
+  ) => {
+    let data = {
+      StartIndex: StartIndex,
+      SortFilter: SortFilter,
+      Filter: Filter,
+      SearchValue: SearchValue,
+    };
+    return new Promise((resolve, reject) => {
+      apiCall(`${API_PREFLIGHT_FILES_GET_ALL}`, "POST", data)
+        .then((resp) => {
+          if (resp?.content?.Status === "Success") {
+            let result = resp.content.Data;
+            resolve(result);
+          } else {
+            reject("Error: Not Success");
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          reject(error);
+        });
+    });
+  }, 
   //this api call get mapped fields for a preflight file
   getMappedFields: (preflightFileID: number) => {
     return new Promise<MappedFieldsResponse>((resolve, reject) => {
@@ -472,17 +472,18 @@ export const preflightService = {
   },
   InitiateEmailVerification: (PrevEmailSetting, PresentEmailSetting, IsOnlyVerification) => {
     return new Promise((resolve, reject) => {
-      apiCall(`${API_ADMIN_SITESETTINGS_INITIATE_EMAILVERIFICATION}/${PrevEmailSetting}/${PresentEmailSetting}/${IsOnlyVerification}`, "POST", "")
+      apiCall(`${API_ADMIN_SITESETTINGS_INITIATE_EMAILVERIFICATION}`, "POST", {
+        PrevEmailSetting,
+        PresentEmailSetting,
+        IsOnlyVerification
+      })
         .then((resp) => {
-          if (resp.content.Status === "Success") {
-            resolve(resp);
-          } else {
-            reject(resp);
-          }
+          resolve(resp);
         })
         .catch((error) => {
+          console.log(error);
           reject(error);
         });
     });
-  }
+  },
 };

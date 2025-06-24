@@ -35,7 +35,7 @@ const App = () => (
         <ImportProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/newui">
+          <BrowserRouter basename="/newui/">
             <InstructionManager />
             <Suspense fallback={<Loading message="Loading page..." size="lg" className="min-h-screen" />}>
               <Routes>
