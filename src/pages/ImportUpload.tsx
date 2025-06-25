@@ -24,7 +24,6 @@ import StepConnector from "@/components/StepConnector";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, getTechnicalDescription } from '@/constants/validations';
 import { validateFile } from '@/services/fileValidation';
-import { TestFilesDropdown } from "@/components/TestFilesDropdown";
 import { preflightService } from "@/services/preflightService";
 import { useImport } from '@/contexts/ImportContext';
 
@@ -53,7 +52,7 @@ export default function ImportUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { selectedImportType, selectedImportTypeName } = useImport();
+  const { selectedImportType, selectedImportTypeName, setSelectedImportType, setSelectedImportTypeName } = useImport();
   const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -194,10 +193,6 @@ export default function ImportUpload() {
     }
   };
 
-  const handleTestFileGenerated = (generatedFile: File) => {
-    handleFileSelection(generatedFile);
-  };
-
   const handleContinue = async () => {
     if (!file) return;
 
@@ -298,6 +293,45 @@ export default function ImportUpload() {
     }
   };
 
+  const handleStartOver = () => {
+    // Reset import context state
+    setSelectedImportType("");
+    setSelectedImportTypeName("");
+    
+    // Clear localStorage data
+    localStorage.removeItem('selectedImportType');
+    localStorage.removeItem('selectedImportTypeName');
+    localStorage.removeItem('uploadedFileInfo');
+    localStorage.removeItem('uploadedFile');
+    localStorage.removeItem('uploadValidationResults');
+    localStorage.removeItem('sampleFileData');
+    localStorage.removeItem('preflightFileID');
+    
+    // Reset local state
+    setFile(null);
+    setFileValidationResults([]);
+    setPreflightFileInfo({
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "",
+      FieldMappingStatus: "",
+      DataPreflightStatus: "",
+      DataValidationStatus: "",
+      DataVerificationStatus: "",
+      ImportName: "",
+      Action: "File Upload",
+      AddColumns: ""
+    });
+    
+    // Navigate to ImportTypeSelection page
+    navigate('/');
+    
+    toast({
+      title: "Started Over",
+      description: "Import process has been reset. Please select an import type to begin again.",
+    });
+  };
+
   // ex out put "2019-10-22 15:33:22"
  const getCurrentDateTime = (addDays = 0) => {
   let dt = new Date();
@@ -337,9 +371,6 @@ export default function ImportUpload() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">File Upload</h2>
-            <div className="flex items-center gap-3">
-              <TestFilesDropdown onFileGenerated={handleTestFileGenerated} />
-            </div>
           </div>
 
           <div className="flex justify-between items-center mb-12">
@@ -446,7 +477,7 @@ export default function ImportUpload() {
                     Back
                   </Button>
                 </Link>
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleStartOver}>
                   <RotateCcw className="mr-2" />
                   Start Over
                 </Button>

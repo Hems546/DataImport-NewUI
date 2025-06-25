@@ -113,7 +113,7 @@ const ImportTypeSelection = () => {
               <h1 className="text-3xl font-bold mb-2">Import Data</h1>
               <p className="text-gray-600">
                 Select the type of data you want to import. You can import data from various sources
-                including CSV, Excel, or JSON files.
+                including CSV or Excel files.
               </p>
             </div>
 
