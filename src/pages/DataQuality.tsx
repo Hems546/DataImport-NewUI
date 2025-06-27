@@ -565,7 +565,6 @@ export default function DataQualityPage() {
                           currentPageTotal={pagerData.currentPageTotal}
                           total={pagerData.total}
                           handlePageIndexChange={handlePageIndexChange}
-                          refreshData={handleRefreshClick}
                         />
                       </div>
                     </div>

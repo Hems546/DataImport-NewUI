@@ -51,7 +51,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import './FileVerification.css';
+import '@/styles/components/FileVerification.css';
 
 interface PreflightResponse {
   content: {
@@ -889,7 +889,6 @@ export default function FileVerification() {
                               });
                             }
                           }}
-                          refreshData={handleRefreshClick}
                         />
                       </div>
                     </div>
