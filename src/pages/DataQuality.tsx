@@ -1,28 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { 
-  FileCheck,
   ArrowRight,
   ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
   Info,
   AlertTriangle,
   FileSpreadsheet
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQualityIcon from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
-import ValidationStatus, { ValidationResult as ValidationStatusResult } from '@/components/ValidationStatus';
-import { validateDataQuality } from "@/services/fileValidation";
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import {
   Card,
   CardContent,
@@ -31,14 +19,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loading } from "@/components/ui/loading";
 import { preflightService } from "@/services/preflightService";
 import Grid from '@/components/GridGrouping';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import StatusDropdown from '@/components/StatusDropdown';
 import PagerTop from '@/components/Pager';
-import Modal from '@/components/Modal';
 import { MasterDataSelection } from '@/components/MasterDataSelection';
 import '@/styles/components/MasterDataSelection.css';
 import SidePanel from '@/components/SidePanel';
@@ -61,6 +47,9 @@ interface PreflightResponse {
       Count?: number;
       MappedFields?: string;
       Warnings?: Warning[];
+      DataStatus?: string;
+      ID?: number;
+      Status?: string;
     };
   };
 }
@@ -156,39 +145,68 @@ const Dropdown = ({ items, placeholder, value, onChange }) => (
 );
 
 export default function DataQualityPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
+  
   const [isAnalyzing, setIsAnalyzing] = useState(true);
-  const [validationResults, setValidationResults] = useState<ValidationStatusResult[]>([]);
-  const [parsedData, setParsedData] = useState<any[]>([]);
   const [gridData, setGridData] = useState<GridData[]>([]);
-  const [filteredGridData, setFilteredGridData] = useState<GridData[]>([]);
   const [headers, setHeaders] = useState<{
     Header: string;
     accessor: string;
   }[]>([]);
   const [preflightType] = useState("DataValidation");
-  const [isFixingData, setIsFixingData] = useState(false);
   const [filter, setFilter] = useState('All');
   const [pagerData, setPagerData] = useState(defaultPagerData);
   const [logsPageLoad, setLogsPageLoad] = useState(false);
   const [manualFilter, setManualFilter] = useState(false);
   const [showFixDataPanel, setShowFixDataPanel] = useState(false);
   const [isLoadingMaster, setIsLoadingMaster] = useState(false);
-
-  // Filter grid data based on selected status
-  useEffect(() => {
-    if (filter === 'All') {
-      setFilteredGridData(gridData);
-    } else {
-      setFilteredGridData(gridData.filter(item => item.type === filter));
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "Success",
+      FieldMappingStatus: "Success",
+      DataPreflightStatus: "In Progress",
+      DataValidationStatus: "",
+      DataVerificationStatus: "",
+      ImportName: "",
+      Action: "Data Quality",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "",
+      MappedFieldIDs: []
     }
-  }, [filter, gridData]);
+  );
+
+
+
+  useEffect(() => {
+    // Get data from route state and update preflightFileInfo if available
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
 
   const handleStatusSelect = (value: string) => {
     setFilter(value);
   };
 
-  const getImportLogs = (preflightFileID: string, ExcludeSystemColumns = false) => {
+  const getImportLogs = (preflightFileID: string | number, ExcludeSystemColumns = false) => {
     setLogsPageLoad(true);
     preflightService.getPreflightImportLogs(
       preflightFileID,
@@ -224,10 +242,34 @@ export default function DataQualityPage() {
 
   const getLogsData = (res: PreflightResponse) => {
     if (res?.content?.Data?.Result) {
+      // Parse and update status information from API response
+      let dataStatus: any = res.content.Data?.DataStatus;
+      if (dataStatus && dataStatus !== "") {
+        try {
+          dataStatus = JSON.parse(dataStatus);
+        } catch (e) {
+          console.error("Error parsing DataStatus:", e);
+          dataStatus = {};
+        }
+      } else {
+        dataStatus = {};
+      }
+      
+      // Update preflightFileInfo with latest status information
+      setPreflightFileInfo((prev) => ({
+        ...prev,
+        PreflightFileID: res.content.Data?.ID || prev.PreflightFileID,
+        Status: res.content.Data?.Status || prev.Status,
+        FileUploadStatus: dataStatus?.FileUpload || prev.FileUploadStatus,
+        FieldMappingStatus: dataStatus?.FieldMapping || prev.FieldMappingStatus,
+        DataPreflightStatus: dataStatus?.DataPreflight || prev.DataPreflightStatus,
+        DataValidationStatus: dataStatus?.DataValidation || prev.DataValidationStatus,
+        DataVerificationStatus: dataStatus?.DataVerification || prev.DataVerificationStatus,
+      }));
+      
       let records = JSON.parse(res.content.Data.Result);
       const mappedFields = JSON.parse(res.content.Data?.MappedFields || "[]");
       
-      setParsedData(records);
       getHeaders(records, mappedFields);
       
       // Generate grid data from warnings
@@ -253,7 +295,6 @@ export default function DataQualityPage() {
       });
 
       setGridData(getGridData(records));
-      setFilteredGridData(getGridData(records));
       
       setPagerData({
         ...pagerData,
@@ -305,8 +346,11 @@ export default function DataQualityPage() {
   useEffect(() => {
     const analyzeDataQuality = async () => {
       try {
-        const preflightFileID = localStorage.getItem('preflightFileID');
-        if (!preflightFileID) {
+        // Get data from route state instead of localStorage
+        const state = location.state as any;
+        const { preflightFileInfo } = state || {};
+        
+        if (!preflightFileInfo?.PreflightFileID) {
           toast({
             title: "Error",
             description: "No preflight file ID found. Please upload a file first.",
@@ -315,31 +359,23 @@ export default function DataQualityPage() {
           return;
         }
 
-        const storedColumnMappings = JSON.parse(localStorage.getItem('columnMappings') || '[]');
         const request = {
-          MappedFieldIDs: [
-            ...storedColumnMappings.map(mapping => ({
-              FileColumnName: mapping.sourceColumn,
-              PreflightFieldID: mapping.PreflightFieldID,
-              IsCustom: mapping.IsCustom,
-              Location: mapping.Locations
-            })),
-          ],
+          MappedFieldIDs: preflightFileInfo?.MappedFieldIDs || [],
           IsValidate: true,
           Action: "Field Mappings",
           AddColumns: "",
-          FilePath: localStorage.getItem('uploadedFilePath') || "",
-          FileType: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').type || "",
-          PreflightFileID: localStorage.getItem('preflightFileID') || "",
-          FileName: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').name || "",
-          ImportName: "Preflight_" + (localStorage.getItem('selectedImportTypeName') || "Unknown") + "_" + new Date().toISOString(),
-          DocTypeID: parseInt(localStorage.getItem('selectedImportType') || '1'),
+          FilePath: preflightFileInfo?.FilePath || "",
+          FileType: preflightFileInfo?.FileType || "text/csv",
+          PreflightFileID: preflightFileInfo.PreflightFileID,
+          FileName: preflightFileInfo?.FileName || "",
+          ImportName: preflightFileInfo?.ImportName || ("Preflight_Unknown_" + new Date().toISOString()),
+          DocTypeID: preflightFileInfo?.DocTypeID || 1,
           Status: "Warning"
         };
 
         const response = await preflightService.validateWarnings(request) as PreflightResponse;
         if (response?.content?.Status === "Success") {
-          getImportLogs(preflightFileID);
+          getImportLogs(preflightFileInfo.PreflightFileID.toString());
         }
 
       } catch (error) {
@@ -355,7 +391,7 @@ export default function DataQualityPage() {
     };
 
     analyzeDataQuality();
-  }, []);
+  }, [location.state, toast]);
 
   const handleFixDataClick = () => {
     console.log('Fix Data button clicked');
@@ -364,8 +400,7 @@ export default function DataQualityPage() {
     // Directly call getSectionsData method
     const getSectionsData = async () => {
       try {
-        const preflightFileID = localStorage.getItem('preflightFileID');
-        if (!preflightFileID) {
+        if (!preflightFileInfo?.PreflightFileID) {
           toast({
             title: "Error",
             description: "No preflight file ID found.",
@@ -374,7 +409,7 @@ export default function DataQualityPage() {
           return;
         }
 
-        const res = await preflightService.getMissingMasterColumns(preflightFileID) as any;
+        const res = await preflightService.getMissingMasterColumns(preflightFileInfo.PreflightFileID) as any;
         if (res?.content?.Data) {
           const data = JSON.parse(res.content.Data);
           if (data.length > 0) {
@@ -412,9 +447,8 @@ export default function DataQualityPage() {
     setPagerData(defaultPagerData);
     setHeaders([]);
     setLogsPageLoad(true);
-    const preflightFileID = localStorage.getItem('preflightFileID');
-    if (preflightFileID) {
-      getImportLogs(preflightFileID);
+    if (preflightFileInfo?.PreflightFileID) {
+      getImportLogs(preflightFileInfo.PreflightFileID);
     }
   };
 
@@ -430,9 +464,8 @@ export default function DataQualityPage() {
 
   // Add useEffect to reload data when pagerData.currentPageIndex changes
   useEffect(() => {
-    const preflightFileID = localStorage.getItem('preflightFileID');
-    if (preflightFileID) {
-      getImportLogs(preflightFileID);
+    if (preflightFileInfo?.PreflightFileID) {
+      getImportLogs(preflightFileInfo.PreflightFileID);
     }
     // eslint-disable-next-line
   }, [pagerData.currentPageIndex]);
@@ -443,66 +476,32 @@ export default function DataQualityPage() {
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Data Quality</h2>
-            </div>
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="Data Quality"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "DataValidation"}
+            completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight"]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
-          {/* Progress Steps */}
-          <ScrollArea className="w-full pb-4">
-            <div className="flex justify-between items-center mb-12 min-w-max pr-6">
-              <ProgressStep 
-                icon={<FileCheck />}
-                label="File Upload"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<MapColumns />}
-                label="Column Mapping"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<FileCheck />}
-                label="File Preflighting"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<DataQualityIcon />}
-                label="Data Quality"
-                isActive={true}
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<TransformData />}
-                label="Data Normalization"
-              />
-              <StepConnector />
-              {/* <ProgressStep 
-                icon={<FileBox />}
-                label="Deduplication"
-              />
-              <StepConnector /> */}
-              <ProgressStep 
-                icon={<ClipboardCheck />}
-                label="Final Review & Approval"
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<ArrowUpCircle />}
-                label="Import / Push"
-              />
-            </div>
-          </ScrollArea>
+          {/* Back Button */}
+          <div className="flex items-center gap-4 mb-8">
+            <Link to="/import-wizard/verification">
+              <Button variant="outline">
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
+            </Link>
+          </div>
           
           {/* Instructions Card */}
           <Card className="mb-6">
@@ -602,15 +601,25 @@ export default function DataQualityPage() {
                 </Button>
               </Link>
             </div>
-            <Link to="/import-wizard/normalization">
-              <Button 
-                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
-                disabled={isAnalyzing || logsPageLoad}
-              >
-                Continue to Data Normalization
-                <ArrowRight className="ml-2" />
-              </Button>
-            </Link>
+            <Button 
+              className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
+              disabled={isAnalyzing || logsPageLoad}
+              onClick={() => {
+                navigate('/import-step-handler', {
+                  state: {
+                    requestedStep: 'DataVerification',
+                    preflightFileInfo: {
+                      ...preflightFileInfo,
+                      DataValidationStatus: 'Success',
+                      Status: preflightFileInfo.Status || 'Success'
+                    }
+                  }
+                });
+              }}
+            >
+              Continue to Data Normalization
+              <ArrowRight className="ml-2" />
+            </Button>
           </div>
 
           {showFixDataPanel && (
@@ -622,7 +631,7 @@ export default function DataQualityPage() {
               onClose={() => setShowFixDataPanel(false)}
             >
               <MasterDataSelection
-                preflightFileID={localStorage.getItem('preflightFileID') || ''}
+                preflightFileID={preflightFileInfo?.PreflightFileID?.toString() || ''}
                 onClose={() => setShowFixDataPanel(false)}
                 onSuccess={() => {
                   handleRefreshClick();

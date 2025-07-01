@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { 
-  FileCheck,
   ArrowLeft,
-  FileBox,
-  ClipboardCheck,
   ArrowUpCircle,
   FileSearch
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+import StepHeader from "@/components/StepHeader";
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ImportProgress from "@/components/ImportProgress";
 import { FileAnalysisModal } from "@/components/FileAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +18,37 @@ import { supabase } from "@/integrations/supabase/client";
 export default function ImportPush() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "Success",
+      FieldMappingStatus: "Success",
+      DataPreflightStatus: "Success",
+      DataValidationStatus: "Success",
+      DataVerificationStatus: "Success",
+      FinalReviewStatus: "Success",
+      ImportPushStatus: "In Progress",
+      ImportName: "",
+      Action: "Import Processing",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "",
+      MappedFieldIDs: [],
+      DataSummary: ""
+    }
+  );
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<'pending' | 'processing' | 'completed' | 'failed'>('pending');
   const [progress, setProgress] = useState(0);
@@ -33,6 +58,16 @@ export default function ImportPush() {
     failedRows: 0
   });
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Get data from route state and update preflightFileInfo if available
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
 
   // Check for critical validation failures
   const checkValidations = async (importSessionId: string) => {
@@ -55,13 +90,12 @@ export default function ImportPush() {
       setIsImporting(true);
       setImportStatus('processing');
 
-      // Get current import session from local storage
-      const sessionData = localStorage.getItem('importSession');
-      if (!sessionData) {
+      // Get current import session from preflightFileInfo
+      if (!preflightFileInfo?.PreflightFileID) {
         throw new Error('No active import session found');
       }
 
-      const { id: importSessionId } = JSON.parse(sessionData);
+      const importSessionId = preflightFileInfo.PreflightFileID;
 
       // Check validations first
       const canProceed = await checkValidations(importSessionId);
@@ -156,60 +190,37 @@ export default function ImportPush() {
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/review">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Import / Push</h2>
-            </div>
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="Import Processing"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "ImportPush"}
+            completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight", "DataValidation", "DataVerification", "FinalReview"]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-              isActive={true}
-            />
+          {/* Back Button */}
+          <div className="flex items-center gap-4 mb-8">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/import-step-handler', { 
+                state: { 
+                  requestedStep: 'FinalReview',
+                  preflightFileInfo: preflightFileInfo
+                }
+              })}
+            >
+              <ArrowLeft className="mr-2" />
+              Back
+            </Button>
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
@@ -258,12 +269,19 @@ export default function ImportPush() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/review">
-                <Button variant="outline" disabled={isImporting}>
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                disabled={isImporting}
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'FinalReview',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
             </div>
             <div className="flex gap-4">
               <Button

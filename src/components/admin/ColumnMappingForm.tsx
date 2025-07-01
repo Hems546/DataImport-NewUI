@@ -38,9 +38,10 @@ interface ColumnMappingFormProps {
   preflightFileID: number;
   onSave?: (mappings: ColumnMapping[]) => void;
   isEdit?: boolean;
+  isSaving?: boolean;
 }
 
-export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false }: ColumnMappingFormProps) {
+export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isSaving = false }: ColumnMappingFormProps) {
   const { toast } = useToast();
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -231,14 +232,33 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false }: C
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-4">
-          <h3 className="text-sm font-medium text-blue-800">Mapping Process</h3>
-          <p className="text-sm text-blue-700 mt-1">
-            We've automatically mapped columns with exact matches and used AI to suggest mappings for others.
-            Please review and adjust any mappings that need correction.
-          </p>
-        </div>
+      <div className="relative">
+        {/* Loading Overlay */}
+        {isSaving && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="flex items-center space-x-3">
+                <Loader className="h-8 w-8 animate-spin text-blue-600" />
+                <div>
+                  <p className="text-lg font-semibold text-gray-900">Saving Column Mappings</p>
+                  <p className="text-sm text-gray-600">Please wait while we save your column mappings...</p>
+                </div>
+              </div>
+              <div className="w-64 bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-4">
+            <h3 className="text-sm font-medium text-blue-800">Mapping Process</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              We've automatically mapped columns with exact matches and used AI to suggest mappings for others.
+              Please review and adjust any mappings that need correction.
+            </p>
+          </div>
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
@@ -296,7 +316,7 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false }: C
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value}
-                              disabled={isEdit}
+                              disabled={isEdit || isSaving}
                             >
                               <FormControl>
                                 <SelectTrigger className={field.value ? 'bg-white' : ''}>
@@ -338,15 +358,25 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false }: C
                   setMappedColumns([]);
                   setAiMappedColumns([]);
                 }}
-                disabled={isEdit}
+                disabled={isEdit || isSaving}
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={isEdit}>Save Mapping</Button>
+              <Button type="submit" disabled={isEdit || isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Mapping...
+                  </>
+                ) : (
+                  "Save Mapping"
+                )}
+              </Button>
             </div>
           </>
         )}
-      </form>
+        </form>
+      </div>
     </Form>
   );
 }

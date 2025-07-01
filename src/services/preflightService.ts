@@ -26,7 +26,7 @@ export const API_PREFLIGHT_VALIDATION_LIST_SAVE = "/services/PreflightImports/Va
 export const API_PREFLIGHT_VALIDATE_WARNINGS = "/services/PreflightImports/ValidateWarnings";
 export const API_PREFLIGHT_DATA_VERIFICATION_OPTIONS = "/services/PreflightImports/DataVerificationOptions";
 export const API_PREFLIGHT_DATA_VERIFICATION_UPDATE = "/services/PreflightImports/DataVerificationUpdate";
-export const API_PREFLIGHT_DATA_SPLIT_ADDRESS = "/services/PreflightImports/SplitAddress";
+export const API_PREFLIGHT_DATA_SPLIT_ADDRESS = "/services/PreflightImports/SplitAddressIntoSubFields";
 export const API_PREFLIGHT_IMPORT_FILE_MASTER_COLUMN_DATA_UPDATE = "/services/PreflightImports/MasterColumnDataUpdate";
 export const API_ADMIN_SITESETTINGS_INITIATE_EMAILVERIFICATION = "/services/Admin/SiteSettings/InitiateEmailVerification";
 

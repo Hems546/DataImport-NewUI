@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { preflightService } from "@/services/preflightService";
 import Header from "@/components/Header";
 import { useTableSort } from "@/hooks/useTableSort";
@@ -96,6 +97,7 @@ const repColorCodes = [
 ];
 
 const FileHistory = () => {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -362,9 +364,14 @@ const FileHistory = () => {
   };
 
   const handleEdit = (fileItem) => {
-    // TODO: Replace with your edit modal logic
     console.log('File Item Details:', JSON.stringify(fileItem, null, 2));
-    alert(`Edit: ${JSON.stringify(fileItem, null, 2)}`);
+    
+    // Navigate to ImportStepHandler with file details
+    navigate('/import-step-handler', {
+      state: {
+        editDetails: fileItem
+      }
+    });
   };
 
   const filterOptions = {

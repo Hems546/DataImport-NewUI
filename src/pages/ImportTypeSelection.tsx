@@ -6,16 +6,64 @@ import { FileText, UserCircle, Package, Receipt, Users, WalletCardsIcon} from 'l
 import { ImportTypeConfig } from '@/data/importTypeConfigs';
 import { preflightService, PreflightType } from '@/services/preflightService';
 import { useToast } from '@/hooks/use-toast';
-import { useImport } from '@/contexts/ImportContext';
 import { Loading } from '@/components/ui/loading';
 
 const ImportTypeSelection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setSelectedImportType, setSelectedImportTypeName } = useImport();
   const [importTypes, setImportTypes] = useState<ImportTypeConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // State for preflight file info management
+  const [preflightFileInfo, setPreflightFileInfo] = useState({
+    PreflightFileID: 0,
+    DocTypeID: 0,
+    ImportTypeName: '',
+    ImportName: '',
+    Status: 'Not Started',
+    FileUploadStatus: 'Not Started',
+    FieldMappingStatus: 'Not Started',
+    DataPreflightStatus: 'Not Started',
+    DataValidationStatus: 'Not Started',
+    DataVerificationStatus: 'Not Started',
+    DeduplicationStatus: 'Not Started',
+    FinalReviewStatus: 'Not Started',
+    ImportPushStatus: 'Not Started',
+    FilePath: '',
+    FileType: 'text/csv',
+    FileName: '',
+    CreatedBy: 0,
+    MappedFieldIDs: '',
+    FileInput: '',
+    exportFileTypeValue: {
+      Display: 'CSV',
+      Value: 'text/csv',
+    },
+    exportTypeValue: {
+      Display: 'Blank Template',
+      Value: 1,
+    },
+    IsValidate: false,
+    Action: '',
+    DataSummary: '',
+    AddColumns: [],
+  });
+
+  // Get current date time for import name
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    const day = now.getDate();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const currentDateTime = getCurrentDateTime();
+
   useEffect(() => {
     const loadImportTypes = async () => {
       try {
@@ -73,9 +121,22 @@ const ImportTypeSelection = () => {
   };
 
   const handleSelectImportType = (typeId: string, typeName: string) => {
-    setSelectedImportType(typeId);
-    setSelectedImportTypeName(typeName);
-    navigate('/import-wizard/upload');
+
+    const newImportName = `Preflight_${typeName}_${currentDateTime}`;
+    
+    // Navigate to ImportStepHandler with the updated preflightFileInfo
+    navigate('/import-step-handler', {
+      state: {
+        preflightFileInfo: {
+          ...preflightFileInfo,
+          DocTypeID: Number(typeId),
+          ImportTypeName: typeName,
+          ImportName: newImportName,
+        },
+        currentStep: 'FileUpload',
+        completedSteps: [],
+      }
+    });
   };
   
   // Map icon names to actual components

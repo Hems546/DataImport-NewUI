@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -20,11 +20,8 @@ import {
   Check,
   Trash2
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+
+import StepHeader from "@/components/StepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { 
   Table, 
@@ -44,7 +41,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Form, FormField, FormItem } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DuplicateRecord {
@@ -65,6 +61,13 @@ interface MergeFieldOption {
 
 export default function Deduplication() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get data from location state
+  const preflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [deduplicationResults, setDeduplicationResults] = useState<ValidationResult[]>([]);
   const [duplicateRecords, setDuplicateRecords] = useState<DuplicateRecord[][]>([]);
@@ -76,7 +79,6 @@ export default function Deduplication() {
   const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
   
   // State for the duplicate resolution view
-  const [currentDuplicatePairIndex, setCurrentDuplicatePairIndex] = useState<number>(0);
   const [showFixDuplicatesView, setShowFixDuplicatesView] = useState<boolean>(false);
   const [mergeOptions, setMergeOptions] = useState<Record<string, MergeFieldOption[]>>({});
   const [editableValues, setEditableValues] = useState<Record<string, string>>({});
@@ -648,64 +650,28 @@ export default function Deduplication() {
         <div className="mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              <Link to="/import-wizard/normalization">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'DataVerification',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
               <h2 className="text-2xl font-bold">Deduplication</h2>
             </div>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-12">
-              <ProgressStep 
-                icon={<FileCheck />}
-                label="File Upload"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<FileCheck />}
-                label="File Preflighting"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<MapColumns />}
-                label="Column Mapping"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<DataQuality />}
-                label="Data Quality"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<TransformData />}
-                label="Data Normalization"
-                isComplete={true}
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<FileBox />}
-                label="Deduplication"
-                isActive={true}
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<ClipboardCheck />}
-                label="Final Review & Approval"
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<ArrowUpCircle />}
-                label="Import / Push"
-              />
-            </div>
+            <StepHeader 
+              currentStep={currentStep || "Deduplication"}
+              completedSteps={completedSteps}
+              className="mb-12 bg-transparent border-0 px-0 py-0"
+            />
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
@@ -857,26 +823,39 @@ export default function Deduplication() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/normalization">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'DataVerification',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
               <Button variant="outline">
                 <RotateCcw className="mr-2" />
                 Start Over
               </Button>
             </div>
-            <Link to="/import-wizard/review">
-              <Button 
-                className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isAnalyzing || deduplicationResults.some(v => v.status === 'fail' && v.severity === 'critical')}
-              >
-                Continue to Final Review
-                <ArrowRight className="ml-2" />
-              </Button>
-            </Link>
+            <Button 
+              className="bg-brand-purple hover:bg-brand-purple/90"
+              disabled={isAnalyzing || deduplicationResults.some(v => v.status === 'fail' && v.severity === 'critical')}
+              onClick={() => navigate('/import-step-handler', { 
+                state: { 
+                  requestedStep: 'FinalReview',
+                  preflightFileInfo: {
+                    ...preflightFileInfo,
+                    DeduplicationStatus: 'Success'
+                  }
+                }
+              })}
+            >
+              Continue to Final Review
+              <ArrowRight className="ml-2" />
+            </Button>
           </div>
         </div>
       </div>

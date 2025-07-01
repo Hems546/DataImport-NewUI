@@ -1,25 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { 
-  FileCheck,
   ArrowRight,
   ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
   AlertTriangle,
   Check,
   Undo,
   FileText,
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+import StepHeader from "@/components/StepHeader";
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Table,
@@ -53,6 +46,38 @@ interface UnresolvedIssue {
 
 export default function FinalReview() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "",
+      FieldMappingStatus: "",
+      DataPreflightStatus: "",
+      DataValidationStatus: "",
+      DataVerificationStatus: "",
+      FinalReviewStatus: "",
+      ImportPushStatus: "",
+      ImportName: "",
+      Action: "Final Review & Approval",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "",
+      MappedFieldIDs: [],
+      DataSummary: ""
+    }
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [autoFixes, setAutoFixes] = useState<AutoFix[]>([]);
   const [unresolvedIssues, setUnresolvedIssues] = useState<UnresolvedIssue[]>([]);
@@ -63,6 +88,16 @@ export default function FinalReview() {
   });
   const [canContinue, setCanContinue] = useState(false);
   const [finalApproved, setFinalApproved] = useState(false);
+
+  useEffect(() => {
+    // Get data from route state and update preflightFileInfo if available
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const loadReviewData = async () => {
@@ -221,59 +256,37 @@ export default function FinalReview() {
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/import-wizard/normalization">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h2 className="text-2xl font-bold">Final Review & Approval</h2>
-            </div>
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="Final Review & Approval"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "FinalReview"}
+            completedSteps={completedSteps}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
+          {/* Back Button */}
+          <div className="flex items-center gap-4 mb-8">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/import-step-handler', { 
+                state: { 
+                  requestedStep: 'DataVerification',
+                  preflightFileInfo: preflightFileInfo
+                }
+              })}
+            >
+              <ArrowLeft className="mr-2" />
+              Back
+            </Button>
           </div>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 mb-6">
@@ -429,22 +442,35 @@ export default function FinalReview() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/normalization">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-            </div>
-            <Link to="/import-wizard/import">
               <Button 
-                className="bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isLoading || !canContinue || !finalApproved}
+                variant="outline"
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'DataVerification',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
               >
-                Continue to Import
-                <ArrowRight className="ml-2" />
+                <ArrowLeft className="mr-2" />
+                Back
               </Button>
-            </Link>
+            </div>
+            <Button 
+              className="bg-brand-purple hover:bg-brand-purple/90"
+              disabled={isLoading || !canContinue || !finalApproved}
+              onClick={() => navigate('/import-step-handler', {
+                state: {
+                  requestedStep: 'ImportPush',
+                  preflightFileInfo: {
+                    ...preflightFileInfo,
+                    FinalReviewStatus: 'Success'
+                  }
+                }
+              })}
+            >
+              Continue to Import
+              <ArrowRight className="ml-2" />
+            </Button>
           </div>
         </div>
       </div>

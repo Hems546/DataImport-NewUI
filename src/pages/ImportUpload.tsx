@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -9,23 +9,14 @@ import {
   FileCheck,
   RotateCcw,
   ArrowRight,
-  ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
-  FileSpreadsheet,
-  Eye
+  ArrowLeft
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+import StepHeader from "@/components/StepHeader";
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, getTechnicalDescription } from '@/constants/validations';
 import { validateFile } from '@/services/fileValidation';
 import { preflightService } from "@/services/preflightService";
-import { useImport } from '@/contexts/ImportContext';
 
 interface PreflightResponse {
   content: {
@@ -52,13 +43,14 @@ export default function ImportUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { selectedImportType, selectedImportTypeName, setSelectedImportType, setSelectedImportTypeName } = useImport();
   const [fileValidationResults, setFileValidationResults] = useState<ValidationResult[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Loading");
   const [preflightFileInfo, setPreflightFileInfo] = useState({
     PreflightFileID: 0,
+    DocTypeID: 0,
+    ImportTypeName: "",
     Status: "",
     FileUploadStatus: "",
     FieldMappingStatus: "",
@@ -67,8 +59,23 @@ export default function ImportUpload() {
     DataVerificationStatus: "",
     ImportName: "",
     Action: "File Upload",
-    AddColumns: ""
+    AddColumns: "",
+    FileName: "",
+    FileType: "",
+    FileSize: 0,
+    FileExtension: "",
+    FileData: ""
   });
+
+  // Get data from route state and update preflightFileInfo if available
+  useEffect(() => {
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (file) {
@@ -198,37 +205,26 @@ export default function ImportUpload() {
 
     try {
       setIsLoading(true);
-      setLoadingText("Processing file...");
 
       const reader = new FileReader();
       reader.onload = async (e) => {
         if (e.target && e.target.result) {
           const fileData = e.target.result.toString();
           const currentDateTime = getCurrentDateTime();
-          const fileInfo = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            extension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
-          };
-          localStorage.setItem('uploadedFileInfo', JSON.stringify(fileInfo));
-          localStorage.setItem('uploadedFile', fileData);
-          localStorage.setItem('selectedImportTypeName',selectedImportTypeName);
-          localStorage.setItem('selectedImportType',selectedImportType);
+
           // Prepare request object for API
           const request = {
-            DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
+            DocTypeID: preflightFileInfo.DocTypeID || 1, // Use from preflightFileInfo or fallback to 1
             FileName: file.name,
             FileType: file.type,
             FileInput: fileData,
             Status: "In Progress",
             Action: "File Upload",
             AddColumns: "",
-            ImportName: "Preflight_" + (selectedImportTypeName || "Unknown") + "_" + currentDateTime,
-            FilePath:""
+            ImportName: preflightFileInfo.ImportName || "Preflight_" + (preflightFileInfo.ImportTypeName || "Unknown") + "_" + currentDateTime,
+            FilePath: ""
           };
           console.log("request Body : ", request);
-
 
           try {
             const res = await preflightService.saveFile(request) as PreflightResponse;
@@ -240,27 +236,38 @@ export default function ImportUpload() {
                 dataStatus = JSON.parse(result.DataStatus) as DataStatus;
               }
 
-              const request2 = {
-                DocTypeID: selectedImportType ? parseInt(selectedImportType) : 1, // Fallback to 1 if not found
+              // Update preflightFileInfo state object with all the data
+              const updatedPreflightFileInfo = {
+                PreflightFileID: result.ID,
+                DocTypeID: preflightFileInfo.DocTypeID,
+                ImportTypeName: preflightFileInfo.ImportTypeName,
+                Status: result.Status,
+                FileUploadStatus: dataStatus?.FileUpload || "Completed",
+                FieldMappingStatus: dataStatus?.FieldMapping || "Not Started",
+                DataPreflightStatus: dataStatus?.DataPreflight || "Not Started",
+                DataValidationStatus: dataStatus?.DataValidation || "Not Started",
+                DataVerificationStatus: dataStatus?.DataVerification || "Not Started",
+                ImportName: request.ImportName,
+                Action: "File Upload",
+                AddColumns: "",
+                // Store file-related information
                 FileName: file.name,
                 FileType: file.type,
-                FileInput: fileData,
-                Status: "In Progress",
-                ImportName: "Preflight_" + (selectedImportTypeName || "Unknown") + "_" + currentDateTime,
-                FilePath:"",
-                MappedFieldIDs : "",
-                IsValidate : true,
-                Action : "Field Mappings",
-                AddColumns : ""
+                FileSize: file.size,
+                FileExtension: file.name.substring(file.name.lastIndexOf('.')).toLowerCase(),
+                FileData: fileData
               };
-              setLoadingText("Please hold on while we process the Data Preflight. This may take a few moments to complete");
-              const res2 = await preflightService.saveFile(request2) as PreflightResponse;
-              const result2 = res2?.content?.Data;
 
-              // Store the preflight file ID in localStorage
-              localStorage.setItem('preflightFileID', result?.ID.toString() || '0');
+              setPreflightFileInfo(updatedPreflightFileInfo);
 
-              navigate('/import-wizard/column-mapping');
+              // Navigate with the updated state
+              navigate('/import-wizard/column-mapping', {
+                state: {
+                  preflightFileInfo: updatedPreflightFileInfo,
+                  currentStep: 'FieldMapping',
+                  completedSteps: ['FileUpload']
+                }
+              });
             } else {
               toast({
                 title: "Error",
@@ -289,18 +296,11 @@ export default function ImportUpload() {
       });
     } finally {
       setIsLoading(false);
-      setLoadingText("Loading");
     }
   };
 
   const handleStartOver = () => {
-    // Reset import context state
-    setSelectedImportType("");
-    setSelectedImportTypeName("");
-    
     // Clear localStorage data
-    localStorage.removeItem('selectedImportType');
-    localStorage.removeItem('selectedImportTypeName');
     localStorage.removeItem('uploadedFileInfo');
     localStorage.removeItem('uploadedFile');
     localStorage.removeItem('uploadValidationResults');
@@ -312,6 +312,8 @@ export default function ImportUpload() {
     setFileValidationResults([]);
     setPreflightFileInfo({
       PreflightFileID: 0,
+      DocTypeID: 0,
+      ImportTypeName: "",
       Status: "",
       FileUploadStatus: "",
       FieldMappingStatus: "",
@@ -320,7 +322,12 @@ export default function ImportUpload() {
       DataVerificationStatus: "",
       ImportName: "",
       Action: "File Upload",
-      AddColumns: ""
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: ""
     });
     
     // Navigate to ImportTypeSelection page
@@ -369,47 +376,22 @@ export default function ImportUpload() {
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">File Upload</h2>
-          </div>
-
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<Upload />}
-              label="File Upload"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="File Upload"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep="FileUpload"
+            completedSteps={[]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
           <div className="space-y-8">
             <div className="bg-white p-8 rounded-lg border border-gray-200">

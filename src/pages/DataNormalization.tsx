@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
-import { Toggle } from "@/components/ui/toggle";
 import { preflightService } from "@/services/preflightService";
-import { enumStatusColor, InfoInstructions } from "@/constants/importHelpers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  FileCheck,
   ArrowRight,
   ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
-  Edit,
   Info, 
   CheckCircle, 
   AlertTriangle, 
@@ -24,16 +17,20 @@ import {
   User, 
   MapPin
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import NormalizationEditor, { NormalizationIssue } from '@/components/NormalizationEditor';
 
 export default function DataNormalization() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
   
   // Normalization States
   const [isAnalyzing, setIsAnalyzing] = useState(true);
@@ -42,13 +39,29 @@ export default function DataNormalization() {
   const [normalizationIssues, setNormalizationIssues] = useState<Record<string, NormalizationIssue[]>>({});
 
   // Data Verification States
-  const [preflightFileID, setPreflightFileID] = useState<number | null>(null);
-  const [preflightFileInfo, setPreflightFileInfo] = useState({
-    PreflightFileID: 0,
-    DataVerificationStatus: "Not Started",
-    DataSummary: "",
-    Status: "Not Started"
-  });
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "Success",
+      FieldMappingStatus: "Success",
+      DataPreflightStatus: "Success",
+      DataValidationStatus: "Success",
+      DataVerificationStatus: "Verification Pending",
+      ImportName: "",
+      Action: "Data Normalization",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "",
+      MappedFieldIDs: [],
+      DataSummary: ""
+    }
+  );
   const [dataVerificationOptions, setDataVerificationOptions] = useState({
     IsFullNameExists: false,
     IsFullAddressExists: false,
@@ -58,7 +71,6 @@ export default function DataNormalization() {
     IsEmailValidated: false,
   });
   const [isInitialLoading, setIsInitialLoading] = useState(false);
-  const [summaryEnabled, setSummaryEnabled] = useState(false);
   const [pageLoad, setPageLoad] = useState({
     IsLoading: false,
     LoadingText: ""
@@ -66,16 +78,11 @@ export default function DataNormalization() {
 
   // Data Verification useEffect
   useEffect(() => {
-    // Get preflightFileID from localStorage
-    const storedPreflightFileID = localStorage.getItem('preflightFileID');
-    if (storedPreflightFileID) {
-      const fileID = parseInt(storedPreflightFileID);
-      setPreflightFileID(fileID);
-      setPreflightFileInfo(prev => ({
-        ...prev,
-        PreflightFileID: fileID
-      }));
-      getDataVerificationOptions(fileID);
+    // Use PreflightFileID from preflightFileInfo
+    if (preflightFileInfo?.PreflightFileID) {
+      getDataVerificationOptions(preflightFileInfo.PreflightFileID);
+      // Also fetch the current status from backend
+      fetchCurrentPreflightStatus(preflightFileInfo.PreflightFileID);
     } else {
       toast({
         title: "Warning",
@@ -83,9 +90,52 @@ export default function DataNormalization() {
         variant: "warning"
       });
     }
-  }, []);
+  }, [preflightFileInfo?.PreflightFileID]);
+
+  useEffect(() => {
+    // Get data from route state and update preflightFileInfo if available
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
 
   // Data Verification Functions
+  const fetchCurrentPreflightStatus = (preflightFileID: number) => {
+    preflightService
+      .getPreflightImportLogs(preflightFileID, 0, 1, false, "", "All", "")
+      .then((res: any) => {
+        if (res?.content?.Data?.DataStatus) {
+          let dataStatus: any = res.content.Data?.DataStatus;
+          if (dataStatus && dataStatus !== "") {
+            try {
+              dataStatus = JSON.parse(dataStatus);
+              // Update preflightFileInfo with latest status information from backend
+              console.log("Backend DataStatus:", dataStatus);
+              console.log("DataVerificationStatus from backend:", dataStatus?.DataVerification);
+              setPreflightFileInfo((prev) => ({
+                ...prev,
+                Status: res.content.Data?.Status || prev.Status,
+                FileUploadStatus: dataStatus?.FileUpload || prev.FileUploadStatus,
+                FieldMappingStatus: dataStatus?.FieldMapping || prev.FieldMappingStatus,
+                DataPreflightStatus: dataStatus?.DataPreflight || prev.DataPreflightStatus,
+                DataValidationStatus: dataStatus?.DataValidation || prev.DataValidationStatus,
+                DataVerificationStatus: dataStatus?.DataVerification || prev.DataVerificationStatus,
+              }));
+            } catch (e) {
+              console.error("Error parsing DataStatus from backend:", e);
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        console.log("Error fetching current preflight status:", error);
+        // Don't show error toast for this since it's not critical for functionality
+      });
+  };
+
   const getDataVerificationOptions = (preflightFileID: number) => {
     setIsInitialLoading(true);
     return new Promise((resolve, reject) => {
@@ -113,7 +163,7 @@ export default function DataNormalization() {
   };
 
   const preflightDataVerificationUpdate = async (actionType: string) => {
-    if (!preflightFileID) {
+    if (!preflightFileInfo?.PreflightFileID) {
       toast({
         title: "Error",
         description: "No preflight file ID available.",
@@ -135,7 +185,7 @@ export default function DataNormalization() {
     
     return await preflightService
       .preflightDataVerificationUpdate(
-        preflightFileID,
+        preflightFileInfo.PreflightFileID,
         actionType
       )
       .then((res: any) => {
@@ -196,7 +246,7 @@ export default function DataNormalization() {
   };
 
   const splitAddressIntoSubFields = () => {
-    if (!preflightFileID) {
+    if (!preflightFileInfo?.PreflightFileID) {
       toast({
         title: "Error",
         description: "No preflight file ID available.",
@@ -204,6 +254,7 @@ export default function DataNormalization() {
       });
       return;
     }
+    console.log("preflightFileInfo : ",preflightFileInfo) 
 
     setPageLoad((prev) => {
       return {
@@ -214,7 +265,7 @@ export default function DataNormalization() {
       };
     });
     preflightService
-      .splitAddressIntoSubFields(preflightFileID)
+      .splitAddressIntoSubFields(preflightFileInfo.PreflightFileID)
       .then((res: any) => {
         setPageLoad((prev) => {
           return {
@@ -268,7 +319,7 @@ export default function DataNormalization() {
   };
 
   const EmailIDVerificationSiteSettingsSave = async () => {
-    if (!preflightFileID) {
+    if (!preflightFileInfo?.PreflightFileID) {
       toast({
         title: "Error",
         description: "No preflight file ID available.",
@@ -402,7 +453,7 @@ export default function DataNormalization() {
                   onClick={() => {
                     preflightDataVerificationUpdate("FullName");
                   }}
-                  disabled={dataVerificationOptions.IsFullNameValidated}
+                  disabled={dataVerificationOptions.IsFullNameValidated || pageLoad.IsLoading}
                   className="w-40"
                 >
                   {dataVerificationOptions.IsFullNameValidated ? (
@@ -463,7 +514,7 @@ export default function DataNormalization() {
                 </div>
                 <Button
                   onClick={() => splitAddressIntoSubFields()}
-                  disabled={dataVerificationOptions.IsAddressValidated}
+                  disabled={dataVerificationOptions.IsAddressValidated || pageLoad.IsLoading}
                   className="w-40"
                 >
                   {dataVerificationOptions.IsAddressValidated ? (
@@ -525,10 +576,11 @@ export default function DataNormalization() {
                         : "bg-white text-blue-600 opacity-50"
                     }`}
                     onClick={() => {
-                      if (dataVerificationOptions.IsEmailValidated) {
+                      if (dataVerificationOptions.IsEmailValidated && !pageLoad.IsLoading) {
                         EmailIDVerificationSiteSettingsSave();
                       }
                     }}
+                    disabled={pageLoad.IsLoading}
                   >
                     Disable
                   </button>
@@ -539,10 +591,11 @@ export default function DataNormalization() {
                         : "bg-white text-blue-600"
                     }`}
                     onClick={() => {
-                      if (!dataVerificationOptions.IsEmailValidated) {
+                      if (!dataVerificationOptions.IsEmailValidated && !pageLoad.IsLoading) {
                         EmailIDVerificationSiteSettingsSave();
                       }
                     }}
+                    disabled={pageLoad.IsLoading}
                   >
                     Enable
                   </button>
@@ -602,59 +655,39 @@ export default function DataNormalization() {
     <div className="min-h-screen flex flex-col">
       <Header currentPage="import-wizard" />
 
+      {/* Loading Overlay */}
+      {pageLoad.IsLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md mx-4">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Processing...</h3>
+              <p className="text-gray-600 text-center">
+                {pageLoad.LoadingText || "Please wait while we process your request."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">Data Normalization & Verification</h2>
-          </div>
-
-          {/* Progress Steps */}
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileBox />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-              isActive={true}
-            />
-            <StepConnector />
-            {/* <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-            />
-            <StepConnector /> */}
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="Data Normalization"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "DataVerification"}
+            completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight", "DataValidation"]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
             <h3 className="text-xl font-semibold mb-6">Data Normalization</h3>
@@ -664,21 +697,36 @@ export default function DataNormalization() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/data-quality">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
-            </div>
-            <Link to="/import-wizard/review">
               <Button 
-                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
+                variant="outline"
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'DataValidation',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+                disabled={pageLoad.IsLoading}
               >
-                Continue to Final Review
-                <ArrowRight className="ml-2" />
+                <ArrowLeft className="mr-2" />
+                Back
               </Button>
-            </Link>
+            </div>
+            <Button 
+              className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
+              onClick={() => navigate('/import-step-handler', { 
+                state: { 
+                  requestedStep: 'FinalReview',
+                  preflightFileInfo: {
+                    ...preflightFileInfo,
+                    DataVerificationStatus: 'Success'
+                  }
+                }
+              })}
+              disabled={pageLoad.IsLoading}
+            >
+              Continue to Final Review
+              <ArrowRight className="ml-2" />
+            </Button>
           </div>
         </div>
       </div>

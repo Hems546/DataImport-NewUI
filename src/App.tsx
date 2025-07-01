@@ -25,6 +25,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const FileHistoryDetails = lazy(() => import("./pages/FileHistoryDetails"));
 const FileHistory = lazy(() => import("./pages/FileHistory"));
 const ContextDocument = lazy(() => import("./pages/ContextDocument"));
+const ImportStepHandler = lazy(() => import("./pages/ImportStepHandler"));
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/import-wizard" element={<ImportTypeSelection />} />
+                <Route path="/import-step-handler" element={<ImportStepHandler />} />
                 <Route path="/import-wizard/upload" element={<ImportUpload />} />
                 <Route path="/import-wizard/column-mapping" element={<ColumnMapping />} />
                 <Route path="/import-wizard/verification" element={<FileVerification />} />

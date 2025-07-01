@@ -1,34 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { ColumnMappingForm, ColumnMapping } from "@/components/admin/ColumnMappingForm";
 import { 
-  FileCheck,
   ArrowRight,
-  ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
-  Info,
-  FileType
+  ArrowLeft
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+import StepHeader from "@/components/StepHeader";
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validateColumnMappings } from '@/services/fileValidation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { preflightService } from "@/services/preflightService";
 import { Loading } from "@/components/ui/loading";
 
@@ -37,30 +20,92 @@ interface PreflightResponse {
     Data?: {
       ID: number;
       Message?: string;
+      Status?: string;
+      DataStatus?: string;
     };
   };
 }
 
 export default function ColumnMappingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
+  
   const [preflightFileID, setPreflightFileID] = useState<number>(0);
   const [isEdit, setIsEdit] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMappingSaved, setIsMappingSaved] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "Success", // Default to Success to show File Upload as completed
+      FieldMappingStatus: "In Progress", // Current step
+      DataPreflightStatus: "",
+      DataValidationStatus: "",
+      DataVerificationStatus: "",
+      ImportName: "",
+      Action: "Field Mapping",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "Company & Contact Data",
+      MappedFieldIDs: [],
+      FilePath: ""
+    }
+  );
+  
+
 
   useEffect(() => {
-    // Get preflight file ID from localStorage
-    const storedFileID = localStorage.getItem('preflightFileID');
-    if (storedFileID) {
-      setPreflightFileID(parseInt(storedFileID));
-    }
+    // Get data from route state instead of localStorage
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo, isEdit: editMode } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      // Use the incoming preflightFileInfo which contains the correct DocTypeID from the previous page
+      setPreflightFileInfo(incomingPreflightFileInfo);
+      
+      if (incomingPreflightFileInfo.PreflightFileID) {
+        setPreflightFileID(incomingPreflightFileInfo.PreflightFileID);
+      }
 
-    // Check if we're in edit mode
-    const editMode = localStorage.getItem('editMode') === 'true';
-    setIsEdit(editMode);
-  }, []);
+      // If FieldMappingStatus is already Success, enable the Continue button
+      if (incomingPreflightFileInfo.FieldMappingStatus === "Success") {
+        setIsMappingSaved(true);
+      }
+    }
+    
+    setIsEdit(!!editMode);
+  }, [location.state]);
+
+  // Watch for changes to FieldMappingStatus and enable Continue button if it becomes Success
+  useEffect(() => {
+    if (preflightFileInfo.FieldMappingStatus === "Success") {
+      setIsMappingSaved(true);
+      console.log("FieldMappingStatus updated to Success - enabling Continue button");
+    }
+  }, [preflightFileInfo.FieldMappingStatus]);
+
+  const getDocTypeID = (docTypeID: number): number => {
+    // Use DocTypeID directly as it's already a number
+    if (!docTypeID || docTypeID <= 0) {
+      return 1;
+    }
+    
+    return docTypeID;
+  };
 
   const handleMappingSave = (mappings: ColumnMapping[]) => {
     setIsLoading(true);
@@ -148,18 +193,46 @@ export default function ColumnMappingPage() {
         IsValidate: true,
         Action: "Field Mappings",
         AddColumns: "",
-        FilePath: localStorage.getItem('uploadedFilePath') || "",
-        FileType: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').type || "",
+        FilePath: preflightFileInfo.FilePath || "",
+        FileType: preflightFileInfo.FileType || "",
         PreflightFileID: preflightFileID,
-        FileName: JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}').name || "",
-        ImportName: "Preflight_" + (localStorage.getItem('selectedImportTypeName') || "Unknown") + "_" + new Date().toISOString(),
-        DocTypeID: parseInt(localStorage.getItem('selectedImportType') || '1')
+        FileName: preflightFileInfo.FileName || "",
+        ImportName: preflightFileInfo.ImportName || "",
+        DocTypeID: getDocTypeID(preflightFileInfo.DocTypeID)
       };
+
+
 
       // Call preflight service
       preflightService.saveFile(request).then((res: PreflightResponse) => {
         const result = res?.content?.Data;
         if (result?.ID > 0) {
+          // Parse and update status information from API response
+          let dataStatus: any = result?.DataStatus;
+          if (dataStatus && dataStatus !== "") {
+            try {
+              dataStatus = JSON.parse(dataStatus);
+            } catch (e) {
+              console.error("Error parsing DataStatus:", e);
+              dataStatus = {};
+            }
+          } else {
+            dataStatus = {};
+          }
+          
+          // Update preflightFileInfo with latest status information
+          setPreflightFileInfo((prev) => ({
+            ...prev,
+            PreflightFileID: result?.ID,
+            Status: result?.Status,
+            FileUploadStatus: dataStatus?.FileUpload,
+            FieldMappingStatus: dataStatus?.FieldMapping,
+            DataPreflightStatus: dataStatus?.DataPreflight,
+            DataValidationStatus: dataStatus?.DataValidation,
+            DataVerificationStatus: dataStatus?.DataVerification,
+          }));
+          
+          setIsMappingSaved(true);
           toast({
             title: "Success",
             description: "Column mappings saved successfully.",
@@ -193,6 +266,15 @@ export default function ColumnMappingPage() {
   };
 
   const handleContinue = () => {
+    if (!isMappingSaved) {
+      toast({
+        title: "Save Required",
+        description: "Please save your column mappings before continuing to the next step.",
+        variant: "warning"
+      });
+      return;
+    }
+
     if (hasValidationErrors) {
       toast({
         title: "Validation Error",
@@ -202,102 +284,83 @@ export default function ColumnMappingPage() {
       return;
     }
 
-    // Navigate to verification page
-    navigate('/import-wizard/verification');
+    // Navigate to ImportStepHandler to determine next step
+    navigate('/import-step-handler', {
+      state: {
+        requestedStep: 'DataPreflight',
+        preflightFileInfo: {
+          ...preflightFileInfo,
+          FieldMappingStatus: 'Success'
+        }
+      }
+    });
   };
 
+
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-6 py-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-semibold text-gray-900">Column Mapping</h1>
-            </div>
-            <div className="flex justify-between items-center mb-12">
-              <ProgressStep 
-                icon={<FileCheck />} 
-                label="File Upload" 
-                isComplete={true} 
-              />
-              <StepConnector isCompleted={true} />
-              <ProgressStep 
-                icon={<MapColumns />} 
-                label="Column Mapping" 
-                isActive={true} 
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<FileCheck />} 
-                label="File Preflighting" 
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<DataQuality />} 
-                label="Data Quality" 
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<TransformData />} 
-                label="Data Normalization" 
-              />
-              <StepConnector />
-              {/* <ProgressStep 
-                icon={<FileBox />} 
-                label="Deduplication" 
-              />
-              <StepConnector /> */}
-              <ProgressStep 
-                icon={<ClipboardCheck />} 
-                label="Final Review & Approval" 
-              />
-              <StepConnector />
-              <ProgressStep 
-                icon={<ArrowUpCircle />} 
-                label="Import / Push" 
-              />
-            </div>
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="Column Mapping"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Company & Contact Data'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "FieldMapping"}
+            completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload"]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
           {/* Map Your Columns Info Section */}
-          <div className="mb-8">
-            <div className="border rounded-2xl bg-white/50 p-8">
-              <h2 className="text-2xl font-bold mb-1">Map Your Columns</h2>
-              <p className="text-gray-500 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
+            <div className="text-center mb-3">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                Map Your Columns
+              </h1>
+              <p className="text-sm text-gray-600">
                 Match your file columns with our system fields to ensure data is imported correctly
               </p>
-              <div className="space-y-5">
-                <div className="flex items-start gap-3 border rounded-xl bg-gray-50 p-5">
-                  <span className="mt-1 text-blue-500">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
-                  </span>
-                  <div>
-                    <div className="font-semibold mb-1">About column mapping:</div>
-                    <ul className="list-disc list-inside text-sm text-gray-700">
-                      <li>
-                        <span className="font-bold">Auto-mapped columns</span> are highlighted in <span className="text-green-700 font-bold">green</span>
-                      </li>
-                      <li>
-                        <span className="font-bold">AI-suggested mappings</span> are highlighted in <span className="text-blue-700 font-bold">blue</span>
-                      </li>
-                      <li>
-                        <span className="font-bold">Manual mapping</span> is required for any remaining columns
-                      </li>
-                    </ul>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 border rounded-xl bg-gray-50 p-5">
-                  <span className="mt-1 text-blue-500">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M12 8v4m0 4h.01"/></svg>
-                  </span>
-                  <div>
-                    <div className="font-semibold mb-1">Tips for successful mapping:</div>
-                    <ul className="list-disc list-inside text-sm text-gray-700">
-                      <li>Required fields are marked with a red asterisk (<span className="text-red-500">*</span>)</li>
-                      <li>Use "Ignore this column" for data you don't want to import</li>
-                      <li>Review AI-suggested mappings for accuracy</li>
-                    </ul>
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900 mb-2 text-sm">About column mapping:</h3>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-gray-700">
+                        <span className="font-medium text-green-700">Auto-mapped</span> columns are highlighted in green
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-gray-700">
+                        <span className="font-medium text-blue-700">AI-suggested</span> mappings are highlighted in blue
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-gray-700">
+                        <span className="font-medium text-gray-700">Manual mapping</span> required for remaining columns
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -305,42 +368,51 @@ export default function ColumnMappingPage() {
           </div>
 
           {validationResults.length > 0 && (
-            <div className="mb-6">
-              <ValidationStatus 
-                results={validationResults}
-                title="Column Mapping Validation Results"
-              />
+            <div className="mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <ValidationStatus 
+                  results={validationResults}
+                  title="Column Mapping Validation Results"
+                />
+              </div>
             </div>
           )}
 
-          <div className="bg-white p-8 rounded-lg border border-gray-200">
-            {isLoading ? (
-              <Loading message="Loading column mappings..." />
-            ) : (
-              <ColumnMappingForm
-                preflightFileID={preflightFileID}
-                onSave={handleMappingSave}
-                isEdit={isEdit}
-              />
-            )}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <ColumnMappingForm
+              preflightFileID={preflightFileID}
+              onSave={handleMappingSave}
+              isEdit={isEdit}
+              isSaving={isLoading}
+            />
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center mt-8">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/import-wizard/upload')}
-            >
-              <ArrowLeft className="mr-2" />
-              Back
-            </Button>
-            <Button
-              onClick={handleContinue}
-              disabled={hasValidationErrors || isLoading}
-            >
-              Continue to Data Preflight
-              <ArrowRight className="ml-2" />
-            </Button>
+          <div className="mt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-4">
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/import-wizard/upload', {
+                  state: {
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
+            </div>
+            <div className="flex gap-4">
+              <Button
+                className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
+                onClick={handleContinue}
+                disabled={hasValidationErrors || isLoading || !isMappingSaved}
+                title={!isMappingSaved ? "Please save your column mappings to continue" : ""}
+              >
+                Continue to Data Preflight
+                <ArrowRight className="ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
       </main>

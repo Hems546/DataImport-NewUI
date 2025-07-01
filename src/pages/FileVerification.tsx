@@ -1,25 +1,18 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { 
-  FileCheck,
   ArrowRight,
   ArrowLeft,
-  FileBox,
-  ClipboardCheck,
-  ArrowUpCircle,
   AlertTriangle,
   Info,
   X
 } from "lucide-react";
-import MapColumns from "@/components/icons/MapColumns";
-import DataQuality from "@/components/icons/DataQuality";
-import TransformData from "@/components/icons/TransformData";
-import ProgressStep from "@/components/ProgressStep";
-import StepConnector from "@/components/StepConnector";
+
+import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validateFile } from '@/services/fileValidation';
 import { getTechnicalDescription } from '@/constants/validations';
@@ -27,11 +20,7 @@ import { preflightService } from '@/services/preflightService';
 import Grid from '@/components/GridGrouping';
 import PagerTop from '@/components/Pager';
 import StatusDropdown from '@/components/StatusDropdown';
-import SidePanel from '@/components/SidePanel';
-import Modal from '@/components/Modal';
 import { defaultPagerData } from '../constants/pager';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -43,15 +32,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import '@/styles/components/FileVerification.css';
+
+
 
 interface PreflightResponse {
   content: {
@@ -77,23 +59,24 @@ interface PreflightService {
 }
 
 export default function FileVerification() {
-  const [progress] = React.useState(32);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Get data from location state
+  const locationPreflightFileInfo = location.state?.preflightFileInfo;
+  const currentStep = location.state?.currentStep;
+  const completedSteps = location.state?.completedSteps || [];
   const [verificationResults, setVerificationResults] = useState<ValidationResult[]>([]);
   const [isVerifying, setIsVerifying] = useState(true);
   const [filter, setFilter] = useState("All");
-  const tableRef = useRef();
   const [headers, setHeaders] = useState([]);
   const [pagerData, setPagerData] = useState(defaultPagerData);
   const [gridData, setGridData] = useState([]);
   const [fileData, setFileData] = useState([]);
   const [refresh, setRefresh] = useState(false);
-  const [columnsInfo, setColumnsInfo] = useState([]);
   const [logsPageLoad, setLogsPageLoad] = useState(false);
   const [loadGridData, setLoadGridData] = useState(false);
-  const [masterDropdownData, setMasterDropdownData] = useState({});
-  const [showSummarySidePanel, setShowSummarySidePanel] = useState(false);
   const [manualFilter, setManualFilter] = useState(false);
   const [correctionCell, setCorrectionCell] = useState({
     showPopup: false,
@@ -104,12 +87,29 @@ export default function FileVerification() {
   });
   const [loadSidePanelOnSave, setLoadSidePanelOnSave] = useState(false);
   const [errorCellDetails, setErrorCellDetails] = useState([]);
-  const [errorCellUniqueKey, setErrorCellUniqueKey] = useState("");
-  const [preflightFileInfo, setPreflightFileInfo] = useState({
-    PreflightFileID: 0,
-    MappedFieldIDs: [],
-    ImportTypeName: "records"
-  });
+  const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
+    locationPreflightFileInfo || {
+      PreflightFileID: 0,
+      Status: "",
+      FileUploadStatus: "Success",
+      FieldMappingStatus: "In Progress",
+      DataPreflightStatus: "",
+      DataValidationStatus: "",
+      DataVerificationStatus: "",
+      ImportName: "",
+      Action: "File Verification",
+      AddColumns: "",
+      FileName: "",
+      FileType: "",
+      FileSize: 0,
+      FileExtension: "",
+      FileData: "",
+      DocTypeID: 0,
+      ImportTypeName: "",
+      MappedFieldIDs: [],
+      DataSummary: ""
+    }
+  );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogConfig, setConfirmDialogConfig] = useState({
     message: "",
@@ -122,61 +122,64 @@ export default function FileVerification() {
   const preflightType = "DataPreflight";
 
   useEffect(() => {
+    // Get data from route state and update preflightFileInfo if available
+    const state = location.state as any;
+    const { preflightFileInfo: incomingPreflightFileInfo } = state || {};
+    
+    if (incomingPreflightFileInfo) {
+      setPreflightFileInfo(incomingPreflightFileInfo);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const validateUploadedFile = async () => {
       try {
         setIsVerifying(true);
-        const fileData = localStorage.getItem('uploadedFile');
-        if (!fileData) {
-          throw new Error('No file found');
-        }
-
-        const fileInfo = JSON.parse(localStorage.getItem('uploadedFileInfo') || '{}');
-        const file = dataURLtoFile(fileData, fileInfo.name || 'uploaded-file.csv');
         
-        const validationResults = await validateFile(file, false);
-        
-        const results: ValidationResult[] = validationResults.map(validation => ({
-          id: validation.validation_type,
-          name: formatValidationName(validation.validation_type),
-          status: validation.status === 'pass' ? 'pass' as const : 
-                 validation.status === 'warning' ? 'warning' as const : 'fail' as const,
-          severity: validation.severity as 'critical' | 'warning',
-          description: validation.message,
-          technical_details: getTechnicalDescription(validation.validation_type)
-        }));
-
-        setVerificationResults(results);
-        
-        const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
-        const warnings = results.filter(r => r.status === 'warning' || (r.status === 'fail' && r.severity === 'warning'));
-        
-        if (criticalFailures.length === 0 && warnings.length === 0) {
-          toast({
-            title: "File verification complete",
-            description: "All checks passed. You can proceed to column mapping."
-          });
-        } else if (criticalFailures.length > 0) {
-          toast({
-            title: "File verification issues found",
-            description: `${criticalFailures.length} critical issues need attention.`,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "File verification warnings found",
-            description: `${warnings.length} warnings found. You can proceed or address these issues.`,
-            variant: "warning"
-          });
-        }
-
-        // Get preflight logs after validation
-        const preflightFileID = localStorage.getItem('preflightFileID');
-        if (preflightFileID) {
-          setPreflightFileInfo(prev => ({
-            ...prev,
-            PreflightFileID: parseInt(preflightFileID),
+        // Use file data from location state if available
+        if (locationPreflightFileInfo?.FileData) {
+          const file = dataURLtoFile(locationPreflightFileInfo.FileData, locationPreflightFileInfo.FileName || 'uploaded-file.csv');
+          
+          const validationResults = await validateFile(file, false);
+          
+          const results: ValidationResult[] = validationResults.map(validation => ({
+            id: validation.validation_type,
+            name: formatValidationName(validation.validation_type),
+            status: validation.status === 'pass' ? 'pass' as const : 
+                   validation.status === 'warning' ? 'warning' as const : 'fail' as const,
+            severity: validation.severity as 'critical' | 'warning',
+            description: validation.message,
+            technical_details: getTechnicalDescription(validation.validation_type)
           }));
-          getImportLogs(preflightFileID);
+
+          setVerificationResults(results);
+          
+          const criticalFailures = results.filter(r => r.status === 'fail' && r.severity === 'critical');
+          const warnings = results.filter(r => r.status === 'warning' || (r.status === 'fail' && r.severity === 'warning'));
+          
+          if (criticalFailures.length === 0 && warnings.length === 0) {
+            toast({
+              title: "File verification complete",
+              description: "All checks passed. You can proceed to column mapping."
+            });
+          } else if (criticalFailures.length > 0) {
+            toast({
+              title: "File verification issues found",
+              description: `${criticalFailures.length} critical issues need attention.`,
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "File verification warnings found",
+              description: `${warnings.length} warnings found. You can proceed or address these issues.`,
+              variant: "warning"
+            });
+          }
+        }
+
+        // Get preflight logs if PreflightFileID is available
+        if (locationPreflightFileInfo?.PreflightFileID) {
+          getImportLogs(locationPreflightFileInfo.PreflightFileID);
         }
       } catch (error) {
         console.error('Validation error:', error);
@@ -192,7 +195,7 @@ export default function FileVerification() {
     };
 
     validateUploadedFile();
-  }, [toast]);
+  }, [toast, locationPreflightFileInfo]);
 
   // Trigger refresh when filter or pager changes
   useEffect(() => {
@@ -293,20 +296,40 @@ export default function FileVerification() {
 
   const getLogsData = (res) => {
     if (res?.content?.Data?.Result) {
+      // Parse and update status information from API response
+      let dataStatus: any = res.content.Data?.DataStatus;
+      if (dataStatus && dataStatus !== "") {
+        try {
+          dataStatus = JSON.parse(dataStatus);
+        } catch (e) {
+          console.error("Error parsing DataStatus:", e);
+          dataStatus = {};
+        }
+      } else {
+        dataStatus = {};
+      }
+      
+      // Update preflightFileInfo with latest status information
+      setPreflightFileInfo((prev) => ({
+        ...prev,
+        PreflightFileID: res.content.Data?.ID || prev.PreflightFileID,
+        Status: res.content.Data?.Status || prev.Status,
+        FileUploadStatus: dataStatus?.FileUpload || prev.FileUploadStatus,
+        FieldMappingStatus: dataStatus?.FieldMapping || prev.FieldMappingStatus,
+        DataPreflightStatus: dataStatus?.DataPreflight || prev.DataPreflightStatus,
+        DataValidationStatus: dataStatus?.DataValidation || prev.DataValidationStatus,
+        DataVerificationStatus: dataStatus?.DataVerification || prev.DataVerificationStatus,
+        MappedFieldIDs: JSON.parse(res.content.Data?.MappedFields || "[]").map(field => ({
+          FileColumnName: field.FileColumnName,
+          PreflightFieldID: field.PreflightFieldID
+        }))
+      }));
+      
       let records = JSON.parse(res.content.Data.Result);
       const mappedFields = JSON.parse(res.content.Data?.MappedFields || "[]");
       
       setFileData(records);
       getHeaders(records, mappedFields);
-      
-      // Set up mapped field IDs for API calls
-      setPreflightFileInfo(prev => ({
-        ...prev,
-        MappedFieldIDs: mappedFields.map(field => ({
-          FileColumnName: field.FileColumnName,
-          PreflightFieldID: field.PreflightFieldID
-        }))
-      }));
       
       // Generate grid data immediately after getting logs data
       const processedGridData = getGridData(records);
@@ -588,27 +611,11 @@ export default function FileVerification() {
       ];
 
       defaultHeaders = [...defaultHeaders, ...headers];
-      let info = getInfoForColumnNames(headerNames, mappedFields);
-      setColumnsInfo(info);
       setHeaders(defaultHeaders);
     }
   };
 
-  function getInfoForColumnNames(headerNames, mappedFields) {
-    return headerNames
-      .map((header) => {
-        const field = mappedFields.find(
-          (field) => field.FileColumnName === header
-        );
-        if (field) {
-          return {
-            accessor: header,
-            info: field.DisplayName ? field.DisplayName : field.ColumnName,
-          };
-        }
-      })
-      .filter(Boolean);
-  }
+
 
   const handleRefreshClick = (resetFilter = false) => {
     setPagerData(defaultPagerData);
@@ -672,16 +679,26 @@ export default function FileVerification() {
   };
 
   const handleContinue = () => {
-    navigate('/import-wizard/data-quality');
+    navigate('/import-step-handler', { 
+      state: { 
+        requestedStep: 'DataValidation',
+        preflightFileInfo: preflightFileInfo
+      }
+    });
   };
 
   const handleOverride = () => {
     toast({
-      title: "Validation overridden",
+      title: "Validation overridden", 
       description: "Proceeding to column mapping despite validation issues",
       variant: "destructive"
     });
-    navigate('/import-wizard/column-mapping');
+    navigate('/import-step-handler', { 
+      state: { 
+        requestedStep: 'FieldMapping',
+        preflightFileInfo: preflightFileInfo
+      }
+    });
   };
 
   const getCellError = (row, columnName) => {
@@ -703,17 +720,7 @@ export default function FileVerification() {
       (x) => x.FileColumnName == field.JSONProperty
     )?.PreflightFieldID;
 
-    if (isTab) {
-      let nextErrorIndex =
-        errorCellDetails.findIndex((e) => e.UniqueKey === field.UniqueKey) + 1;
-      if (nextErrorIndex < errorCellDetails.length) {
-        setErrorCellUniqueKey(errorCellDetails[nextErrorIndex].UniqueKey);
-      } else {
-        setErrorCellUniqueKey(errorCellDetails[0].UniqueKey);
-      }
-    } else {
-      setErrorCellUniqueKey("");
-    }
+
 
     if (oldValue !== newValue && newValue !== undefined) {
       setConfirmDialogConfig({
@@ -780,54 +787,22 @@ export default function FileVerification() {
 
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">File Preflighting</h2>
-          </div>
-
-          <div className="flex justify-between items-center mb-12">
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Upload"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<MapColumns />}
-              label="Column Mapping"
-              isComplete={true}
-            />
-            <StepConnector isCompleted={true} />
-            <ProgressStep 
-              icon={<FileCheck />}
-              label="File Preflighting"
-              isActive={true}
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<DataQuality />}
-              label="Data Quality"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<TransformData />}
-              label="Data Normalization"
-            />
-            <StepConnector />
-            {/* <ProgressStep 
-              icon={<FileBox />}
-              label="Deduplication"
-            />
-            <StepConnector /> */}
-            <ProgressStep 
-              icon={<ClipboardCheck />}
-              label="Final Review & Approval"
-            />
-            <StepConnector />
-            <ProgressStep 
-              icon={<ArrowUpCircle />}
-              label="Import / Push"
-            />
-          </div>
+          {/* Import Step Header */}
+          <ImportStepHeader
+            stepTitle="File Verification"
+            status={preflightFileInfo.Status || 'Not Started'}
+            docTypeName={preflightFileInfo.ImportTypeName || 'Unknown Type'}
+            importName={preflightFileInfo.ImportName || 'Untitled Import'}
+            currentStep={currentStep || "DataPreflight"}
+            completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping"]}
+            onImportNameChange={(newName) => {
+              const updatedPreflightFileInfo = {
+                ...preflightFileInfo,
+                ImportName: newName
+              };
+              setPreflightFileInfo(updatedPreflightFileInfo);
+            }}
+          />
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
             <h3 className="text-xl font-semibold mb-4">File Preflighting</h3>
@@ -934,12 +909,18 @@ export default function FileVerification() {
 
           <div className="mt-8 flex flex-col sm:flex-row sm:justify-between items-center gap-4">
             <div className="flex gap-4">
-              <Link to="/import-wizard/upload">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/import-step-handler', { 
+                  state: { 
+                    requestedStep: 'FieldMapping',
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
             </div>
             <div className="flex gap-4">
               {verificationResults.some(v => v.status === 'fail' && v.severity === 'critical') && (
