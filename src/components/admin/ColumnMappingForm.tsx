@@ -39,9 +39,10 @@ interface ColumnMappingFormProps {
   onSave?: (mappings: ColumnMapping[]) => void;
   isEdit?: boolean;
   isSaving?: boolean;
+  onMappingChange?: (mappings: ColumnMapping[], fieldsData: any[]) => void;
 }
 
-export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isSaving = false }: ColumnMappingFormProps) {
+export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isSaving = false, onMappingChange }: ColumnMappingFormProps) {
   const { toast } = useToast();
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -189,6 +190,22 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
     
     fetchMappingData();
   }, [preflightFileID, isEdit]);
+
+  // Notify parent of mapping changes
+  useEffect(() => {
+    if (!onMappingChange) return;
+    const currentMappings = form.getValues('columnMappings').map(mapping => {
+      const fieldInfo = fieldsData.find(f => f.PreflightFieldID?.toString() === mapping.targetField);
+      return {
+        sourceColumn: mapping.sourceColumn,
+        targetField: mapping.targetField,
+        PreflightFieldID: fieldInfo?.PreflightFieldID,
+        IsCustom: fieldInfo?.IsCustom,
+        Locations: fieldInfo?.Locations,
+      };
+    });
+    onMappingChange(currentMappings, fieldsData);
+  }, [fieldsData, form.watch('columnMappings'), onMappingChange]);
 
   const getAIMappings = async (unmappedFields: any[], fieldData: any[], autoMappedLength: number) => {
     setIsAiProcessing(true);
@@ -443,7 +460,9 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {fieldsData.map((field) => (
+                                {/* Always show 'Do Not Import' as the first option */}
+                                <SelectItem key={0} value={"0"}>Do Not Import</SelectItem>
+                                {fieldsData.filter(field => field.PreflightFieldID !== 0).map((field) => (
                                   <SelectItem 
                                     key={field.PreflightFieldID} 
                                     value={field.PreflightFieldID.toString()}
