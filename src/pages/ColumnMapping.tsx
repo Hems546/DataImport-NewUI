@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ColumnMappingForm, ColumnMapping } from "@/components/admin/ColumnMappingForm";
 import { 
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw
 } from "lucide-react";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
@@ -560,6 +561,17 @@ export default function ColumnMappingPage() {
               </Button>
             </div>
             <div className="flex gap-4">
+              {/* Show Check Status button when FieldMapping is In Progress */}
+              {preflightFileInfo.FieldMappingStatus === "In Progress" && (
+                <Button
+                  variant="outline"
+                  onClick={checkCurrentStatus}
+                  disabled={loadingState.isLoading}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Check Status
+                </Button>
+              )}
               <Button
                 className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
                 onClick={handleContinue}
