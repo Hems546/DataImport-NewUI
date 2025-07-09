@@ -102,7 +102,7 @@ const TableFilters: React.FC<TableFiltersProps> = ({
                 background: "#f8fafc",
                 border: "1px solid #e5e7eb",
                 borderRadius: 6,
-                width: isSearchFocused ? 260 : 200,
+                width: isSearchFocused ? 280 : 250,
                 transition: "width 0.3s, border 0.2s",
                 boxShadow: undefined,
                 paddingLeft: 12,

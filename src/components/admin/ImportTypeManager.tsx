@@ -1,60 +1,111 @@
-
-import React, { useState } from "react";
-import { defaultImportTypes, ImportTypeConfig } from "@/data/importTypeConfigs";
+import React, { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
+import { preflightService, PreflightType, ImportTypeConfig } from "@/services/preflightService";
 import { 
   UserCircle, 
   Package, 
   Receipt, 
   Users,
-  FileText 
+  FileText,
+  WalletCardsIcon
 } from "lucide-react";
 
 const ImportTypeManager = () => {
-  const [importTypes, setImportTypes] = useState<ImportTypeConfig[]>(() => {
-    // Try to load from localStorage or use defaults
-    const saved = localStorage.getItem("importTypeConfigs");
-    return saved ? JSON.parse(saved) : defaultImportTypes;
-  });
+  const [importTypes, setImportTypes] = useState<ImportTypeConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { toast } = useToast();
-  
-  const toggleImportType = (id: string) => {
-    const updated = importTypes.map(importType => 
-      importType.id === id 
-        ? { ...importType, enabled: !importType.enabled } 
-        : importType
-    );
-    setImportTypes(updated);
-    
-    // Save to localStorage
-    localStorage.setItem("importTypeConfigs", JSON.stringify(updated));
-    
-    const changedType = updated.find(type => type.id === id);
-    toast({
-      title: `${changedType?.title} ${changedType?.enabled ? 'Enabled' : 'Disabled'}`,
-      description: `${changedType?.title} import type has been ${changedType?.enabled ? 'enabled' : 'disabled'}.`,
-    });
+
+  // Helper functions to get icon and color for type
+  const getIconForType = (type: string): string => {
+    const iconMap: Record<string, string> = {
+      'Mirabel Application Users & Sales Reps': 'UserCircle',
+      'Company & Contact Data': 'Users',
+      'Orders/Sales': 'Package',
+      'Contact/Company Notes': 'FileText',
+      'Accounts Receivables - Open Invoices': 'Receipt',
+      'Subscriptions & Subscribers (for ChargeBrite)': 'Receipt',
+      'Rate Cards': 'WalletCardsIcon',
+      'Orum Notes': 'FileText'
+    };
+    return iconMap[type] || 'FileText';
   };
-  
-  const saveChanges = () => {
-    localStorage.setItem("importTypeConfigs", JSON.stringify(importTypes));
-    toast({
-      title: "Configuration Saved",
-      description: "Your import type configuration has been saved successfully.",
-    });
+
+  const getColorForType = (type: string): string => {
+    const colorMap: Record<string, string> = {
+      'Mirabel Application Users & Sales Reps': '#4F46E5',
+      'Company & Contact Data': '#10B981',
+      'Orders/Sales': '#F59E0B',
+      'Contact/Company Notes': '#6366F1',
+      'Accounts Receivables - Open Invoices': '#ED8936',
+      'Subscriptions & Subscribers (for ChargeBrite)': '#8B5CF6',
+      'Rate Cards': '#EC4899',
+      'Orum Notes': '#14B8A6'
+    };
+    return colorMap[type] || '#6B7280';
   };
+
+  useEffect(() => {
+    const loadImportTypes = async () => {
+      try {
+        const preflightTypes = await preflightService.getPreflightTypeData();
+        const convertedTypes: ImportTypeConfig[] = preflightTypes.map((type: PreflightType) => ({
+          id: type.Value.toString(),
+          title: type.Display,
+          description: type.Display,
+          icon: getIconForType(type.Display),
+          iconColor: getColorForType(type.Display),
+          enabled: type.IsSelected
+        }));
+        
+        setImportTypes(convertedTypes);
+      } catch (error) {
+        console.error('Error loading import types:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load import types. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadImportTypes();
+  }, [toast]);
   
-  const resetToDefaults = () => {
-    setImportTypes(defaultImportTypes);
-    localStorage.setItem("importTypeConfigs", JSON.stringify(defaultImportTypes));
-    toast({
-      title: "Reset to Defaults",
-      description: "All import types have been reset to their default configuration.",
-    });
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      const preflightTypes = await preflightService.getPreflightTypeData();
+      const convertedTypes: ImportTypeConfig[] = preflightTypes.map((type: PreflightType) => ({
+        id: type.Value.toString(),
+        title: type.Display,
+        description: type.Display,
+        icon: getIconForType(type.Display),
+        iconColor: getColorForType(type.Display),
+        enabled: type.IsSelected
+      }));
+      
+      setImportTypes(convertedTypes);
+      toast({
+        title: "Data Refreshed",
+        description: "Import types have been refreshed from the backend.",
+      });
+    } catch (error) {
+      console.error('Error refreshing import types:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh import types. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Map of icon names to their components
@@ -63,7 +114,8 @@ const ImportTypeManager = () => {
     Package: <Package />,
     Receipt: <Receipt />,
     Users: <Users />,
-    FileText: <FileText />
+    FileText: <FileText />,
+    WalletCardsIcon: <WalletCardsIcon />
   };
   
   // Render the icon based on its name
@@ -80,17 +132,30 @@ const ImportTypeManager = () => {
     
     return null;
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">Import Types Configuration</h2>
+            <p className="text-gray-600">View import types that are configured in the system</p>
+          </div>
+        </div>
+        <Loading message="Loading import types configuration..." />
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Import Types Configuration</h2>
-          <p className="text-gray-600">Enable or disable import types that appear in the import wizard</p>
+          <p className="text-gray-600">View import types that are configured in the system</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={resetToDefaults}>Reset to Defaults</Button>
-          <Button onClick={saveChanges}>Save Changes</Button>
+          <Button onClick={refreshData}>Refresh Data</Button>
         </div>
       </div>
       
@@ -117,7 +182,7 @@ const ImportTypeManager = () => {
                 <div className="flex justify-center">
                   <Switch 
                     checked={importType.enabled} 
-                    onCheckedChange={() => toggleImportType(importType.id)} 
+                    disabled={true}
                   />
                 </div>
               </TableCell>
@@ -125,6 +190,14 @@ const ImportTypeManager = () => {
           ))}
         </TableBody>
       </Table>
+      
+      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <strong>Note:</strong> Import type configurations are now managed through the backend system. 
+          The status shown reflects the current backend configuration. To modify these settings, 
+          please use the appropriate backend administration tools.
+        </p>
+      </div>
     </div>
   );
 };

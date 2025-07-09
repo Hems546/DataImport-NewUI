@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { preflightService } from "@/services/preflightService";
 import Header from "@/components/Header";
-import { useTableSort } from "@/hooks/useTableSort";
 import SortableHeader from "@/components/SortableHeader";
 import ResizableTableHeader from "@/components/ResizableTableHeader";
 import TableFilters from "@/components/TableFilters";
@@ -48,6 +47,12 @@ const STATUS_COLORS = {
 };
 
 const PAGE_SIZE = 50;
+
+const initialSortState = {
+  Property: "UpdateDate",
+  ColumnName: "UpdateDate",
+  Direction: "DESC",
+};
 
 function getFileExtension(fileName) {
   if (!fileName) return "";
@@ -105,6 +110,7 @@ const FileHistory = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [gridData, setGridData] = useState([]);
   const [total, setTotal] = useState(0);
+  const [sortFilter, setSortFilter] = useState(initialSortState);
   const [columnWidths, setColumnWidths] = useState({
     Edit: 80,
     ImportName: 200,
@@ -124,17 +130,72 @@ const FileHistory = () => {
   });
 
   const { toast } = useToast();
-  const { sortedData, sortState, handleSort } = useTableSort(gridData, {
-    column: "UpdateDate",
-    direction: "desc"
-  });
+
+  const getColumnName = (name) => {
+    let columnName = name;
+    switch (name) {
+      case "ImportName":
+        columnName = "Name";
+        break;
+      case "DocTypeName":
+        columnName = "DocTypeName";
+        break;
+      case "CreateDate":
+        columnName = "CreateDate";
+        break;
+      case "User.Name":
+        columnName = "pf.CreatedBy";
+        break;
+      case "UpdateDate":
+        columnName = "UpdateDate";
+        break;
+      case "Status":
+        columnName = "Status";
+        break;
+      default:
+        columnName = name;
+        break;
+    }
+    return columnName;
+  };
+
+  const handleSort = (dbColumnName) => {
+    setIsLoading(true);
+    setCurrentPage(1);
+    if (dbColumnName === sortFilter.Property) {
+      let direction = sortFilter.Direction === "ASC" ? "DESC" : "ASC";
+      setSortFilter({ ...sortFilter, Direction: direction });
+    } else {
+      setSortFilter({
+        Property: dbColumnName,
+        ColumnName: getColumnName(dbColumnName),
+        Direction: "ASC",
+      });
+    }
+  };
+
+  const getSortFilterQuery = () => {
+    let sortFilterQuery = "UpdateDate DESC";
+    if (sortFilter.ColumnName) {
+      sortFilterQuery = `${sortFilter.ColumnName} ${sortFilter.Direction}`;
+    }
+    return sortFilterQuery;
+  };
+
+  // Convert sortFilter to format expected by ResizableTableHeader
+  const getSortStateForHeader = () => {
+    return {
+      column: sortFilter.Property,
+      direction: sortFilter.Direction.toLowerCase() as 'asc' | 'desc'
+    };
+  };
 
   // Fetch data
   const fetchData = useCallback(() => {
     setIsLoading(true);
     preflightService.getAllPreflightFiles(
       (currentPage - 1) * PAGE_SIZE,
-      `${sortState.column} ${sortState.direction}`,
+      getSortFilterQuery(),
       statusFilter,
       searchValue.length >= 3 ? searchValue : ""
     )
@@ -148,7 +209,7 @@ const FileHistory = () => {
         setTotal(0);
         setIsLoading(false);
       });
-  }, [currentPage, sortState, statusFilter, searchValue]);
+  }, [currentPage, sortFilter, statusFilter, searchValue]);
 
   useEffect(() => {
     fetchData();
@@ -193,10 +254,7 @@ const FileHistory = () => {
     return csvRows.join('\n');
   };
 
-  // Helper function to get sort and filter query
-  const getSortFilterQuery = () => {
-    return `${sortState.column} ${sortState.direction}`;
-  };
+
 
   // Helper function to get grid data
   const getGridData = async (data) => {
@@ -238,47 +296,58 @@ const FileHistory = () => {
     });
   };
 
-  // Delete handler
-  const handleDelete = (fileItem) => {
-    const handleDeleteIconClick = (e, id) => {
-      e.stopPropagation();
-      showConfirm({ message: "Are you sure you want to delete?" }).then(
-        (isOk) => {
-          if (isOk) {
-            setIsLoading(true);
-            preflightService
-              .deletePreflightFile(
-                id,
-                true,
-                (currentPage - 1) * PAGE_SIZE,
-                getSortFilterQuery(),
-                statusFilter,
-                searchValue.length >= 3 ? searchValue : ""
-              )
-              .then(async (resp: any) => {
-                if (resp?.content?.Status === "Success") {
-                  showSuccess({ message: "File deleted successfully" });
-                  const result = await getGridData(resp.content.Data.List);
-                  setTotal(resp.content.Data.Count);
-                  setGridData(result);
-                } else {
-                  showAlert({
-                    message: "Unable to delete the preflight import file",
-                  });
-                  setGridData([]);
-                }
-                setIsLoading(false);
-              })
-              .catch((err) => {
-                setIsLoading(false);
-                console.log(err);
-              });
-          }
-        }
-      );
-    };
+  // Delete handler - works for both card and table views
+  const handleDelete = (fileItemOrEvent, fileItem = null) => {
+    // Handle both direct calls and event-based calls
+    let targetFileItem;
+    if (fileItemOrEvent && fileItemOrEvent.stopPropagation && fileItem) {
+      // Called from table view with event
+      fileItemOrEvent.stopPropagation();
+      targetFileItem = fileItem;
+    } else {
+      // Called directly from card view
+      targetFileItem = fileItemOrEvent;
+    }
 
-    handleDeleteIconClick({ stopPropagation: () => {} }, fileItem.PreflightFileID);
+    console.log('handleDelete called with:', targetFileItem);
+
+    showConfirm({ message: "Are you sure you want to delete this file?" }).then(
+      (isOk) => {
+        console.log('Confirmation result:', isOk);
+        if (isOk) {
+          setIsLoading(true);
+          preflightService
+            .deletePreflightFile(
+              targetFileItem.PreflightFileID,
+              true,
+              (currentPage - 1) * PAGE_SIZE,
+              getSortFilterQuery(),
+              statusFilter,
+              searchValue.length >= 3 ? searchValue : ""
+            )
+            .then(async (resp: any) => {
+              console.log('Delete response:', resp);
+              if (resp?.content?.Status === "Success") {
+                showSuccess({ message: "File deleted successfully" });
+                const result = await getGridData(resp.content.Data.List);
+                setTotal(resp.content.Data.Count);
+                setGridData(result);
+              } else {
+                showAlert({
+                  message: "Unable to delete the preflight import file",
+                });
+                setGridData([]);
+              }
+              setIsLoading(false);
+            })
+            .catch((err) => {
+              console.error('Delete error:', err);
+              setIsLoading(false);
+              showAlert({ message: "Error deleting file" });
+            });
+        }
+      }
+    );
   };
 
   // Download handler
@@ -413,7 +482,7 @@ const FileHistory = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-            {sortedData.map((item) => (
+            {gridData.map((item) => (
               <div key={item.PreflightFileID} className="border rounded-lg p-4 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-lg">{item.ImportName}</h3>
@@ -464,13 +533,13 @@ const FileHistory = () => {
                           title="No file data to download"
                         />
                       )}
-                      <img
-                        src={deleteIcon}
-                        alt="Delete File"
-                        title="Delete File"
-                        className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
-                        onClick={() => handleDelete(item)}
-                      />
+                          <img
+                          src={deleteIcon}
+                          alt="Delete File"
+                          title="Delete File"
+                          className={`w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => !isLoading && handleDelete(item)}
+                        />
                     </div>
                   </div>
                 </div>
@@ -478,6 +547,26 @@ const FileHistory = () => {
             ))}
           </div>
         </div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmDialogConfig.message}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={confirmDialogConfig.onReject}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDialogConfig.onConfirm}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -533,7 +622,7 @@ const FileHistory = () => {
                 </th>
                 <ResizableTableHeader
                   column="ImportName"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.ImportName}
                   minWidth={120}
@@ -543,7 +632,7 @@ const FileHistory = () => {
                 </ResizableTableHeader>
                 <ResizableTableHeader
                   column="DocTypeName"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.DocTypeName}
                   minWidth={100}
@@ -553,7 +642,7 @@ const FileHistory = () => {
                 </ResizableTableHeader>
                 <ResizableTableHeader
                   column="CreateDate"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.CreateDate}
                   minWidth={120}
@@ -563,7 +652,7 @@ const FileHistory = () => {
                 </ResizableTableHeader>
                 <ResizableTableHeader
                   column="User.Name"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.UserName}
                   minWidth={120}
@@ -579,7 +668,7 @@ const FileHistory = () => {
                 </th>
                 <ResizableTableHeader
                   column="UpdateDate"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.UpdateDate}
                   minWidth={120}
@@ -589,7 +678,7 @@ const FileHistory = () => {
                 </ResizableTableHeader>
                 <ResizableTableHeader
                   column="Status"
-                  currentSort={sortState}
+                  currentSort={getSortStateForHeader()}
                   onSort={handleSort}
                   defaultWidth={columnWidths.Status}
                   minWidth={100}
@@ -614,14 +703,14 @@ const FileHistory = () => {
                     </div>
                   </td>
                 </tr>
-              ) : sortedData.length === 0 ? (
+              ) : gridData.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-gray-500">
                     No data found
                   </td>
                 </tr>
               ) : (
-                sortedData.map((fileItem) => (
+                gridData.map((fileItem) => (
                   <tr key={fileItem.PreflightFileID} className="table-row">
                     <td 
                       className="table-cell text-center"
@@ -723,8 +812,8 @@ const FileHistory = () => {
                           src={deleteIcon}
                           alt="Delete File"
                           title="Delete File"
-                          className="w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform"
-                          onClick={() => handleDelete(fileItem)}
+                          className={`w-5 h-5 cursor-pointer hover:scale-110 hover:bg-[rgb(59,130,246,0.1)] rounded transition-transform ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={(e) => !isLoading && handleDelete(e, fileItem)}
                         />
                       </div>
                     </td>
@@ -755,6 +844,7 @@ const FileHistory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
     </div>
   );
 };

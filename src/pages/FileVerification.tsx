@@ -795,13 +795,8 @@ export default function FileVerification() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "DataPreflight"}
             completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping"]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">

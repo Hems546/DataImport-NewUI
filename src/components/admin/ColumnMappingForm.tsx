@@ -49,6 +49,11 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
   const [aiMappedColumns, setAiMappedColumns] = useState<string[]>([]);
   const [fieldsData, setFieldsData] = useState<any[]>([]);
   const [sourceColumns, setSourceColumns] = useState<string[]>([]);
+  const [mappingState, setMappingState] = useState({
+    isMapping: false,
+    mappingText: "",
+    phase: ""
+  });
   
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -62,14 +67,27 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
     const fetchMappingData = async () => {
       try {
         setIsLoading(true);
+        setMappingState({
+          isMapping: true,
+          mappingText: "Loading field mapping data from server...",
+          phase: "loading"
+        });
+        
         console.log('preflightFileID:', preflightFileID);
         const response = await preflightService.getMappedFields(preflightFileID);
         console.log('API response:', response);
+        
         if (response.content?.Data?.MappedData) {
           const mappedData = JSON.parse(response.content.Data.MappedData);
           const fieldData = JSON.parse(response.content.Data.FieldsData);
           console.log('mappedData:', mappedData);
           console.log('fieldData:', fieldData);
+          
+          setMappingState({
+            isMapping: true,
+            mappingText: "Analyzing field compatibility and performing auto-mapping...",
+            phase: "auto-mapping"
+          });
           
           // Set source columns from mapped data
           const columns = mappedData.map((item: any) => item.FileColumnName);
@@ -113,18 +131,52 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
             .map(mapping => mapping.sourceColumn);
           setMappedColumns(autoMapped);
           
+          // Show auto-mapping results
+          setMappingState({
+            isMapping: true,
+            mappingText: `Auto-mapped ${autoMapped.length} fields successfully. Preparing AI analysis for remaining fields...`,
+            phase: "auto-complete"
+          });
+          
+          // Small delay to show auto-mapping completion
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
           // If not in edit mode, try AI mapping for remaining unmapped fields
           if (!isEdit) {
             const unmappedFields = mappedData.filter((item: any) => 
               !autoMapped.includes(item.FileColumnName)
             );
             if (unmappedFields.length > 0) {
-              getAIMappings(unmappedFields, fieldData);
+              setMappingState({
+                isMapping: true,
+                mappingText: `Initializing AI analysis for ${unmappedFields.length} unmapped fields...`,
+                phase: "ai-init"
+              });
+              await getAIMappings(unmappedFields, fieldData, autoMapped.length);
+            } else {
+              // All fields are auto-mapped
+              setMappingState({
+                isMapping: true,
+                mappingText: `Mapping completed! Successfully auto-mapped all ${autoMapped.length} fields.`,
+                phase: "complete"
+              });
+              
+              // Show completion message and close loader
+              setTimeout(() => {
+                setMappingState({ isMapping: false, mappingText: "", phase: "" });
+                toast({
+                  title: "Column Mapping Completed",
+                  description: `Successfully auto-mapped all ${autoMapped.length} fields.`,
+                });
+              }, 1500);
             }
+          } else {
+            setMappingState({ isMapping: false, mappingText: "", phase: "" });
           }
         }
       } catch (error) {
         console.error("Error fetching mapping data:", error);
+        setMappingState({ isMapping: false, mappingText: "", phase: "" });
         toast({
           title: "Error",
           description: "Failed to load field mapping data. Please try again.",
@@ -138,13 +190,27 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
     fetchMappingData();
   }, [preflightFileID, isEdit]);
 
-  const getAIMappings = async (unmappedFields: any[], fieldData: any[]) => {
+  const getAIMappings = async (unmappedFields: any[], fieldData: any[], autoMappedLength: number) => {
     setIsAiProcessing(true);
     
     try {
+      setMappingState({
+        isMapping: true,
+        mappingText: "AI is analyzing field patterns and similarities...",
+        phase: "ai-analyzing"
+      });
+      
       // In a real implementation, this would call your AI service
       // For now, we'll simulate AI mapping with a delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setMappingState({
+        isMapping: true,
+        mappingText: "AI is generating mapping suggestions based on field names and data types...",
+        phase: "ai-generating"
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const aiSuggestedMappings = unmappedFields.map(field => {
         const sourceCol = field.FileColumnName.toLowerCase();
@@ -173,6 +239,12 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
       
       setAiMappedColumns(aiMapped);
       
+      setMappingState({
+        isMapping: true,
+        mappingText: "Applying AI suggestions to column mappings...",
+        phase: "ai-applying"
+      });
+      
       // Update form with AI suggestions
       const updatedMappings = form.getValues("columnMappings").map(mapping => {
         const aiSuggestion = aiSuggestedMappings.find(
@@ -191,13 +263,27 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
       
       form.setValue("columnMappings", updatedMappings);
       
-      toast({
-        title: "AI mapping completed",
-        description: `Successfully mapped ${aiMapped.length} additional fields with AI assistance.`,
+      const totalMapped = autoMappedLength + aiMapped.length;
+      const totalFields = autoMappedLength + unmappedFields.length;
+      
+      setMappingState({
+        isMapping: true,
+        mappingText: `Mapping completed! Successfully mapped ${totalMapped} out of ${totalFields} fields (${autoMappedLength} auto-mapped, ${aiMapped.length} AI-mapped).`,
+        phase: "complete"
       });
+      
+      // Show completion and close loader
+      setTimeout(() => {
+        setMappingState({ isMapping: false, mappingText: "", phase: "" });
+        toast({
+          title: "Column Mapping Completed",
+          description: `Successfully mapped ${totalMapped} out of ${totalFields} fields. ${autoMappedLength} auto-mapped, ${aiMapped.length} AI-mapped.`,
+        });
+      }, 2000);
       
     } catch (error) {
       console.error("Error getting AI mappings:", error);
+      setMappingState({ isMapping: false, mappingText: "", phase: "" });
       toast({
         title: "AI mapping failed",
         description: "There was an error getting AI-assisted mappings. Please map columns manually.",
@@ -224,28 +310,68 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
       onSave(validMappings);
     }
     
+    const mappedCount = data.columnMappings.filter(m => m.targetField !== "0").length;
+    const totalCount = data.columnMappings.length;
+    
     toast({
       title: "Column mapping saved",
-      description: `Successfully mapped ${data.columnMappings.filter(m => m.targetField !== "0").length} fields.`,
+      description: `Successfully mapped ${mappedCount} out of ${totalCount} fields.`,
     });
   }
 
   return (
     <Form {...form}>
       <div className="relative">
-        {/* Loading Overlay */}
+        {/* Enhanced Loading Overlay - Similar to Split Full Address */}
         {isSaving && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="flex items-center space-x-3">
-                <Loader className="h-8 w-8 animate-spin text-blue-600" />
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">Saving Column Mappings</p>
-                  <p className="text-sm text-gray-600">Please wait while we save your column mappings...</p>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-xl max-w-md mx-4">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <h3 className="text-lg font-semibold mb-2">Saving Column Mappings</h3>
+                <p className="text-gray-600 text-center">
+                  Please wait while we save your column mappings and validate the data...
+                </p>
+                <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '70%'}}></div>
                 </div>
               </div>
-              <div className="w-64 bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+            </div>
+          </div>
+        )}
+
+        {/* Mapping Process Loading Overlay */}
+        {mappingState.isMapping && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-xl max-w-md mx-4">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {mappingState.phase === "loading" ? "Loading Mapping Data" :
+                   mappingState.phase === "auto-mapping" ? "Auto-Mapping Fields" :
+                   mappingState.phase === "auto-complete" ? "Auto-Mapping Complete" :
+                   mappingState.phase === "ai-init" ? "Initializing AI Analysis" :
+                   mappingState.phase === "ai-analyzing" ? "AI Analyzing Fields" :
+                   mappingState.phase === "ai-generating" ? "AI Generating Suggestions" :
+                   mappingState.phase === "ai-applying" ? "Applying AI Suggestions" :
+                   mappingState.phase === "complete" ? "Mapping Complete" :
+                   "Processing Column Mappings"}
+                </h3>
+                <p className="text-gray-600 text-center">
+                  {mappingState.mappingText || "Please wait while we process your column mappings..."}
+                </p>
+                <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{
+                    width: mappingState.phase === "loading" ? '20%' :
+                           mappingState.phase === "auto-mapping" ? '40%' :
+                           mappingState.phase === "auto-complete" ? '60%' :
+                           mappingState.phase === "ai-init" ? '65%' :
+                           mappingState.phase === "ai-analyzing" ? '75%' :
+                           mappingState.phase === "ai-generating" ? '85%' :
+                           mappingState.phase === "ai-applying" ? '95%' :
+                           mappingState.phase === "complete" ? '100%' : '50%'
+                  }}></div>
+                </div>
               </div>
             </div>
           </div>
@@ -262,18 +388,11 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border rounded-md">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mb-4"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
             <p className="text-gray-500">Loading mapping data...</p>
           </div>
         ) : (
           <>
-            {isAiProcessing && (
-              <div className="flex items-center justify-center space-x-2 py-4 bg-gray-50 rounded-md border border-gray-100">
-                <Loader className="h-5 w-5 animate-spin text-primary" />
-                <p>AI is analyzing your columns and suggesting mappings...</p>
-              </div>
-            )}
-
             <div>
               <h3 className="text-lg font-medium mb-4">Column Mappings</h3>
               <div className="space-y-4">
@@ -316,7 +435,7 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value}
-                              disabled={isEdit || isSaving}
+                              disabled={isEdit || isSaving || mappingState.isMapping}
                             >
                               <FormControl>
                                 <SelectTrigger className={field.value ? 'bg-white' : ''}>
@@ -358,15 +477,24 @@ export function ColumnMappingForm({ preflightFileID, onSave, isEdit = false, isS
                   setMappedColumns([]);
                   setAiMappedColumns([]);
                 }}
-                disabled={isEdit || isSaving}
+                disabled={isEdit || isSaving || mappingState.isMapping}
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={isEdit || isSaving}>
+              <Button 
+                type="submit" 
+                disabled={isEdit || isSaving || mappingState.isMapping}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 {isSaving ? (
                   <>
                     <Loader className="mr-2 h-4 w-4 animate-spin" />
                     Saving Mapping...
+                  </>
+                ) : mappingState.isMapping ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Mapping in Progress...
                   </>
                 ) : (
                   "Save Mapping"

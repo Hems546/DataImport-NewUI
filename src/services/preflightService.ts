@@ -36,6 +36,15 @@ export interface PreflightType {
   IsSelected: boolean;
 }
 
+export interface ImportTypeConfig {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  enabled: boolean;
+}
+
 export interface MappedFieldsResponse {
   content: {
     Status: string;
@@ -66,13 +75,20 @@ export const preflightService = {
   },
   //this api call save the preflight file
   saveFile: (data) => {
+    console.log("🔧 preflightService.saveFile called");
+    console.log("📤 API Endpoint:", API_PREFLIGHT_FILES_SAVE);
+    console.log("📦 Request Data:", data);
+    
     return new Promise((resolve, reject) => {
       apiCall(`${API_PREFLIGHT_FILES_SAVE}`, "POST", data)
         .then((resp) => {
+          console.log("✅ preflightService.saveFile SUCCESS");
+          console.log("📨 Response:", resp);
           resolve(resp);
         })
         .catch((error) => {
-          console.log(error);
+          console.error("❌ preflightService.saveFile ERROR");
+          console.error("🚨 Error details:", error);
           reject(error);
         });
     });

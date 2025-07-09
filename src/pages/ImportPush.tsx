@@ -9,11 +9,11 @@ import {
   ArrowUpCircle,
   FileSearch
 } from "lucide-react";
-import StepHeader from "@/components/StepHeader";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ImportProgress from "@/components/ImportProgress";
 import { FileAnalysisModal } from "@/components/FileAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
+import { preflightService } from "@/services/preflightService";
 
 export default function ImportPush() {
   const { toast } = useToast();
@@ -198,13 +198,8 @@ export default function ImportPush() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "ImportPush"}
             completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight", "DataValidation", "DataVerification", "FinalReview"]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           {/* Back Button */}

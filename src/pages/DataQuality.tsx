@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import {
   ArrowLeft,
   Info,
   AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from "lucide-react";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import {
@@ -27,7 +28,6 @@ import StatusDropdown from '@/components/StatusDropdown';
 import PagerTop from '@/components/Pager';
 import { MasterDataSelection } from '@/components/MasterDataSelection';
 import '@/styles/components/MasterDataSelection.css';
-import SidePanel from '@/components/SidePanel';
 
 interface WarningData {
   Type: string;
@@ -62,8 +62,8 @@ interface GridData {
 }
 
 const defaultPagerData = {
-  currentPageIndex: 1,
   pageSize: 10,
+  currentPageIndex: 1,
   total: 0,
   currentPageTotal: 0
 };
@@ -165,8 +165,12 @@ export default function DataQualityPage() {
   const [pagerData, setPagerData] = useState(defaultPagerData);
   const [logsPageLoad, setLogsPageLoad] = useState(false);
   const [manualFilter, setManualFilter] = useState(false);
-  const [showFixDataPanel, setShowFixDataPanel] = useState(false);
   const [isLoadingMaster, setIsLoadingMaster] = useState(false);
+  const [loadingState, setLoadingState] = useState({
+    isLoading: false,
+    loadingText: "",
+    operation: ""
+  });
   const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
     locationPreflightFileInfo || {
       PreflightFileID: 0,
@@ -189,8 +193,17 @@ export default function DataQualityPage() {
       MappedFieldIDs: []
     }
   );
-
-
+  const [productTypes, setProductTypes] = useState<Array<{ Value: number; Display: string }>>([]);
+  const [columnsInfo, setColumnsInfo] = useState<Array<{ info: string; accessor: string }>>([]);
+  const [masterListHeaderName, setMasterListHeaderName] = useState({
+    HeaderName: "",
+    AliasName: "",
+    ParentTypeText: "",
+  });
+  const [masterDropdownData, setMasterDropdownData] = useState({ 
+    ShowSidePanel: false,
+    shouldRefreshOnClose: false
+  });
 
   useEffect(() => {
     // Get data from route state and update preflightFileInfo if available
@@ -203,11 +216,25 @@ export default function DataQualityPage() {
   }, [location.state]);
 
   const handleStatusSelect = (value: string) => {
+    setLoadingState({
+      isLoading: true,
+      loadingText: `Filtering data to show ${value === 'All' ? 'all records' : value === 'Success' ? 'records without warnings' : 'records with warnings'}...`,
+      operation: "filter"
+    });
     setFilter(value);
+    setManualFilter(true);
   };
 
   const getImportLogs = (preflightFileID: string | number, ExcludeSystemColumns = false) => {
     setLogsPageLoad(true);
+    if (!loadingState.isLoading) {
+      setLoadingState({
+        isLoading: true,
+        loadingText: "Loading data quality results from server...",
+        operation: "refresh"
+      });
+    }
+    
     preflightService.getPreflightImportLogs(
       preflightFileID,
       (pagerData.currentPageIndex - 1) * pagerData.pageSize,
@@ -232,11 +259,13 @@ export default function DataQualityPage() {
           variant: "destructive",
         });
         setLogsPageLoad(false);
+        setLoadingState({ isLoading: false, loadingText: "", operation: "" });
       }
     })
     .catch((err) => {
       console.log(err);
       setLogsPageLoad(false);
+      setLoadingState({ isLoading: false, loadingText: "", operation: "" });
     });
   };
 
@@ -303,6 +332,8 @@ export default function DataQualityPage() {
       });
     }
     setLogsPageLoad(false);
+    setIsAnalyzing(false);
+    setLoadingState({ isLoading: false, loadingText: "", operation: "" });
   };
 
   const getHeaders = (records: any[], mappedFields: any[]) => {
@@ -313,6 +344,20 @@ export default function DataQualityPage() {
 
     const firstRecord = records[0];
     const headerKeys = Object.keys(firstRecord);
+
+    // Filter out unwanted keys for column processing
+    const filteredKeys = headerKeys.filter(key => 
+      key !== 'StatusMessage' && 
+      key !== 'RowStatusWithColor' && 
+      key !== 'PreflightFileID' && 
+      key !== 'MappedRecordID' && 
+      key !== 'RowID' && 
+      key !== 'RowStatus'
+    );
+
+    // Process column info for MasterDataSelection
+    const info = getInfoForColumnNames(filteredKeys, mappedFields);
+    setColumnsInfo(info);
 
     const generatedHeaders = headerKeys
       .filter(key => key !== 'StatusMessage' && key !== 'RowStatusWithColor' && key !== 'PreflightFileID' && key !== 'MappedRecordID')
@@ -345,6 +390,12 @@ export default function DataQualityPage() {
 
   useEffect(() => {
     const analyzeDataQuality = async () => {
+      setLoadingState({
+        isLoading: true,
+        loadingText: "Initializing data quality analysis. Please wait...",
+        operation: "analyze"
+      });
+      
       try {
         // Get data from route state instead of localStorage
         const state = location.state as any;
@@ -356,8 +407,17 @@ export default function DataQualityPage() {
             description: "No preflight file ID found. Please upload a file first.",
             variant: "destructive",
           });
+          setLoadingState({ isLoading: false, loadingText: "", operation: "" });
+          setIsAnalyzing(false);
           return;
         }
+
+        // Update loading message for validation phase
+        setLoadingState({
+          isLoading: true,
+          loadingText: "Validating data and checking for quality issues...",
+          operation: "analyze"
+        });
 
         const request = {
           MappedFieldIDs: preflightFileInfo?.MappedFieldIDs || [],
@@ -373,8 +433,20 @@ export default function DataQualityPage() {
           Status: "Warning"
         };
 
+        // Update loading message for API call
+        setLoadingState({
+          isLoading: true,
+          loadingText: "Communicating with server to analyze data quality...",
+          operation: "analyze"
+        });
+
         const response = await preflightService.validateWarnings(request) as PreflightResponse;
         if (response?.content?.Status === "Success") {
+          setLoadingState({
+            isLoading: true,
+            loadingText: "Loading validation results and preparing data grid...",
+            operation: "analyze"
+          });
           getImportLogs(preflightFileInfo.PreflightFileID.toString());
         }
 
@@ -385,7 +457,7 @@ export default function DataQualityPage() {
           description: "Failed to analyze data quality. Please try again.",
           variant: "destructive",
         });
-      } finally {
+        setLoadingState({ isLoading: false, loadingText: "", operation: "" });
         setIsAnalyzing(false);
       }
     };
@@ -394,56 +466,79 @@ export default function DataQualityPage() {
   }, [location.state, toast]);
 
   const handleFixDataClick = () => {
-    console.log('Fix Data button clicked');
-    setIsLoadingMaster(true);
-    
-    // Directly call getSectionsData method
-    const getSectionsData = async () => {
-      try {
-        if (!preflightFileInfo?.PreflightFileID) {
-          toast({
-            title: "Error",
-            description: "No preflight file ID found.",
-            variant: "destructive",
-          });
-          return;
-        }
+    console.log('Fix Data button clicked - Opening popup modal');
+    console.log('masterDropdownData before:', masterDropdownData);
+    setMasterDropdownData({ ShowSidePanel: true, shouldRefreshOnClose: true });
+    console.log('Popup modal should now be visible');
+  };
 
-        const res = await preflightService.getMissingMasterColumns(preflightFileInfo.PreflightFileID) as any;
-        if (res?.content?.Data) {
-          const data = JSON.parse(res.content.Data);
-          if (data.length > 0) {
-            setShowFixDataPanel(true);
-          } else {
-            toast({
-              title: "Info",
-              description: "No missing master data found to fix.",
-              variant: "default",
-            });
-          }
-        } else {
-          toast({
-            title: "Info",
-            description: "No missing master data found to fix.",
-            variant: "default",
-          });
-        }
+  // Fetch product types
+  useEffect(() => {
+    const fetchProductTypes = async () => {
+      try {
+        // Use preflightService to maintain consistency
+        setProductTypes([
+          { Value: 1, Display: "Print" },
+          { Value: 2, Display: "Digital" },
+          { Value: 3, Display: "Other" }
+        ]);
       } catch (error) {
-        console.error('Error fetching sections data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch sections data.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingMaster(false);
+        console.error('Error fetching product types:', error);
       }
     };
 
-    getSectionsData();
+    fetchProductTypes();
+  }, []);
+
+  // Function to fetch validation data
+  const fetchValidateData = async (sectionName: string, parentType: number) => {
+    const payload = {
+      PreflightFileID: preflightFileInfo.PreflightFileID,
+      ColumnName: sectionName,
+      ParentType: parentType,
+    };
+
+    try {
+      const res = await preflightService.getPreFlightValidationList(payload);
+      if (res) {
+        const data = typeof res === 'string' ? JSON.parse(res) : [];
+        return data.map((item: any) => ({
+          ColumnName: item.ColumnName,
+          CurrentValue: item.CurrentValue,
+          UpdatedValue: "",
+          IsNewInsert: true,
+          IsMarked: false,
+          ID: item.CurrentValue,
+          MasterID: item.MasterID,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching validation data:', error);
+    }
+    return [];
+  };
+
+  // Function to show success animation
+  const showSuccessAnimation = (message: string) => {
+    return (
+      <div className="success-animation">
+        <svg className="tick-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" width="64" height="64">
+          <circle className="tick-success-circle" cx="26" cy="26" r="25" fill="none" stroke="#10B981" strokeWidth="2" />
+          <path className="tick-success-check" fill="none" stroke="#10B981" strokeWidth="3" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+        </svg>
+        <div className="mt-4 text-lg font-semibold text-green-600 text-center">
+          {message}
+        </div>
+      </div>
+    );
   };
 
   const handleRefreshClick = () => {
+    setLoadingState({
+      isLoading: true,
+      loadingText: "Refreshing data quality analysis results...",
+      operation: "refresh"
+    });
     setPagerData(defaultPagerData);
     setHeaders([]);
     setLogsPageLoad(true);
@@ -470,8 +565,66 @@ export default function DataQualityPage() {
     // eslint-disable-next-line
   }, [pagerData.currentPageIndex]);
 
+
+
+  // Function to process column information from mapped fields
+  const getInfoForColumnNames = (headerNames: string[], mappedFields: any[]) => {
+    const formattedDisplayNames = headerNames
+      .map((header) => {
+        const field = mappedFields.find(
+          (field) => field.FileColumnName === header
+        );
+        if (field) {
+          return {
+            accessor: header,
+            info: field.DisplayName ? field.DisplayName : field.ColumnName,
+            MaxLength: field.Maxlength,
+            RegexFormat: field.RegexFormat,
+            RegexDesc: field.RegexDesc,
+            IsMandatory: field.IsMandatory,
+            IsMasterType: field.IsMasterType,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean); // Filter out undefined values
+    return formattedDisplayNames;
+  };
+
+
+
+
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Full-Screen Loading Overlay - Similar to Split Full Address */}
+      {loadingState.isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md mx-4">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">
+                {loadingState.operation === "analyze" ? "Analyzing Data Quality" :
+                 loadingState.operation === "fix" ? "Preparing Data Fix" :
+                 loadingState.operation === "refresh" ? "Refreshing Data" :
+                 loadingState.operation === "filter" ? "Filtering Results" :
+                 "Processing Data"}
+              </h3>
+              <p className="text-gray-600 text-center">
+                {loadingState.loadingText || "Please wait while we process your request..."}
+              </p>
+              <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
+                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{
+                  width: loadingState.operation === "analyze" ? '75%' :
+                         loadingState.operation === "fix" ? '60%' :
+                         loadingState.operation === "refresh" ? '85%' :
+                         loadingState.operation === "filter" ? '90%' : '50%'
+                }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Header currentPage="import-wizard" />
 
       <div className="flex-1 container mx-auto px-4 py-8">
@@ -484,23 +637,24 @@ export default function DataQualityPage() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "DataValidation"}
             completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight"]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           {/* Back Button */}
           <div className="flex items-center gap-4 mb-8">
-            <Link to="/import-wizard/verification">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2" />
-                Back
-              </Button>
-            </Link>
+            <Button 
+              variant="outline"
+              disabled={loadingState.isLoading}
+              onClick={() => navigate('/import-wizard/verification', {
+                state: {
+                  preflightFileInfo: preflightFileInfo
+                }
+              })}
+            >
+              <ArrowLeft className="mr-2" />
+              Back
+            </Button>
           </div>
           
           {/* Instructions Card */}
@@ -528,8 +682,12 @@ export default function DataQualityPage() {
           </Card>
 
           <div className="bg-white p-8 rounded-lg border border-gray-200">
-            {isAnalyzing || logsPageLoad ? (
-              <Loading message="Analyzing data quality..." />
+            {isAnalyzing || logsPageLoad || loadingState.isLoading ? (
+              <Loading message={
+                loadingState.isLoading ? loadingState.loadingText : 
+                isAnalyzing ? "Analyzing data quality..." : 
+                "Loading data..."
+              } />
             ) : (
               <>
                 {gridData.length > 0 ? (
@@ -540,10 +698,10 @@ export default function DataQualityPage() {
                         variant="outline"
                         className="flex items-center gap-2"
                         onClick={handleFixDataClick}
-                        disabled={isLoadingMaster}
+                        disabled={isLoadingMaster || loadingState.isLoading}
                       >
                         <FileSpreadsheet className="h-4 w-4" />
-                        {isLoadingMaster ? 'Fixing Data...' : 'Fix Data'}
+                        {isLoadingMaster || (loadingState.isLoading && loadingState.operation === "fix") ? 'Preparing Fix...' : 'Fix Data'}
                       </Button>
                     </div>
 
@@ -568,17 +726,17 @@ export default function DataQualityPage() {
                       </div>
                     </div>
                     
-                    <div className="w-full">
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
-                        <div className="min-w-full">
-                          <Grid
-                            columnHeaders={headers}
-                            gridData={gridData}
-                            isAutoAdjustWidth={true}
-                            fixedWidthColumns={headers.map(h => ({ accessor: h.accessor, width: 150 }))}
-                          />
+                                          <div className="w-full">
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+                          <div className="min-w-full">
+                            <Grid
+                              columnHeaders={headers}
+                              gridData={gridData}
+                              isAutoAdjustWidth={true}
+                              fixedWidthColumns={headers.map(h => ({ accessor: h.accessor, width: 150 }))}
+                            />
+                          </div>
                         </div>
-                      </div>
                     </div>
                   </div>
                 ) : (
@@ -594,16 +752,22 @@ export default function DataQualityPage() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="flex gap-4">
-              <Link to="/import-wizard/verification">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button 
+                variant="outline"
+                disabled={loadingState.isLoading}
+                onClick={() => navigate('/import-wizard/verification', {
+                  state: {
+                    preflightFileInfo: preflightFileInfo
+                  }
+                })}
+              >
+                <ArrowLeft className="mr-2" />
+                Back
+              </Button>
             </div>
             <Button 
               className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
-              disabled={isAnalyzing || logsPageLoad}
+              disabled={isAnalyzing || logsPageLoad || loadingState.isLoading}
               onClick={() => {
                 navigate('/import-step-handler', {
                   state: {
@@ -622,24 +786,50 @@ export default function DataQualityPage() {
             </Button>
           </div>
 
-          {showFixDataPanel && (
-            <SidePanel
-              title="Fix Missing Master Data"
-              isMouseOutClose={false}
-              isBackgroundDisable={true}
-              style={{ width: "60%", zIndex: 9999, right: 0, position: "fixed", height: "100vh", top: 0, overflow: "hidden" }}
-              onClose={() => setShowFixDataPanel(false)}
-            >
-              <MasterDataSelection
-                preflightFileID={preflightFileInfo?.PreflightFileID?.toString() || ''}
-                onClose={() => setShowFixDataPanel(false)}
-                onSuccess={() => {
-                  handleRefreshClick();
-                  setShowFixDataPanel(false);
-                }}
-              />
-              <div id="side-panel-fallback" style={{display: 'none', color: 'red'}}>If you see this, the side panel failed to render.</div>
-            </SidePanel>
+          {masterDropdownData.ShowSidePanel && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl w-[95vw] max-w-6xl h-[90vh] flex flex-col">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                  <h2 className="text-lg font-semibold">Fix Missing Master Data</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      console.log('Modal closing...');
+                      if (!isLoadingMaster) {
+                        if (masterDropdownData.shouldRefreshOnClose) {
+                          console.log('Refreshing grid on close');
+                          handleRefreshClick();
+                        }
+                        setMasterDropdownData({ ShowSidePanel: false, shouldRefreshOnClose: false });
+                        console.log('Modal closed');
+                      }
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="flex-1 overflow-hidden px-2 py-2">
+                  <MasterDataSelection
+                    preflightFileInfo={preflightFileInfo}
+                    setMasterListHeaderName={setMasterListHeaderName}
+                    setMasterDropdownData={setMasterDropdownData}
+                    fetchValidateData={fetchValidateData}
+                    getImportLogs={(fileId) => getImportLogs(fileId)}
+                    productTypes={productTypes}
+                    columnsInfo={columnsInfo}
+                    showSuccessAnimation={showSuccessAnimation}
+                    masterListHeaderName={masterListHeaderName}
+                    isLoad={isLoadingMaster}
+                    setIsLoad={setIsLoadingMaster}
+                    handleRefreshClick={handleRefreshClick}
+                  />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

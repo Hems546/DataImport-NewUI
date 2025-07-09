@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Loading } from "@/components/ui/loading";
 import { 
   Upload,
   FileCheck,
@@ -11,7 +10,6 @@ import {
   ArrowRight,
   ArrowLeft
 } from "lucide-react";
-import StepHeader from "@/components/StepHeader";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validations, getTechnicalDescription } from '@/constants/validations';
@@ -335,7 +333,7 @@ export default function ImportUpload() {
     
     toast({
       title: "Started Over",
-      description: "Import process has been reset. Please select an import type to begin again.",
+      description: "Import process has been reset. Please click on start new import to begin again.",
     });
   };
 
@@ -384,13 +382,8 @@ export default function ImportUpload() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep="FileUpload"
             completedSteps={[]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           <div className="space-y-8">

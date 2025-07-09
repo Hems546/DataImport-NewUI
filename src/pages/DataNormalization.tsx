@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -680,13 +680,8 @@ export default function DataNormalization() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "DataVerification"}
             completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload", "FieldMapping", "DataPreflight", "DataValidation"]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">

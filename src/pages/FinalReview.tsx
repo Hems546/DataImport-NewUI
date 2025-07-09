@@ -11,7 +11,6 @@ import {
   Undo,
   FileText,
 } from "lucide-react";
-import StepHeader from "@/components/StepHeader";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -25,6 +24,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import FinalReviewValidations from "@/components/FinalReviewValidations";
 import { Loading } from '@/components/ui/loading';
+import { preflightService } from "@/services/preflightService";
 
 interface AutoFix {
   id: string;
@@ -264,13 +264,8 @@ export default function FinalReview() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "FinalReview"}
             completedSteps={completedSteps}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           {/* Back Button */}

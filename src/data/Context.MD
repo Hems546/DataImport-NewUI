@@ -1,190 +1,404 @@
-
-# DataVoyager Application Context
+# DataVoyager Application Context & Requirements Document
 
 ## Overview
 
-DataVoyager is a comprehensive data import and management platform designed to streamline the process of integrating external data into systems. The application provides a step-by-step wizard for importing, validating, mapping, and transforming data, along with an admin dashboard for template and validation configuration.
+DataVoyager is a comprehensive data import and management platform built with React and TypeScript. The application provides a step-by-step wizard for importing, validating, mapping, normalizing, and transforming data, along with an admin dashboard for system configuration and management.
 
 ## Application Architecture
 
-### Core Structure
-
-The application follows a modern React component architecture with TypeScript for type safety. It uses a combination of state management approaches, including React Context for application-wide state and local component state for UI-specific interactions.
+### Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| UI | React + TypeScript | Component rendering and user interaction |
-| Styling | Tailwind CSS + shadcn/ui | Responsive design and component styling |
-| Routing | React Router | Page navigation and URL management |
-| State Management | React Context, useState | Managing global and local state |
+| Frontend | React 18 + TypeScript | Component rendering and user interaction |
+| Styling | Tailwind CSS + shadcn/ui | Modern responsive design and component library |
+| Routing | React Router v6 | SPA navigation and URL management |
+| State Management | React Context + useState | Global and local state management |
 | Data Fetching | TanStack Query | API communication and data caching |
+| Build Tool | Vite | Fast development and build process |
+| UI Components | shadcn/ui | Consistent, accessible component library |
 
-### File Structure
+### Application Structure
 
 ```
 src/
-├── components/              # Reusable UI components
-│   ├── admin/              # Admin-specific components
-│   ├── instructions/       # Developer instruction components
-│   ├── ui/                 # shadcn/ui component library
-│   └── markdown/           # Markdown rendering components
-├── contexts/               # React context definitions
-├── data/                   # Static data and configuration
-├── hooks/                  # Custom React hooks
-├── lib/                    # Utility libraries
-├── pages/                  # Page components
-├── services/               # Service layer for API interactions
-├── utils/                  # Utility functions
+├── components/                    # Reusable UI components
+│   ├── ui/                       # shadcn/ui components (50+ components)
+│   ├── admin/                    # Admin-specific components
+│   ├── instructions/             # Developer instruction system
+│   ├── Modal/                    # Modal components
+│   ├── SidePanel/               # Side panel components
+│   ├── StatusDropdown/          # Status filtering components
+│   ├── Pager/                   # Pagination components
+│   ├── GridGrouping/            # Data grid components
+│   ├── icons/                   # Icon components
+│   └── markdown/                # Markdown rendering components
+├── pages/                       # Page components
+├── services/                    # API service layer
+├── hooks/                       # Custom React hooks
+├── contexts/                    # React context providers
+├── constants/                   # Application constants
+├── utils/                       # Utility functions
+├── lib/                         # Third-party library configurations
+├── data/                        # Static data and configurations
+├── styles/                      # Global styles and CSS
+├── assets/                      # Static assets
+└── integrations/                # External service integrations
+    └── supabase/                # Database integration
 ```
 
-## Page Structure and Component Relationships
+## Import Wizard Flow & Page Structure
 
-### Main Pages
+### Main Application Pages
 
-| Page | Route | Purpose | Key Components |
-|------|-------|---------|----------------|
-| Welcome | / | Application entry point | `Index.tsx` |
-| Import Wizard - Type | /import-wizard | Select import type | `ImportTypeSelection.tsx` |
-| Import Wizard - Upload | /import-wizard/upload | File upload | `ImportUpload.tsx` |
-| Import Wizard - Verification | /import-wizard/verification | File verification | `FileVerification.tsx` |
-| Import Wizard - Mapping | /import-wizard/column-mapping | Column mapping | `ColumnMapping.tsx` |
-| Import Wizard - Quality | /import-wizard/data-quality | Data quality | `DataQuality.tsx` |
-| Import Wizard - Normalization | /import-wizard/normalization | Data normalization | `DataNormalization.tsx` |
-| Import Wizard - Deduplication | /import-wizard/deduplication | Data deduplication | `Deduplication.tsx` |
-| Import Wizard - Review | /import-wizard/review | Final review | `FinalReview.tsx` |
-| Import Wizard - Push | /import-wizard/import | Data import | `ImportPush.tsx` |
-| Admin Dashboard | /admin | Administration | `AdminDashboard.tsx` |
-| File History | /file-history | Import history | `FileHistory.tsx` |
-| File History Details | /file-history/:fileId | Import details | `FileHistoryDetails.tsx` |
-| Context Document | /context | Application documentation | `ContextDocument.tsx` |
+| Page | Route | Purpose | Component | Key Features |
+|------|-------|---------|-----------|--------------|
+| Welcome | `/` | Application entry point | `Index.tsx` | Landing page, navigation |
+| Import Type Selection | `/import-wizard` | Select import type | `ImportTypeSelection.tsx` | Document type selection |
+| Import Upload | `/import-wizard/upload` | File upload | `ImportUpload.tsx` | File upload, validation |
+| File Verification | `/import-wizard/verification` | File verification | `FileVerification.tsx` | File structure validation |
+| Column Mapping | `/import-wizard/column-mapping` | Field mapping | `ColumnMapping.tsx` | Map file columns to system fields |
+| Data Quality | `/import-wizard/data-quality` | Data validation | `DataQuality.tsx` | Error/warning detection |
+| Data Normalization | `/import-wizard/normalization` | Data verification | `DataNormalization.tsx` | Name/address/email processing |
+| Deduplication | `/import-wizard/deduplication` | Duplicate detection | `Deduplication.tsx` | Duplicate identification/resolution |
+| Final Review | `/import-wizard/review` | Final approval | `FinalReview.tsx` | Final validation summary |
+| Import Push | `/import-wizard/import` | Data import | `ImportPush.tsx` | Execute data import |
+| Step Handler | `/import-step-handler` | Workflow routing | `ImportStepHandler.tsx` | Route between steps based on status |
 
-### Component Relationships
+### Administrative Pages
 
-#### Admin Dashboard
+| Page | Route | Purpose | Component | Key Features |
+|------|-------|---------|-----------|--------------|
+| Admin Dashboard | `/admin` | System administration | `AdminDashboard.tsx` | Templates, validations, instructions |
+| File History | `/file-history` | Import history | `FileHistory.tsx` | View past imports |
+| File History Details | `/file-history/:fileId` | Import details | `FileHistoryDetails.tsx` | Detailed import information |
+| Context Document | `/context` | Documentation | `ContextDocument.tsx` | Application documentation |
+| Not Found | `*` | 404 error page | `NotFound.tsx` | Error handling |
 
-The Admin Dashboard (`AdminDashboard.tsx`) serves as the control center for system configuration and is divided into three main sections:
+## Import Workflow States & Status Management
 
-1. **Templates Management**:
-   - `TemplateCard.tsx`: Displays individual template cards
-   - `EditTemplateDialog.tsx`: Modal for editing templates
+### Step Progression Logic
 
-2. **Validations Management**:
-   - `ValidationManager.tsx`: Manages validation rules
-   - `EditValidationDialog.tsx`: Modal for editing validations
+The application uses a sophisticated status-based routing system managed by `ImportStepHandler.tsx`:
 
-3. **Developer Instructions**:
-   - `InstructionManagementTable.tsx`: Table for managing instruction boxes
-   - `InstructionModeToggle.tsx`: Toggle for instruction edit mode
+```javascript
+const SectionSteps = [
+  "FileUpload",
+  "FieldMapping", 
+  "DataPreflight",
+  "DataValidation",
+  "DataVerification",
+  "FinalReview",
+  "ImportPush",
+];
 
-#### Import Wizard Flow
+const OrderOfPreflight = {
+  "Not Started": "FileUpload",
+  "In Progress": "FieldMapping",
+  Error: "DataPreflight",
+  Warning: "DataValidation",
+  "Verification Pending": "DataVerification",
+  "Review Pending": "FinalReview",
+  "Ready for Import": "ImportPush",
+  Success: "ImportPush",
+};
+```
 
-The import wizard follows a sequential flow through multiple pages, with shared components across steps:
+### Status Color Coding
 
-- `ImportProgress.tsx`: Progress indicator for the wizard
-- `ProgressStep.tsx`: Individual step in the wizard
-- `StepConnector.tsx`: Visual connector between steps
+```javascript
+const enumStatusColor = {
+  "Not Started": "darkgray",
+  "In Progress": "orange",
+  Success: "green",
+  Error: "red",
+  Warning: "gold",
+  "Verification Pending": "#AB5FA6",
+};
+```
 
-Each step has dedicated components for their specific functionality.
+### Step-Specific Status Tracking
 
-## State Management Strategy
+Each import maintains individual status for each step:
+- `FileUploadStatus`
+- `FieldMappingStatus`
+- `DataPreflightStatus`
+- `DataValidationStatus`
+- `DataVerificationStatus`
+- `DeduplicationStatus`
+- `FinalReviewStatus`
+- `ImportPushStatus`
 
-### Global State
+## Core Components & Functionality
 
-| Context | Purpose | Key Components |
-|---------|---------|----------------|
-| InstructionContext | Manages the instruction mode state | `InstructionProvider`, `InstructionManager` |
+### Key Reusable Components
 
-### Local State
+| Component | Purpose | Key Features |
+|-----------|---------|--------------|
+| `ImportStepHeader` | Step progress display | Shows current step, status, completion |
+| `ValidationStatus` | Validation results display | Error/warning summaries |
+| `NormalizationEditor` | Data normalization interface | Name/address splitting |
+| `MasterDataSelection` | Dropdown data management | Master data validation |
+| `FileAnalysisModal` | File analysis interface | Detailed file inspection |
+| `TableFilters` | Data filtering controls | Status-based filtering |
+| `ResizableTableHeader` | Responsive table headers | Dynamic column sizing |
+| `ImportProgress` | Progress indicator | Step-by-step progress |
 
-Local component state is used for UI interactions and page-specific data. Examples include:
+### Admin Dashboard Components
 
-- Form inputs and validation state
-- Accordion/tab open states
-- Modal dialog visibility
+| Component | Purpose | Features |
+|-----------|---------|----------|
+| `TemplateCard` | Template management | Create/edit templates |
+| `ValidationManager` | Validation rule management | Configure validation rules |
+| `EditTemplateDialog` | Template editing interface | Modal template editor |
+| `EditValidationDialog` | Validation editing interface | Modal validation editor |
+| `ImportTypeManager` | Import type configuration | Manage document types |
+| `InstructionManagementTable` | Developer instruction management | Manage help content |
+| `AdminHelpCenter` | Help documentation | Comprehensive help system |
 
-### Data Fetching
+## State Management Architecture
 
-TanStack Query is used for data fetching operations, providing:
+### Global State (React Context)
 
-- Automatic caching and refetching
-- Loading and error states
-- Optimistic updates
+| Context | Purpose | Provider | Key State |
+|---------|---------|----------|-----------|
+| `InstructionContext` | Developer instruction system | `InstructionProvider` | `isInstructionMode`, `instructions` |
+| `ImportContext` | Import workflow state | `ImportProvider` | `currentImport`, `importHistory` |
 
-## Key Features and Implementation Details
+### Local State Patterns
 
-### Developer Instruction System
+- **Form State**: Individual form components manage their own input state
+- **UI State**: Modal visibility, accordion states, loading states
+- **Data State**: API response data, validation results, processing states
 
-The application includes a system for adding draggable instruction boxes to help developers understand the application:
+### API Layer
 
-- `InstructionBox.tsx`: Draggable instruction component
-- `InstructionManager.tsx`: Manages instruction creation/editing
-- `InstructionContext.tsx`: Controls instruction mode state
+| Service | Purpose | Key Methods |
+|---------|---------|-------------|
+| `preflightService` | Main import operations | `saveFile`, `getMappedFields`, `getDataVerificationOptions` |
+| `fileValidation` | File validation logic | `validateFile`, `checkFileStructure` |
 
-Instructions are stored in localStorage and can be positioned anywhere on the page. They support pointers to highlight specific UI elements.
+## Data Processing Pipeline
 
-### Template Management
+### 1. File Upload & Validation
+- File type validation
+- Size and format checks
+- Initial structure validation
+- Base64 encoding for storage
 
-Templates define the expected structure for imported data:
+### 2. Field Mapping
+- Automatic field detection
+- Manual mapping interface
+- Field validation rules
+- Template application
 
-- System templates are pre-defined in `systemTemplates.ts`
-- Templates include fields with types, descriptions, and required flags
-- Templates can be applied during the column mapping phase
+### 3. Data Verification & Normalization
+- **Name Processing**: Full name splitting (First/Last)
+  - "John Doe" → First: "John", Last: "Doe"
+  - "John Doe Smith" → First: "John Doe", Last: "Smith"
+- **Address Verification**: Full address splitting via Smarty API
+  - Address Line 1, City, State, ZIP extraction
+- **Email Verification**: Email validation and verification
 
-### Validation System
+### 4. Data Quality Checks
+- Missing required fields
+- Data format validation
+- Business rule validation
+- Error/warning categorization
 
-The validation system verifies imported data against configurable rules:
+### 5. Deduplication
+- Duplicate detection algorithms
+- Manual review interface
+- Merge/ignore options
 
-- Validations are categorized by stage (upload, mapping, quality)
-- Each validation has a severity (critical, warning)
-- Validation failures trigger appropriate responses based on severity
+### 6. Final Review & Import
+- Summary of all changes
+- Final validation checks
+- Data transformation preview
+- Import execution
 
-## Common Troubleshooting Areas
+## Developer Instruction System
 
-### Instruction Persistence Issues
+### Instruction Management Components
 
-- Instructions are stored in localStorage using the `STORAGE_KEY` constant
-- The `InstructionManager` component handles loading/saving instructions
-- Instructions may not persist if localStorage is cleared or unavailable
+| Component | Purpose | Features |
+|-----------|---------|----------|
+| `InstructionBox` | Draggable help boxes | Positioned help content |
+| `InstructionManager` | Instruction creation | Create/edit instructions |
+| `InstructionModeToggle` | Toggle instruction mode | Enable/disable editing |
 
-### Data Flow Issues
+### Features
+- Draggable positioning
+- Persistent localStorage storage
+- Pointer indicators to UI elements
+- Rich text content support
+- Admin-configurable content
 
-- Check the wizard progression state in the relevant step component
-- Verify that data is being properly passed between steps
-- Confirm that validation rules are correctly applied
+## UI/UX Design System
 
-### UI Rendering Problems
+### Component Library (shadcn/ui)
 
-- Check for responsive design issues on different screen sizes
-- Verify that conditional rendering logic is correct
-- Look for CSS class conflicts with Tailwind's utility classes
+The application uses 50+ shadcn/ui components including:
+- **Forms**: `input`, `textarea`, `select`, `checkbox`, `radio-group`
+- **Data Display**: `table`, `card`, `badge`, `avatar`
+- **Navigation**: `tabs`, `accordion`, `breadcrumb`, `pagination`
+- **Feedback**: `alert`, `toast`, `loading`, `progress`
+- **Overlays**: `dialog`, `sheet`, `popover`, `tooltip`
+- **Layout**: `separator`, `resizable`, `sidebar`
+
+### Loading States
+- Full-screen loading overlays during processing
+- Step-specific loading indicators
+- Button disabled states during operations
+- Skeleton loading for data fetching
+
+### Responsive Design
+- Mobile-first approach with Tailwind CSS
+- Adaptive layouts for all screen sizes
+- Touch-friendly interface elements
+- Optimized table displays for mobile
+
+## Configuration & Customization
+
+### System Templates
+- Pre-defined data structures in `systemTemplates.ts`
+- Configurable field mappings
+- Validation rule associations
+- Document type definitions
+
+### Validation Configuration
+- Rule-based validation system
+- Configurable severity levels
+- Custom validation messages
+- Business rule enforcement
+
+### Import Type Configuration
+- Document type definitions in `importTypeConfigs.ts`
+- Field requirement specifications
+- Workflow customization options
+
+## Error Handling & Validation
+
+### Validation Levels
+- **Critical**: Blocks import progression
+- **Warning**: Allows progression with acknowledgment
+- **Info**: Informational only
+
+### Error Recovery
+- Graceful error handling with user-friendly messages
+- Retry mechanisms for failed operations
+- State recovery after errors
+- Detailed error logging
+
+## Performance Optimizations
+
+### Code Splitting
+- Lazy loading of all page components
+- Dynamic imports for heavy components
+- Route-based code splitting
+
+### Data Management
+- TanStack Query for efficient data fetching
+- Caching strategies for API responses
+- Optimistic updates for better UX
+
+### Bundle Optimization
+- Vite for fast development and builds
+- Tree shaking for minimal bundle size
+- Modern JavaScript targeting
 
 ## Development Guidelines
 
-### Adding New Features
-
-1. Maintain the existing component structure and naming conventions
-2. Use TypeScript for type safety
-3. Follow the existing state management patterns
-4. Update this context document when adding significant features
-
 ### Code Organization
+- TypeScript for type safety
+- Functional components with hooks
+- Custom hooks for shared logic
+- Consistent naming conventions
 
-- Components should be small and focused on a single responsibility
-- Shared logic should be extracted into custom hooks
-- Common UI elements should use the shadcn/ui component library
-- State management should follow existing patterns based on complexity
+### Component Design Patterns
+- Single responsibility principle
+- Props interface definitions
+- Error boundary implementations
+- Accessibility compliance
 
-### Testing Recommendations
+### State Management Best Practices
+- Minimize prop drilling with context
+- Local state for UI interactions
+- Global state for shared data
+- Immutable state updates
 
-- Test each import wizard step with various data inputs
-- Verify that validation rules correctly identify issues
-- Ensure instructions persist correctly across page refreshes
-- Test responsive layouts on different device sizes
+## Testing Strategy
 
-## Future Development Roadmap
+### Component Testing
+- Unit tests for utility functions
+- Component testing with React Testing Library
+- Integration tests for workflows
+- E2E tests for critical paths
 
+### Validation Testing
+- File format validation tests
+- Data quality validation tests
+- Error handling scenario tests
+- Performance testing for large files
+
+## Deployment & Infrastructure
+
+### Build Configuration
+- Vite build system
+- Environment-specific configurations
+- Asset optimization
+- Source map generation
+
+### Routing Configuration
+- Base path: `/newui/`
+- Hash-based routing for compatibility
+- Protected routes for admin features
+- Error page fallbacks
+
+## Future Enhancement Roadmap
+
+### Planned Features
+- Advanced data transformation rules
+- Custom validation rule builder
 - Enhanced reporting and analytics
-- Integration with external data sources
-- Expanded template library
-- Advanced data transformation capabilities
-- User role management and permissions
+- Real-time collaboration features
+- API integration framework
+- Advanced deduplication algorithms
+
+### Technical Improvements
+- Progressive Web App (PWA) capabilities
+- Enhanced offline support
+- Performance monitoring
+- Advanced caching strategies
+- Micro-frontend architecture consideration
+
+## API Integration Points
+
+### Core API Endpoints
+- File upload and management
+- Field mapping operations
+- Data validation services
+- Import execution
+- History and reporting
+
+### External Integrations
+- Smarty API for address verification
+- Email verification services
+- File storage services
+- Analytics and monitoring
+
+## Security Considerations
+
+### Data Protection
+- Secure file upload handling
+- Data encryption in transit
+- User authentication integration
+- Role-based access control
+
+### Validation Security
+- Input sanitization
+- XSS prevention
+- CSRF protection
+- Secure API communication
+
+This document serves as the definitive requirements and context document for the DataVoyager application. Any updates to functionality, structure, or requirements should be reflected in this document to maintain accuracy and serve as a single source of truth for development activities.

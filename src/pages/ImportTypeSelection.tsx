@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import ImportCard from '@/components/ImportCard';
 import { FileText, UserCircle, Package, Receipt, Users, WalletCardsIcon} from 'lucide-react';
-import { ImportTypeConfig } from '@/data/importTypeConfigs';
-import { preflightService, PreflightType } from '@/services/preflightService';
+import { preflightService, PreflightType, ImportTypeConfig } from '@/services/preflightService';
 import { useToast } from '@/hooks/use-toast';
 import { Loading } from '@/components/ui/loading';
 

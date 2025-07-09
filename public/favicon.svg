@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="12" cy="5" rx="9" ry="3" fill="#4f46e5"/>
-  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" fill="#6366f1"/>
-  <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" fill="#818cf8"/>
+  <defs>
+    <linearGradient id="blue-gradient" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="rgb(30, 58, 138)"/>
+      <stop offset="100%" stop-color="rgb(59, 130, 246)"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="12" cy="5" rx="9" ry="3" fill="url(#blue-gradient)"/>
+  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" fill="url(#blue-gradient)"/>
+  <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" fill="url(#blue-gradient)"/>
 </svg> 

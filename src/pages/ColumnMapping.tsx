@@ -8,12 +8,10 @@ import {
   ArrowRight,
   ArrowLeft
 } from "lucide-react";
-import StepHeader from "@/components/StepHeader";
 import { ImportStepHeader } from "@/components/ImportStepHeader";
 import ValidationStatus, { ValidationResult } from '@/components/ValidationStatus';
 import { validateColumnMappings } from '@/services/fileValidation';
 import { preflightService } from "@/services/preflightService";
-import { Loading } from "@/components/ui/loading";
 
 interface PreflightResponse {
   content?: {
@@ -42,6 +40,10 @@ export default function ColumnMappingPage() {
   const [isMappingSaved, setIsMappingSaved] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [hasValidationErrors, setHasValidationErrors] = useState(false);
+  const [loadingState, setLoadingState] = useState({
+    isLoading: false,
+    loadingText: ""
+  });
   const [preflightFileInfo, setPreflightFileInfo] = useState(() => 
     locationPreflightFileInfo || {
       PreflightFileID: 0,
@@ -94,7 +96,10 @@ export default function ColumnMappingPage() {
   useEffect(() => {
     if (preflightFileInfo.FieldMappingStatus === "Success") {
       setIsMappingSaved(true);
-      console.log("FieldMappingStatus updated to Success - enabling Continue button");
+    } else if (preflightFileInfo.FieldMappingStatus === "In Progress") {
+      // For large datasets, the status might remain "In Progress" initially
+      // We'll keep the button disabled until it becomes "Success"
+      setIsMappingSaved(false);
     }
   }, [preflightFileInfo.FieldMappingStatus]);
 
@@ -107,8 +112,92 @@ export default function ColumnMappingPage() {
     return docTypeID;
   };
 
+  // Function to check current status and retry if needed
+  const checkCurrentStatus = async () => {
+    if (!preflightFileID) return;
+    
+    setLoadingState({
+      isLoading: true,
+      loadingText: "Checking current processing status..."
+    });
+    
+    try {
+      // Call the API to get current status
+      const request = {
+        PreflightFileID: preflightFileID,
+        Action: "Check Status",
+        IsValidate: false,
+        AddColumns: "",
+        FilePath: preflightFileInfo.FilePath || "",
+        FileType: preflightFileInfo.FileType || "",
+        FileName: preflightFileInfo.FileName || "",
+        ImportName: preflightFileInfo.ImportName || "",
+        DocTypeID: getDocTypeID(preflightFileInfo.DocTypeID)
+      };
+      
+      const res = await preflightService.saveFile(request) as PreflightResponse;
+      const result = res?.content?.Data;
+      
+      if (result?.ID > 0) {
+        let dataStatus: any = result?.DataStatus;
+        if (dataStatus && dataStatus !== "") {
+          try {
+            dataStatus = JSON.parse(dataStatus);
+          } catch (e) {
+            console.error("Error parsing DataStatus:", e);
+            dataStatus = {};
+          }
+        } else {
+          dataStatus = {};
+        }
+        
+        // Update preflightFileInfo with latest status
+        setPreflightFileInfo((prev) => ({
+          ...prev,
+          PreflightFileID: result?.ID,
+          Status: result?.Status,
+          FileUploadStatus: dataStatus?.FileUpload,
+          FieldMappingStatus: dataStatus?.FieldMapping,
+          DataPreflightStatus: dataStatus?.DataPreflight,
+          DataValidationStatus: dataStatus?.DataValidation,
+          DataVerificationStatus: dataStatus?.DataVerification,
+        }));
+        
+        if (dataStatus?.FieldMapping === "Success") {
+          setIsMappingSaved(true);
+          toast({
+            title: "Success",
+            description: "Column mappings have been processed successfully!",
+          });
+        } else {
+          toast({
+            title: "Still Processing",
+            description: "Column mappings are still being processed. Please wait a moment and try again.",
+            variant: "default"
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error checking status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to check current status. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingState({ isLoading: false, loadingText: "" });
+    }
+  };
+
+
+
   const handleMappingSave = (mappings: ColumnMapping[]) => {
+    setLoadingState({
+      isLoading: true,
+      loadingText: "Saving column mappings and validating data. Please wait..."
+    });
     setIsLoading(true);
+    
     try {
       // Save mappings to localStorage
       localStorage.setItem('columnMappings', JSON.stringify(mappings));
@@ -143,124 +232,178 @@ export default function ColumnMappingPage() {
           description: `The fields below are already assigned to another column. Please choose a different one: ${duplicateNames}`,
           variant: "destructive"
         });
+        setLoadingState({ isLoading: false, loadingText: "" });
         setIsLoading(false);
         return;
       }
 
-      // Validate mappings
-      const sourceColumns = mappings.map(m => m.sourceColumn);
-      const mappedFields = mappings.map(m => ({
-        sourceColumn: m.sourceColumn,
-        targetField: m.targetField
-      }));
+      // Update loading text for validation phase
+      setLoadingState({
+        isLoading: true,
+        loadingText: "Validating column mappings and checking for errors..."
+      });
 
-      const validationResults = validateColumnMappings(sourceColumns, mappedFields);
-      const formattedResults: ValidationResult[] = validationResults.map(result => ({
-        id: result.id,
-        name: result.validation_type,
-        status: result.status,
-        description: result.message,
-        severity: result.severity,
-        technical_details: result.technical_details
-      }));
-      
-      setValidationResults(formattedResults);
-
-      // Check for critical errors
-      const hasCriticalErrors = formattedResults.some(
-        result => result.severity === 'critical' && result.status === 'fail'
-      );
-      setHasValidationErrors(hasCriticalErrors);
-
-      if (hasCriticalErrors) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the critical errors before continuing.",
-          variant: "destructive"
+      // Function to proceed with API call after validation
+      const proceedWithApiCall = () => {
+        // Update loading text for API call phase
+        setLoadingState({
+          isLoading: true,
+          loadingText: "Communicating with server to save your mappings..."
         });
-        setIsLoading(false);
-        return;
-      }
 
-      // Prepare request object for preflight service
-      const request = {
-        MappedFieldIDs: mappings.map(mapping => ({
-          FileColumnName: mapping.sourceColumn,
-          PreflightFieldID: mapping.PreflightFieldID,
-          IsCustom: mapping.IsCustom,
-          Location: mapping.Locations
-        })),
-        IsValidate: true,
-        Action: "Field Mappings",
-        AddColumns: "",
-        FilePath: preflightFileInfo.FilePath || "",
-        FileType: preflightFileInfo.FileType || "",
-        PreflightFileID: preflightFileID,
-        FileName: preflightFileInfo.FileName || "",
-        ImportName: preflightFileInfo.ImportName || "",
-        DocTypeID: getDocTypeID(preflightFileInfo.DocTypeID)
-      };
+        // Prepare request object for preflight service
+        const request = {
+          MappedFieldIDs: mappings.map(mapping => ({
+            FileColumnName: mapping.sourceColumn,
+            PreflightFieldID: mapping.PreflightFieldID,
+            IsCustom: mapping.IsCustom,
+            Location: mapping.Locations
+          })),
+          IsValidate: true,
+          Action: "Field Mappings",
+          AddColumns: "",
+          FilePath: preflightFileInfo.FilePath || "",
+          FileType: preflightFileInfo.FileType || "",
+          PreflightFileID: preflightFileID,
+          FileName: preflightFileInfo.FileName || "",
+          ImportName: preflightFileInfo.ImportName || "",
+          DocTypeID: getDocTypeID(preflightFileInfo.DocTypeID)
+        };
 
-
-
-      // Call preflight service
-      preflightService.saveFile(request).then((res: PreflightResponse) => {
-        const result = res?.content?.Data;
-        if (result?.ID > 0) {
-          // Parse and update status information from API response
-          let dataStatus: any = result?.DataStatus;
-          if (dataStatus && dataStatus !== "") {
-            try {
-              dataStatus = JSON.parse(dataStatus);
-            } catch (e) {
-              console.error("Error parsing DataStatus:", e);
+        // Call preflight service
+        preflightService.saveFile(request).then((res: PreflightResponse) => {
+          const result = res?.content?.Data;
+          if (result?.ID > 0) {
+            // Parse and update status information from API response
+            let dataStatus: any = result?.DataStatus;
+            if (dataStatus && dataStatus !== "") {
+              try {
+                dataStatus = JSON.parse(dataStatus);
+              } catch (e) {
+                console.error("Error parsing DataStatus:", e);
+                dataStatus = {};
+              }
+            } else {
               dataStatus = {};
             }
+            
+            // Update preflightFileInfo with latest status information
+            setPreflightFileInfo((prev) => ({
+              ...prev,
+              PreflightFileID: result?.ID,
+              Status: result?.Status,
+              FileUploadStatus: dataStatus?.FileUpload,
+              FieldMappingStatus: dataStatus?.FieldMapping,
+              DataPreflightStatus: dataStatus?.DataPreflight,
+              DataValidationStatus: dataStatus?.DataValidation,
+              DataVerificationStatus: dataStatus?.DataVerification,
+            }));
+            
+            // Check if FieldMapping status is Success to enable the button
+            if (dataStatus?.FieldMapping === "Success") {
+              setIsMappingSaved(true);
+              toast({
+                title: "Success",
+                description: "Column mappings saved successfully.",
+              });
+            } else {
+              // If FieldMapping is still "In Progress", we need to wait or handle differently
+              setIsMappingSaved(false);
+              toast({
+                title: "Processing",
+                description: "Column mappings are being processed. For large datasets, this may take a moment. You can try saving again or wait for processing to complete.",
+                variant: "default"
+              });
+            }
           } else {
-            dataStatus = {};
+            // Reset mapping saved state on error
+            setIsMappingSaved(false);
+            toast({
+              title: "Error",
+              description: result?.Message || "Failed to save column mappings. Please try again.",
+              variant: "destructive"
+            });
           }
-          
-          // Update preflightFileInfo with latest status information
-          setPreflightFileInfo((prev) => ({
-            ...prev,
-            PreflightFileID: result?.ID,
-            Status: result?.Status,
-            FileUploadStatus: dataStatus?.FileUpload,
-            FieldMappingStatus: dataStatus?.FieldMapping,
-            DataPreflightStatus: dataStatus?.DataPreflight,
-            DataValidationStatus: dataStatus?.DataValidation,
-            DataVerificationStatus: dataStatus?.DataVerification,
-          }));
-          
-          setIsMappingSaved(true);
-          toast({
-            title: "Success",
-            description: "Column mappings saved successfully.",
-          });
-        } else {
+        }).catch((error) => {
+          console.error("Error saving mappings:", error);
+          // Reset mapping saved state on error
+          setIsMappingSaved(false);
           toast({
             title: "Error",
-            description: result?.Message || "Failed to save column mappings. Please try again.",
+            description: "Failed to save column mappings. Please try again.",
             variant: "destructive"
           });
-        }
-      }).catch((error) => {
-        console.error("Error saving mappings:", error);
-        toast({
-          title: "Error",
-          description: "Failed to save column mappings. Please try again.",
-          variant: "destructive"
+        }).finally(() => {
+          setLoadingState({ isLoading: false, loadingText: "" });
+          setIsLoading(false);
         });
-      });
+      };
+
+      // Validate mappings asynchronously to prevent UI blocking with large data
+      setTimeout(() => {
+        try {
+          const sourceColumns = mappings.map(m => m.sourceColumn);
+          const mappedFields = mappings.map(m => ({
+            sourceColumn: m.sourceColumn,
+            targetField: m.targetField
+          }));
+
+          const validationResults = validateColumnMappings(sourceColumns, mappedFields);
+          const formattedResults: ValidationResult[] = validationResults.map(result => ({
+            id: result.id,
+            name: result.validation_type,
+            status: result.status,
+            description: result.message,
+            severity: result.severity,
+            technical_details: result.technical_details
+          }));
+          
+          setValidationResults(formattedResults);
+
+          // Check for critical errors
+          const hasCriticalErrors = formattedResults.some(
+            result => result.severity === 'critical' && result.status === 'fail'
+          );
+          setHasValidationErrors(hasCriticalErrors);
+
+          if (hasCriticalErrors) {
+            setIsMappingSaved(false);
+            toast({
+              title: "Validation Error",
+              description: "Please fix the critical errors before continuing.",
+              variant: "destructive"
+            });
+            setLoadingState({ isLoading: false, loadingText: "" });
+            setIsLoading(false);
+            return;
+          }
+
+          // Continue with API call if validation passes
+          proceedWithApiCall();
+        } catch (validationError) {
+          console.error("Validation error:", validationError);
+          setIsMappingSaved(false);
+          toast({
+            title: "Validation Error",
+            description: "An error occurred during validation. Please try again.",
+            variant: "destructive"
+          });
+          setLoadingState({ isLoading: false, loadingText: "" });
+          setIsLoading(false);
+        }
+      }, 0);
+
 
     } catch (error) {
       console.error("Error saving mappings:", error);
+      // Reset mapping saved state on error
+      setIsMappingSaved(false);
       toast({
         title: "Error",
         description: "Failed to save column mappings. Please try again.",
         variant: "destructive"
       });
-    } finally {
+      setLoadingState({ isLoading: false, loadingText: "" });
       setIsLoading(false);
     }
   };
@@ -300,6 +443,24 @@ export default function ColumnMappingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Full-Screen Loading Overlay - Similar to Split Full Address */}
+      {loadingState.isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md mx-4">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Processing Column Mappings</h3>
+              <p className="text-gray-600 text-center">
+                {loadingState.loadingText || "Please wait while we process your request..."}
+              </p>
+              <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
+                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '65%'}}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Header />
       <main className="container mx-auto px-6 py-6">
         <div className="max-w-4xl mx-auto">
@@ -311,13 +472,8 @@ export default function ColumnMappingPage() {
             importName={preflightFileInfo.ImportName || 'Untitled Import'}
             currentStep={currentStep || "FieldMapping"}
             completedSteps={completedSteps.length > 0 ? completedSteps : ["FileUpload"]}
-            onImportNameChange={(newName) => {
-              const updatedPreflightFileInfo = {
-                ...preflightFileInfo,
-                ImportName: newName
-              };
-              setPreflightFileInfo(updatedPreflightFileInfo);
-            }}
+            preflightFileInfo={preflightFileInfo}
+            setPreflightFileInfo={setPreflightFileInfo}
           />
 
           {/* Map Your Columns Info Section */}
@@ -397,6 +553,7 @@ export default function ColumnMappingPage() {
                     preflightFileInfo: preflightFileInfo
                   }
                 })}
+                disabled={loadingState.isLoading}
               >
                 <ArrowLeft className="mr-2" />
                 Back
@@ -406,7 +563,7 @@ export default function ColumnMappingPage() {
               <Button
                 className="bg-[rgb(59,130,246)] hover:bg-[rgb(37,99,235)]"
                 onClick={handleContinue}
-                disabled={hasValidationErrors || isLoading || !isMappingSaved}
+                disabled={hasValidationErrors || loadingState.isLoading || !isMappingSaved}
                 title={!isMappingSaved ? "Please save your column mappings to continue" : ""}
               >
                 Continue to Data Preflight

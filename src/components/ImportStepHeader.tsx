@@ -2,18 +2,27 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Check, X } from 'lucide-react';
+import { Pencil, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { enumStatusColor } from '@/constants/importHelpers';
+import { preflightService } from '@/services/preflightService';
+
+interface PreflightFileInfo {
+  PreflightFileID: number;
+  ImportName: string;
+  DocTypeID?: number;
+  [key: string]: any;
+}
 
 interface ImportStepHeaderProps {
   stepTitle: string;
   status: string;
   docTypeName: string;
   importName: string;
-  onImportNameChange: (newName: string) => void;
   currentStep: string;
   completedSteps: string[];
+  preflightFileInfo: any;
+  setPreflightFileInfo: (info: any) => void;
 }
 
 export function ImportStepHeader({ 
@@ -21,9 +30,10 @@ export function ImportStepHeader({
   status, 
   docTypeName, 
   importName, 
-  onImportNameChange,
   currentStep,
-  completedSteps
+  completedSteps,
+  preflightFileInfo,
+  setPreflightFileInfo
 }: ImportStepHeaderProps) {
   const { toast } = useToast();
   const [isEditingImportName, setIsEditingImportName] = useState(false);
@@ -31,17 +41,17 @@ export function ImportStepHeader({
 
   // Step definitions
   const steps = [
-    { id: "FileUpload", label: "File Upload", icon: "upload" },
-    { id: "FieldMapping", label: "Column Mapping", icon: "columns" },
-    { id: "DataPreflight", label: "File Preflighting", icon: "check" },
-    { id: "DataValidation", label: "Data Quality", icon: "quality" },
+    { id: "FileUpload", label: "File<br/>Upload", icon: "upload" },
+    { id: "FieldMapping", label: "Column<br/>Mapping", icon: "columns" },
+    { id: "DataPreflight", label: "File<br/>Preflighting", icon: "check" },
+    { id: "DataValidation", label: "Data<br/>Quality", icon: "quality" },
     { id: "DataVerification", label: "Data Normalization", icon: "transform" },
     { id: "FinalReview", label: "Final Review & Approval", icon: "review" },
-    { id: "ImportPush", label: "Import / Push", icon: "upload-cloud" },
+    { id: "ImportPush", label: "Import /<br/>Push", icon: "upload-cloud" },
   ];
 
   const getStepIcon = (iconType: string, isActive: boolean, isCompleted: boolean) => {
-    const baseClasses = "w-5 h-5";
+    const baseClasses = "w-6 h-6";
     
     // For completed steps, show white checkmark
     if (isCompleted) {
@@ -52,7 +62,7 @@ export function ImportStepHeader({
       );
     }
 
-    const colorClasses = isActive ? "text-white" : "text-gray-400";
+    const colorClasses = isActive ? "text-white" : "text-gray-500";
 
     switch (iconType) {
       case "upload":
@@ -82,7 +92,7 @@ export function ImportStepHeader({
       case "transform":
         return (
           <svg className={`${baseClasses} ${colorClasses}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
           </svg>
         );
       case "review":
@@ -107,8 +117,13 @@ export function ImportStepHeader({
   };
 
   const handleSaveImportName = async () => {
+    console.log("🔄 handleSaveImportName called");
+    console.log("📝 editableImportName:", editableImportName);
+    console.log("📊 preflightFileInfo:", preflightFileInfo);
+    
     try {
       if (!editableImportName.trim()) {
+        console.log("❌ Validation failed: Empty import name");
         toast({
           title: "Validation Error",
           description: "Import name cannot be empty.",
@@ -117,18 +132,84 @@ export function ImportStepHeader({
         return;
       }
 
-      onImportNameChange(editableImportName.trim());
+      // Additional validation for import name length
+      if (editableImportName.length > 100) {
+        console.log("❌ Validation failed: Import name too long");
+        toast({
+          title: "Import name too long",
+          description: "Import name must be 100 characters or less.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("✅ Validation passed, updating local state");
+      
+      // Update local state immediately
+      const updatedPreflightFileInfo = {
+        ...preflightFileInfo,
+        ImportName: editableImportName.trim()
+      };
+      setPreflightFileInfo(updatedPreflightFileInfo);
+      
+      console.log("📋 Updated preflightFileInfo:", updatedPreflightFileInfo);
+
+      // Persist to backend if we have a PreflightFileID
+      if (preflightFileInfo.PreflightFileID && preflightFileInfo.PreflightFileID > 0) {
+        const request = {
+          PreflightFileID: preflightFileInfo.PreflightFileID,
+          ImportName: editableImportName.trim(),
+          DocTypeID: preflightFileInfo.DocTypeID || 1,
+          Action: "Update",
+          IsValidate: false,
+          // Include all the existing fields to prevent NULL errors
+          FileName: preflightFileInfo.FileName || "",
+          FilePath: preflightFileInfo.FilePath || "",
+          FileType: preflightFileInfo.FileType || "",
+          Status: preflightFileInfo.Status || "",
+          CreatedBy: preflightFileInfo.CreatedBy || 0,
+          MappedFieldIDs: preflightFileInfo.MappedFieldIDs || "",
+          DataSummary: preflightFileInfo.DataSummary || "",
+          // Include step-specific statuses
+          FileUploadStatus: preflightFileInfo.FileUploadStatus || "",
+          FieldMappingStatus: preflightFileInfo.FieldMappingStatus || "",
+          DataPreflightStatus: preflightFileInfo.DataPreflightStatus || "",
+          DataValidationStatus: preflightFileInfo.DataValidationStatus || "",
+          DataVerificationStatus: preflightFileInfo.DataVerificationStatus || "",
+          DeduplicationStatus: preflightFileInfo.DeduplicationStatus || "",
+          FinalReviewStatus: preflightFileInfo.FinalReviewStatus || "",
+          ImportPushStatus: preflightFileInfo.ImportPushStatus || "",
+        };
+        
+        console.log("🚀 Calling preflightService.saveFile with request:", request);
+        
+        const response = await preflightService.saveFile(request);
+        
+        console.log("📡 Backend response:", response);
+        
+        toast({
+          title: "Success",
+          description: "Import name updated successfully.",
+        });
+      } else {
+        console.log("⚠️ No PreflightFileID found, skipping backend update");
+        console.log("PreflightFileID:", preflightFileInfo.PreflightFileID);
+        // Removed toast for local update without PreflightFileID
+      }
+
       setIsEditingImportName(false);
       
-      toast({
-        title: "Success",
-        description: "Import name updated successfully.",
-      });
     } catch (error) {
-      console.error("Error saving import name:", error);
+      console.error("💥 Error saving import name:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data || 'No response data'
+      });
+      
       toast({
         title: "Error",
-        description: "Failed to save import name.",
+        description: `Failed to save import name: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
@@ -185,32 +266,6 @@ export function ImportStepHeader({
               <Badge 
                 className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5 flex-shrink-0 shadow-sm border-0 ${getStatusBadgeStyle(status)}`}
               >
-                {/* Dynamic icon based on status */}
-                {status?.toLowerCase() === 'success' || status?.toLowerCase() === 'completed' ? (
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                ) : status?.toLowerCase() === 'error' || status?.toLowerCase() === 'failed' ? (
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
-                  </svg>
-                ) : status?.toLowerCase() === 'warning' ? (
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                ) : status?.toLowerCase() === 'in progress' ? (
-                  <div className="w-3.5 h-3.5 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-current rounded-full animate-pulse"></div>
-                  </div>
-                ) : status?.toLowerCase() === 'verification pending' ? (
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <div className="w-3.5 h-3.5 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-current rounded-full"></div>
-                  </div>
-                )}
                 {getDisplayStatus(status || 'Not Started')}
               </Badge>
               <div className="flex items-center gap-1.5 text-gray-600 flex-shrink-0">
@@ -231,6 +286,7 @@ export function ImportStepHeader({
                     className="flex-1 max-w-md h-7 text-sm"
                     placeholder="Enter import name"
                     autoFocus
+                    maxLength={100}
                   />
                   <Button
                     size="sm"
@@ -257,9 +313,9 @@ export function ImportStepHeader({
                     size="sm"
                     variant="ghost"
                     onClick={() => setIsEditingImportName(true)}
-                    className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0"
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50 focus:ring-2 focus:ring-blue-200 transition-colors duration-150 flex-shrink-0 rounded-full"
                   >
-                    <Edit className="h-3 w-3" />
+                    <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
               )}
@@ -269,22 +325,22 @@ export function ImportStepHeader({
 
         {/* Steps Section */}
         <div className="px-8 py-5">
-          <div className="flex items-center justify-between relative">
+          <div className="relative flex items-center justify-between">
             {steps.map((step, index) => {
               const isCompleted = completedSteps.includes(step.id);
               const isActive = currentStep === step.id;
 
               return (
-                <div key={step.id} className="flex flex-col items-center relative">
+                <div key={step.id} className="flex flex-col items-center relative z-10">
                   {/* Step Circle and Icon */}
                   <div
                     className={`
-                      flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 relative z-10
+                      flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 border-2
                       ${isCompleted 
-                        ? 'bg-green-500 border-2 border-green-500' 
+                        ? 'bg-green-500 border-green-500' 
                         : isActive 
-                        ? 'bg-blue-500 border-2 border-blue-500' 
-                        : 'bg-white border-2 border-gray-300'
+                        ? 'bg-blue-500 border-blue-500' 
+                        : 'bg-gray-200 border-gray-300'
                       }
                     `}
                   >
@@ -303,9 +359,8 @@ export function ImportStepHeader({
                           : 'text-gray-500'
                         }
                       `}
-                    >
-                      {step.label}
-                    </span>
+                      dangerouslySetInnerHTML={{ __html: step.label }}
+                    />
                   </div>
                 </div>
               );
@@ -317,9 +372,9 @@ export function ImportStepHeader({
             {/* Completed progress line */}
             {completedSteps.length > 0 && (
               <div 
-                className="absolute top-6 left-8 h-0.5 bg-green-500 transition-all duration-300 z-0"
+                className="absolute top-6 left-8 h-0.5 bg-green-500 transition-all duration-500 ease-in-out z-0"
                 style={{ 
-                  width: `${Math.min((completedSteps.length / (steps.length - 1)) * 100, 100)}%` 
+                  width: `${Math.min(((completedSteps.length - 1) / (steps.length - 1)) * 100, ((steps.length - 2) / (steps.length - 1)) * 100)}%` 
                 }}
               ></div>
             )}

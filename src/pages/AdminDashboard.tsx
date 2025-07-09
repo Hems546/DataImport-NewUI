@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { FileText, Shield, Database, ChevronLeft, StickyNote, Files, Map, HelpCircle, ToggleLeft } from "lucide-react";
+import { FileText, Shield, ChevronLeft, StickyNote, Files, HelpCircle, ToggleLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
